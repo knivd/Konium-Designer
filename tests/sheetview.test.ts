@@ -65,15 +65,15 @@ describe('schematic view details (26.014)', () => {
     const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
     const z = new Uint8Array(await new Response(new Blob([png]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer());
     const head = PropertyBag.from({ HEADER: 'Icon storage', WEIGHT: 1 }).toBytes();
-    const name = new TextEncoder().encode('C:\\logos\\mpg.png');
+    const name = new TextEncoder().encode('C:\\logos\\mark.png');
     const u32 = (n: number) => [n & 255, (n >> 8) & 255, (n >> 16) & 255, n >>> 24];
     // Each entry: 5 bytes (a length and a marker), the name, its size, the data
     const st = Uint8Array.from([...u32(head.length), ...head, ...u32(1 + name.length + 4 + z.length), 0xd0, name.length, ...name, ...u32(z.length), ...z]);
     cfbPut(doc.cfb!.root, 'Storage', st);
     const files = schStorage(doc);
-    expect(files.map((f) => f.name)).toEqual(['C:\\logos\\mpg.png']);
-    expect(storedFile(files, 'mpg.png')?.name).toBe('C:\\logos\\mpg.png');
-    expect(storedFile(files, 'D:\\other\\MPG.PNG')?.name).toBe('C:\\logos\\mpg.png');
+    expect(files.map((f) => f.name)).toEqual(['C:\\logos\\mark.png']);
+    expect(storedFile(files, 'mark.png')?.name).toBe('C:\\logos\\mark.png');
+    expect(storedFile(files, 'D:\\other\\MARK.PNG')?.name).toBe('C:\\logos\\mark.png');
     expect([...(await inflate(files[0]!.data))]).toEqual([...png]);
   });
 
