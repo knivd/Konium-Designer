@@ -1,0 +1,32 @@
+# Konium's parts service: a BOM document's Digi-Key and Mouser searches go to
+# https://konium.app/api/parts. The distributors' keys and the salt are secrets
+# (npx.cmd wrangler secret put …), never in this file.
+name = "konium-parts"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+routes = [{ pattern = "konium.app/api/parts/*", zone_name = "konium.app" }]
+
+# One Durable Object (SQLite) for the counts, the answers kept and Digi-Key's token
+[[durable_objects.bindings]]
+name = "STORE"
+class_name = "Store"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Store"]
+
+[vars]
+# New searches a day for each user (by IP address); searches already made answer from what was kept
+LOOKUPS_PER_USER = "100"
+# How long an answer is kept and given again, hours
+CACHE_HOURS = "24"
+# Digi-Key's prices and descriptions: its UK site, in pounds
+DIGIKEY_SITE = "UK"
+DIGIKEY_LANGUAGE = "en"
+DIGIKEY_CURRENCY = "GBP"
+# Under each distributor's own limits (Digi-Key: 1,000 a day, 120 a minute; Mouser: 1,000 a day, 30 a minute)
+DIGIKEY_PER_DAY = "950"
+DIGIKEY_PER_MINUTE = "100"
+MOUSER_PER_DAY = "950"
+MOUSER_PER_MINUTE = "28"

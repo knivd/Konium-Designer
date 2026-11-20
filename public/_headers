@@ -1,0 +1,34 @@
+# Cloudflare Pages / Workers static assets: what a copy of Konium opened from disk (or the
+# installed app) may read from konium.app across origins (the version check and What's New), and
+# the pages always asked for afresh: the website's, the app's at /app/ and their service workers;
+# the pages and the app sent as they are (no-transform: nothing added to them on the way)
+# every address: never shown inside another site's page, never taken for another kind of file
+/*
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+/version.json
+  Access-Control-Allow-Origin: *
+  Cache-Control: no-cache
+  X-Robots-Tag: noindex
+/whats-new.json
+  Access-Control-Allow-Origin: *
+  Cache-Control: no-cache
+  X-Robots-Tag: noindex
+/manifest.webmanifest
+  X-Robots-Tag: noindex
+/whats-new/*
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=604800
+/
+  Cache-Control: no-cache, no-transform
+/index.html
+  Cache-Control: no-cache, no-transform
+/sw.js
+  Cache-Control: no-cache
+/app/
+  Cache-Control: no-cache, no-transform
+/app/index.html
+  Cache-Control: no-cache, no-transform
+/app/sw.js
+  Cache-Control: no-cache

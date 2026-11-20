@@ -1,0 +1,70 @@
+/**
+ * F1: the User Guide at the section for what you are doing: the panel in focus, else the document in
+ * front. Keys: 'panel:<panel id>@<scope>' (a panel that serves several editors), 'panel:<panel id>',
+ * 'doc:<document kind>' (the documents that share a scope: diagrams, enclosures and the like),
+ * 'scope:<editor scope>'; values are section ids.
+ */
+export const CONTEXT: Record<string, string> = {
+  'scope:global': 'gs-home',
+  'scope:sch': 'sch-overview',
+  'scope:schlib': 'lib-sch-editor',
+  'scope:pcb': 'pcb-overview',
+  'scope:pcblib': 'lib-pcb-editor',
+  'scope:cam': 'out-cam',
+  'scope:simview': 'kd-simview',
+  'scope:simtext': 'kd-simulation',
+  'doc:OutJob': 'out-outjob',
+  'doc:BomDoc': 'out-bom-document',
+  'doc:Draftsman': 'out-draftsman',
+  'doc:DbLib': 'lib-database',
+  'doc:DbLink': 'lib-database',
+  'doc:Diagram': 'kd-diagrams',
+  'doc:Enclosure': 'kd-enclosure',
+  'doc:ReqDoc': 'kd-requirements',
+  'doc:StepDoc': 'kd-step-editor',
+  'doc:MbsDoc': 'kd-multiboard',
+  'doc:MbaDoc': 'kd-multiboard',
+  'panel:projects': 'gs-projects',
+  'panel:storage': 'gs-history',
+  'panel:fileInspector': 'gs-panels',
+  'panel:clipboard': 'gs-panels',
+  'panel:messages': 'sch-compile',
+  'panel:navigator': 'sch-compile',
+  'panel:libraries': 'lib-libraries-panel',
+  'panel:library@schlib': 'lib-sch-panel',
+  'panel:library@pcblib': 'lib-pcb-panel',
+  'panel:inspector@sch': 'sch-inspector',
+  'panel:inspector@pcb': 'pcb-inspector',
+  'panel:filter@sch': 'sch-filter',
+  'panel:filter@pcb': 'pcb-filter',
+  'panel:list@sch': 'sch-list',
+  'panel:list@pcb': 'pcb-inspector',
+  'panel:pcb': 'pcb-panel',
+  'panel:rules': 'pcb-drc',
+  'panel:activeRoute': 'pcb-activeroute',
+  'panel:signalIntegrity': 'kd-si',
+  'panel:powerAnalysis': 'pcb-power',
+  'panel:thermalAnalysis': 'pcb-thermal',
+  'panel:emcCheck': 'pcb-emc',
+  'panel:supplyImpedance': 'pcb-pdn',
+  'panel:fieldSolver': 'pcb-field',
+  'panel:calculators': 'calculators',
+  'panel:antennaAnalysis': 'pcb-antenna',
+  'panel:liveSim': 'sch-live',
+  'panel:liveScope': 'sch-live',
+  'panel:scripts': 'scr-intro',
+  'panel:cam': 'out-cam',
+  'panel:adviser': 'kd-adviser',
+  'panel:layoutPlanner': 'pcb-layout-planner',
+  'panel:smartRouter': 'pcb-smart-router',
+  'panel:boardRun': 'pcb-board-run',
+  'panel:requirements': 'kd-requirements-panel',
+  'panel:simdata': 'kd-simview',
+};
+
+/** The section for a panel id, a document kind or an editor scope (the panel first, for this editor if it says). */
+export function contextSection(panel: string | null, scope: string, kind?: string): string | null {
+  const base = scope === 'schlib' ? 'sch' : scope === 'pcblib' ? 'pcb' : scope;
+  return (panel ? CONTEXT[`panel:${panel}@${scope}`] ?? CONTEXT[`panel:${panel}@${base}`] ?? CONTEXT[`panel:${panel}`] : undefined)
+    ?? (kind ? CONTEXT[`doc:${kind}`] : undefined) ?? CONTEXT[`scope:${scope}`] ?? CONTEXT['scope:global'] ?? null;
+}

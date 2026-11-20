@@ -1,0 +1,58 @@
+# Apache and LiteSpeed hosts (konium.app is one): what a copy of Konium opened from disk may read
+# from konium.app across origins — the version check (version.json) and What's New
+# (whats-new.json), and that both are always asked for afresh; so are the pages (the website's, and
+# the app's at app/index.html) and their service workers (else a browser may keep showing the last
+# version for a while after an upload).
+# _headers says the same for Cloudflare Pages.
+<IfModule mod_headers.c>
+  # No page of the site may be shown inside another site's page (where someone could lay their own
+  # buttons over it), and no file is taken for another kind than the one it is sent as
+  Header always set X-Frame-Options "DENY"
+  Header always set Content-Security-Policy "frame-ancestors 'none'"
+  Header always set X-Content-Type-Options "nosniff"
+  <FilesMatch "^(version|whats-new)\.json$">
+    Header set Access-Control-Allow-Origin "*"
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  <FilesMatch "^sw\.js$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  # The pages, and the app (one file, with a published checksum): asked for afresh, and sent as
+  # they are. no-transform has Cloudflare (which this site is served through) leave them alone:
+  # without it Cloudflare adds its own analytics script to every page a browser asks for, so the
+  # app downloaded from the Download page no longer matched its checksum and loaded that script.
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, no-transform"
+  </FilesMatch>
+  # Data files, not pages (version.json, whats-new.json, the manifest): read by anyone, kept out of
+  # search results
+  <FilesMatch "\.(json|webmanifest)$">
+    Header set X-Robots-Tag "noindex"
+  </FilesMatch>
+</IfModule>
+
+# One address for every page, as search engines want it: https://konium.app/… (the pages' canonical
+# addresses). www.konium.app and plain http answer with a permanent redirect there. Behind
+# Cloudflare the visitor's own protocol is in X-Forwarded-Proto (Cloudflare may reach this server
+# over http for an https visitor), so that, not this server's own connection, decides.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+  RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
+  # A folder asked for without its closing slash (/features): straight to https://konium.app/features/,
+  # in one step (the server's own redirect would go to http first behind Cloudflare)
+  RewriteCond %{HTTP_HOST} ^konium\.app$ [NC]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteCond %{REQUEST_URI} !/$
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI}/ [R=301,L]
+  RewriteCond %{HTTP_HOST} ^konium\.app$ [NC]
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+</IfModule>
+
+# An address the site doesn't have: the website's own page for it (not the host's)
+ErrorDocument 404 /404.html
+
+# The web app manifest as what it is
+AddType application/manifest+json .webmanifest

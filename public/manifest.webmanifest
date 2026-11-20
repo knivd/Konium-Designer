@@ -1,0 +1,29 @@
+{
+  "id": "/",
+  "name": "Konium Designer",
+  "short_name": "Konium",
+  "description": "Schematic capture and PCB layout for .PrjPcb projects and their .SchDoc, .PcbDoc and library files",
+  "start_url": "app/",
+  "scope": "app/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "background_color": "#13201d",
+  "theme_color": "#13201d",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "file_handlers": [
+    {
+      "action": "app/",
+      "accept": {
+        "application/x-eda-schdoc": [".SchDoc", ".schdoc"],
+        "application/x-eda-pcbdoc": [".PcbDoc", ".pcbdoc"],
+        "application/x-eda-prjpcb": [".PrjPcb", ".prjpcb"],
+        "application/x-eda-schlib": [".SchLib", ".schlib"],
+        "application/x-eda-pcblib": [".PcbLib", ".pcblib"],
+        "model/step": [".step", ".stp", ".STEP", ".STP"]
+      },
+      "launch_type": "single-client"
+    }
+  ]
+}
