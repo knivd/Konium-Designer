@@ -1,0 +1,37 @@
+{
+  "name": "konium-designer",
+  "version": "26.200.0",
+  "private": true,
+  "description": "Offline PCB design PWA with Altium Designer file compatibility",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "postbuild": "node website/build.mjs",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "samples": "vite-node tests/tools/write-samples.ts"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "@types/clipper-lib": "6.4.0",
+    "@types/rbush": "^4.0.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.5",
+    "vite-plugin-singlefile": "^2.3.4",
+    "vitest": "^3.2.7"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-sans-condensed": "^5.2.6",
+    "@preact/signals": "^2.11.3",
+    "buffer": "6.0.3",
+    "clipper-lib": "6.4.2",
+    "earcut": "^3.2.4",
+    "isomorphic-git": "1.44.4",
+    "manifold-3d": "3.5.4",
+    "pdfjs-dist": "6.4.299",
+    "preact": "^11.0.1",
+    "rbush": "^4.0.1"
+  }
+}

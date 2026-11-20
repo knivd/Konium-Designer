@@ -1,0 +1,26 @@
+[Design]
+Version=1.0
+HierarchyMode=0
+
+[Document1]
+DocumentPath=Amplifier.SchDoc
+AnnotationEnabled=1
+
+[Document2]
+DocumentPath=Simulation Sources.SchLib
+AnnotationEnabled=1
+
+[Document3]
+DocumentPath=Simulation Parts.SchLib
+AnnotationEnabled=1
+
+[OutputGroup1]
+Name=Simulator Outputs
+Description=
+OutputType1=AdvSimNetlist
+OutputName1=Mixed Sim
+OutputDocumentPath1=
+OutputVariantName1=
+OutputDefault1=0
+Configuration1_Name1=OutputConfigurationParameter1
+Configuration1_Item1=Record=AdvSimSettings|CollectDataFor=Node Voltage, Supply Current, Device Current and Power|SheetsToNetlist=Active project|SimViewSetup=Keep last setup|ActiveSignals=IN,OUT|OP=True|Tran=True|TranStart=0.000|TranStop=5.000m|TranStep=20.00u|TranMaxStep=20.00u|TranUIC=False|TranUseDefaults=True|TranCycles=5|TranPoints=50|Fourier=False|FourierFreq=1.000k|FourierHarmonics=10|DC=False|DCSource=|DCStart=0.000|DCStop=1.000|DCStep=20.00m|DCSecondary=False|DCSource2=|DCStart2=0.000|DCStop2=1.000|DCStep2=100.0m|AC=True|ACStart=1.000|ACStop=1.000meg|ACSweep=Decade|ACPoints=100|TF=False|TFSource=|TFReference=0|Noise=False|NoiseSource=|NoiseStart=1.000|NoiseStop=1.000meg|NoiseSweep=Decade|NoisePoints=100|NoiseSummary=0|NoiseOutput=|NoiseReference=0|PZ=False|PZInput=|PZInputRef=0|PZOutput=|PZOutputRef=0|PZTransfer=V(output)/V(input)|PZType=Poles and Zeros|TempSweep=False|TempStart=0.000|TempStop=100.0|TempStep=10.00|ParamSweep=False|ParamVariable=|ParamStart=1.000k|ParamStop=10.00k|ParamStep=1.000k|ParamType=Absolute Values|ParamSecondary=False|ParamVariable2=|ParamStart2=1.000k|ParamStop2=10.00k|ParamStep2=1.000k|ParamType2=Absolute Values|MonteCarlo=False|MCSeed=-1|MCDistribution=Uniform|MCRuns=5|MCResistor=10%|MCCapacitor=10%|MCInductor=10%|MCTransistor=10%|MCDCSource=10%|MCSpecific=|ReferenceNet=GND|Method=Trapezoidal|Option_ABSTOL=1.000p|Option_CHGTOL=10.00f|Option_GMIN=1.000p|Option_ITL1=100|Option_ITL2=50|Option_ITL4=10|Option_RELTOL=1.000m|Option_TEMP=27.00|Option_TNOM=27.00|Option_TRTOL=7.000|Option_VNTOL=1.000u|Option_ACCT=0|Option_DEFAD=0.000|Option_DEFAS=0.000|Option_DEFL=100.0u|Option_DEFW=100.0u|Option_ITL5=0|Option_PIVREL=1.000m|Option_RAMPTIME=0.000|Option_SRCSTEPS=10

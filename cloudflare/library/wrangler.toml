@@ -1,0 +1,36 @@
+# Konium's world parts library: parts published by designers, kept in a public Git repository and
+# given to the public domain (CC0 1.0), reached at https://konium.app/api/library. The GitHub token,
+# the library's secret and the mail key are secrets (npx.cmd wrangler secret put …), never in this file.
+name = "konium-library"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+routes = [{ pattern = "konium.app/api/library/*", zone_name = "konium.app" }]
+
+# One Durable Object (SQLite) for the counts, the sign-ins under way, the contributors and the parts' index
+[[durable_objects.bindings]]
+name = "STORE"
+class_name = "Store"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Store"]
+
+# The sign-in mail by Cloudflare's own Email Service (Workers Paid; the domain set up for sending
+# first). Without it the mail goes by Resend, with the secret RESEND_KEY.
+# [[send_email]]
+# name = "EMAIL"
+
+[vars]
+# The public repository the parts are kept in ("owner/name") and its branch
+LIBRARY_REPO = ""
+LIBRARY_BRANCH = "main"
+# The sign-in mail's sender (an address on the site's domain, verified with whoever sends the mail)
+MAIL_FROM = "library@konium.app"
+MAIL_NAME = "Konium parts library"
+# Where the mailed link leads
+SITE = "https://konium.app"
+# For each user (by IP address): parts fetched a day, sign-in links asked for an hour, parts published a day
+FETCH_PER_DAY = "500"
+SIGNIN_PER_HOUR = "5"
+PUBLISH_PER_DAY = "20"

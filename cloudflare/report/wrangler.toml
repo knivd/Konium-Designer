@@ -1,0 +1,39 @@
+# Konium's bug-report Worker: Help › Report a Bug posts to https://konium.app/api/report.
+# The address reports go to is a secret (npx.cmd wrangler secret put REPORT_TO), never in this file.
+name = "konium-report"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+# konium.app/api/report runs this Worker (the site's DNS must be on Cloudflare)
+routes = [{ pattern = "konium.app/api/report", zone_name = "konium.app" }]
+
+# Email Routing's sending binding, with no fixed destination: it may send to any address
+# verified in Email Routing (REPORT_TO must be one of them)
+[[send_email]]
+name = "REPORTS"
+
+[vars]
+# The sender: an address on konium.app (Email Routing enabled on the domain); it needn't be a mailbox
+REPORT_FROM = "reports@konium.app"
+# Reports are also filed in this private repository ("owner/name"), with the GITHUB_TOKEN secret;
+# leave it empty to send email only
+REPORTS_REPO = ""
+
+# A few reports a minute from one IP address at most
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 5
+  period = 60
+
+# Parts of a report's large attachments a minute from one IP address at most (a 40 MB zip is 7 parts)
+[[ratelimits]]
+name = "PART_LIMITER"
+namespace_id = "1006"
+
+  [ratelimits.simple]
+  limit = 30
+  period = 60
+

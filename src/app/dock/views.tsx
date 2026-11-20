@@ -1,0 +1,81 @@
+import type { VNode } from 'preact';
+import { featureOn } from '../../core/release';
+import { PlannedPanel } from '../PlannedDoc';
+import { PowerPanel } from '../panels/PowerPanel';
+import { ThermalPanel } from '../panels/ThermalPanel';
+import { EmcPanel } from '../panels/EmcPanel';
+import { PdnPanel } from '../panels/PdnPanel';
+import { FieldPanel } from '../panels/FieldPanel';
+import { CalculatorPanel } from '../panels/CalculatorPanel';
+import { AntennaPanel } from '../panels/AntennaPanel';
+import { LivePanel } from '../panels/LivePanel';
+import { LiveScopePanel } from '../panels/LiveScopePanel';
+import { FileInspectorPanel, MessagesPanel, ProjectsPanel } from '../panels/Panels';
+import { InspectorPanel } from '../panels/Inspector';
+import { SchFilterPanel } from '../panels/SchFilter';
+import { SchListPanel } from '../panels/SchList';
+import { PcbFilterPanel } from '../panels/PcbFilter';
+import { PcbListPanel } from '../panels/PcbList';
+import { PcbPanel } from '../panels/PcbPanel';
+import { RulesViolationsPanel } from '../panels/RulesPanel';
+import { ActiveRoutePanel } from '../panels/ActiveRoutePanel';
+import { PcbEditor } from '../../editors/pcb/PcbEditor';
+import { LibrariesPanel } from '../panels/Libraries';
+import { NavigatorPanel } from '../panels/Navigator';
+import { SchLibraryPanel } from '../panels/SchLibraryPanel';
+import { PcbLibraryPanel } from '../panels/PcbLibraryPanel';
+import { SimDataPanel } from '../panels/SimDataPanel';
+import { CamPanel } from '../panels/CamPanel';
+import { StorageManagerPanel } from '../panels/StorageManager';
+import { ClipboardPanel } from '../panels/ClipboardPanel';
+import { SignalIntegrityPanel } from '../panels/SignalIntegrityPanel';
+import { AdviserPanel } from '../panels/AdviserPanel';
+import { LayoutPlannerPanel } from '../panels/LayoutPlannerPanel';
+import { SmartRouterPanel } from '../panels/SmartRouterPanel';
+import { BoardRunPanel } from '../panels/BoardRunPanel';
+import { PartsPanel } from '../panels/PartsPanel';
+import { RequirementsPanel } from '../panels/RequirementsPanel';
+import { ScriptsPanel } from '../panels/ScriptsPanel';
+import { active } from '../state';
+
+/** Panel id → its content (the group draws the title bar and tabs). */
+export function renderPanel(id: string): VNode | null {
+  // Panels that pick rows by index start afresh for another document
+  const doc = active.value?.id;
+  switch (id) {
+    case 'projects': return <ProjectsPanel />;
+    case 'messages': return <MessagesPanel />;
+    case 'fileInspector': return <FileInspectorPanel />;
+    case 'navigator': return <NavigatorPanel key={doc} />;
+    case 'library': return active.value?.doc.kind === 'SchLib' ? <SchLibraryPanel key={doc} /> : <PcbLibraryPanel key={doc} />;
+    case 'inspector': return <InspectorPanel />;
+    case 'filter': return active.value?.editor instanceof PcbEditor ? <PcbFilterPanel /> : <SchFilterPanel />;
+    case 'list': return active.value?.editor instanceof PcbEditor ? <PcbListPanel /> : <SchListPanel />;
+    case 'pcb': return <PcbPanel key={doc} />;
+    case 'rules': return <RulesViolationsPanel key={doc} />;
+    case 'activeRoute': return <ActiveRoutePanel key={doc} />;
+    case 'libraries': return <LibrariesPanel />;
+    case 'simdata': return <SimDataPanel key={doc} />;
+    case 'cam': return <CamPanel key={doc} />;
+    case 'storage': return <StorageManagerPanel />;
+    case 'clipboard': return <ClipboardPanel />;
+    case 'adviser': return <AdviserPanel />;
+    case 'layoutPlanner': return featureOn('aiLayout') ? <LayoutPlannerPanel /> : <PlannedPanel feature="aiLayout" />;
+    case 'smartRouter': return featureOn('aiLayout') ? <SmartRouterPanel /> : <PlannedPanel feature="aiLayout" />;
+    case 'boardRun': return featureOn('aiLayout') ? <BoardRunPanel /> : <PlannedPanel feature="aiLayout" />;
+    case 'parts': return featureOn('partsLibrary') ? <PartsPanel /> : <PlannedPanel feature="partsLibrary" />;
+    case 'requirements': return featureOn('requirements') ? <RequirementsPanel /> : <PlannedPanel feature="requirements" />;
+    case 'scripts': return featureOn('scripting') ? <ScriptsPanel /> : <PlannedPanel feature="scripting" />;
+    case 'signalIntegrity': return featureOn('si') ? <SignalIntegrityPanel /> : <PlannedPanel feature="si" />;
+    case 'powerAnalysis': return featureOn('analysis') ? <PowerPanel /> : <PlannedPanel feature="analysis" />;
+    case 'thermalAnalysis': return featureOn('analysis') ? <ThermalPanel /> : <PlannedPanel feature="analysis" />;
+    case 'emcCheck': return featureOn('analysis') ? <EmcPanel /> : <PlannedPanel feature="analysis" />;
+    case 'supplyImpedance': return featureOn('analysis') ? <PdnPanel /> : <PlannedPanel feature="analysis" />;
+    case 'fieldSolver': return featureOn('analysis') ? <FieldPanel /> : <PlannedPanel feature="analysis" />;
+    case 'antennaAnalysis': return featureOn('antenna') ? <AntennaPanel /> : <PlannedPanel feature="antenna" />;
+    case 'calculators': return featureOn('calculators') ? <CalculatorPanel /> : <PlannedPanel feature="calculators" />;
+    case 'liveSim': return featureOn('live') ? <LivePanel /> : <PlannedPanel feature="live" />;
+    case 'liveScope': return featureOn('live') ? <LiveScopePanel /> : <PlannedPanel feature="live" />;
+    default: return <p class="panel-empty">{id}</p>;
+  }
+}

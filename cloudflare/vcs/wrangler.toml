@@ -1,0 +1,45 @@
+# Konium's version control Worker: teams' projects kept sealed (konium.app/api/vcs) and a relay for
+# teams' own Git servers (konium.app/api/git). The SALT is a secret (npx.cmd wrangler secret put SALT).
+name = "konium-vcs"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+routes = [
+  { pattern = "konium.app/api/vcs/*", zone_name = "konium.app" },
+  { pattern = "konium.app/api/git/*", zone_name = "konium.app" },
+]
+
+# The bucket teams' projects are kept in (create it first: npx.cmd wrangler r2 bucket create konium-vcs)
+[[r2_buckets]]
+binding = "STORE"
+bucket_name = "konium-vcs"
+
+# One Durable Object (SQLite) for the store's ledger: what each team keeps, and each day's counts
+[[durable_objects.bindings]]
+name = "LEDGER"
+class_name = "Ledger"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Ledger"]
+
+[vars]
+# A team's store at most, and one push at most (in MB)
+MAX_TEAM_MB = "1024"
+MAX_BLOB_MB = "95"
+# The whole store at most (in GB): what the bucket may come to cost
+MAX_STORE_GB = "50"
+# What one user (by IP address) may write a day (in MB), and how many new teams they may start
+USER_MB_PER_DAY = "1024"
+NEW_TEAMS_PER_USER = "3"
+# New teams a day for the whole service
+NEW_TEAMS_PER_DAY = "200"
+
+# Requests a minute from one IP address at most
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "1002"
+
+  [ratelimits.simple]
+  limit = 300
+  period = 60

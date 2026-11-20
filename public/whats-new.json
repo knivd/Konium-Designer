@@ -1,0 +1,1181 @@
+{
+ "releases": [
+  {
+   "version": "26.200",
+   "title": "The source code is public",
+   "sha256": "6d54b3d5a5a3233c8aac303db6a53be6e122ce312fdbe79626ef046699430a61",
+   "items": [
+    {
+     "text": "Konium Designer's source code is now public, under the GNU General Public License (version 3 or later): anyone may read it, build it, change it and pass it on under the same licence. Help › About has the way to it (Source Code), the licence in full (Licence..., kept in your copy so it shows without a connection) and the software of others that is built in, each with its own licence (Third-Party Software...). Ask to Audit the Source Code is gone from About: nobody has to ask any more. In its place, Help › Contact the Author takes a security problem reported privately.",
+     "image": "whats-new/26.200-open-source.webp",
+     "alt": "Help › About over the demo board with Third-Party Software open: a list of the packages built into Konium Designer, each with its version and its licence, and a field to search them."
+    },
+    {
+     "text": "Before the source went out, the whole program and the services behind konium.app were gone through for what a stranger could do with a crafted file, a script or a request, and for what could lose or damage a design. What was found is fixed, each with a test that shows it, and the record is in the repository. A script run from Tools › Scripts, and a document made to mislead, can do no more than they are meant to; the pages Konium Designer writes (reports, prints) can run nothing."
+    },
+    {
+     "text": "A footprint's own vias (thermal vias under a part) now belong to their part: they move, turn and go with it, where before they stayed behind when the part was moved. Deleting or exploding a polygon pour on a board with internal planes no longer disturbs the planes' edges."
+    },
+    {
+     "text": "Safer saving and recovery. After a crash, the copies kept for recovery are no longer lost when a document of the same name is closed or saved in another window, and a recovered copy opens beside an open document of its name. A Save As that is cancelled no longer changes the format the next Save writes. A save to a place the browser cannot write no longer leaves an empty file that passes for the saved one: the document is downloaded instead, and a window says so. If the browser refuses to keep an auto-saved copy because its storage is full, that is said."
+    },
+    {
+     "text": "Said, where before nothing was: a second file with the name of a document that is already open is not opened, and Konium Designer now says so instead of showing the first as if it were the second; a STEP export names the parts whose 3D models it could not write; a script of your own is asked about before it is deleted."
+    },
+    {
+     "text": "With network activity off, the browser is now told to refuse every kind of thing a page can load, scripts, style sheets and workers among them, and nothing at all is asked of konium.app. The one thing no web page can stop is stated in the list of connections: for a copy at konium.app, or installed from it, the browser itself looks for newer offline files about once a day (a downloaded copy has none of that). What the Component Builder reads from a datasheet is shared for the next person only when the datasheet came from the web, never when you opened it from your computer."
+    },
+    {
+     "text": "Single layer mode in the 3D view: Shift+S shows the layer in front alone there too, without the parts' bodies, and follows the layer as you change it.",
+     "image": "whats-new/26.200-3d-single-layer.webp",
+     "alt": "The demo board in the 3D view in single layer mode: the top layer's copper alone on the bare board, with a note saying Single layer mode: Top Layer alone."
+    },
+    {
+     "text": "One style for Konium Designer's own panels (the power, thermal, EMC, supply impedance and antenna analyses, the Layout Planner, the Smart Router and the rest): a section's name small above it, its tools as icons with their names, and the one action that runs it filled. On the dark theme the colour icons of the toolbars and menus are now light, and the download button in Get Konium Designer can be read.",
+     "image": "whats-new/26.200-panels.webp",
+     "alt": "The EMC Check panel beside the demo board: What to check and Rules as small headings over aligned fields, a filled Check button, and under Results one finding about supply pins with no capacitor close by."
+    },
+    {
+     "text": "Bug reports take large attachments: over 8 MB together they are zipped and sent in parts, 40 MB zipped at most."
+    }
+   ]
+  },
+  {
+   "version": "26.195",
+   "title": "The Layout Planner, the Smart Router and free-flowing routes",
+   "sha256": "c0caa5ce1e15e06d6ef5d257da7ef42894b4a93fe8375c619fd3bd5b8bf49b38",
+   "items": [
+    {
+     "text": "Layout Planner (Tools › Layout Planner, in the PCB editor): the AI model you chose plans where a board's parts go before any of them is placed. The plan gives the groups of parts that belong together and where each group sits, the parts that must be at an edge, what must be close to which pin (a decoupling capacitor at its supply pin, a crystal at the oscillator pins), and what must be kept apart or clear, each with its reason, and draws the groups as zones over the board. Place by the Plan then puts every part in its exact place in one step, and each thing the plan asked is marked as met or not as the board stands. Plan Again sends the plan back with what was not met and what you want changed. The model is never asked for coordinates: it decides, and the placer measures.",
+     "image": "whats-new/26.195-layout-planner.webp",
+     "alt": "The Layout Planner panel beside its example board after Place by the Plan: the parts placed inside the outline, and in the panel the plan's summary, the result of the placing and the groups."
+    },
+    {
+     "text": "Smart Router (Tools › Smart Router): the model plans how the placed board is routed, as a layout engineer decides it before routing: which nets are routed alike, how wide, on which layers, with how many vias and in what order, the via size, what is poured, and which nets are differential pairs, each with its reason. Make the Rules writes that as the board's own net classes and design rules. Route by the Plan has the autorouter carry it out in one step: the pads of poured nets are joined to their pour by a via, a track wider than its pad is necked down there, and a differential pair's two tracks are laid side by side at its gap where that can be done. The result lists what was routed and what was left, class by class, and what the design rule check finds that was not there before. Plan Again sends that back to the model.",
+     "image": "whats-new/26.195-smart-router.webp",
+     "alt": "The Smart Router panel beside the example board routed by a plan: tracks on the top layer over a ground pour on the bottom, and in the panel the result of the run and the classes in the order they were routed."
+    },
+    {
+     "text": "Plan, Place and Route (Tools › Plan, Place and Route): the planner and the router as one run, from a board with its parts beside the outline to a routed board, ending with the design rule check. It stops after each stage for your go-ahead, so that a plan can be read, and changed in its own panel, before it is carried out; untick that and it runs through."
+    },
+    {
+     "text": "Free-flowing routes: a routing style in which a track takes the direct way at any angle and curves in an arc round each pad, via or track it passes, as a rubber band would lie. Choose it in Preferences › PCB Editor › Interactive Routing › Routing Style for the autorouter, the Smart Router and the routes you place by hand, or reshape routes that are already there with Route › Make Free-Flowing. The tracks come out shorter and run beside each other for less of their length, which lowers crosstalk; there is no corner to disturb a microwave line, or for a crack to start at on a flexible board. For ordinary digital signals 45° corners do no harm, and there the choice is one of taste.",
+     "image": "whats-new/26.195-free-flowing.webp",
+     "alt": "The example board routed free-flowing: tracks at many angles that curve in arcs round pads and vias, several in concentric curves beside the microcontroller."
+    },
+    {
+     "text": "These tools work like the other AI tools: off until you switch AI on, started by hand, and each says what it will send and to whom before anything goes. A board's outline, parts and nets go as text; no drawing does. How good a plan is depends on the model you choose, so read a plan before you carry it out. Each step is one Undo."
+    },
+    {
+     "text": "Route › Fanout no longer puts the vias of two neighbouring pads on top of each other: a fanout's via keeps the Hole To Hole Clearance rule's distance from every other hole."
+    },
+    {
+     "text": "The User Guide opens where you left it. Leave its tab for a document and come back, and it is at the same chapter, as far down the page, with the same search, where it used to start again at its beginning. The guide has new sections for the Layout Planner, the Smart Router, free-flowing routes and Plan, Place and Route."
+    }
+   ]
+  },
+  {
+   "version": "26.191",
+   "title": "Where each connection goes, and EDIF text in its own sizes",
+   "sha256": "c121bb9223beecf2f39122d038686029e4552ccf6a91797c9358df189e283d9d",
+   "items": [
+    {
+     "text": "The list of what Konium Designer connects to now says where each connection actually goes. Its To column names every party what you send reaches, in order: the address your browser asks, then whoever that passes it on to. AI jobs through the Konium service go to konium.app, then OpenRouter, then the company that runs the model you chose; with your own key they go straight from your browser to OpenRouter or the provider you gave, and with a local model nowhere but your own computer or network. Digi-Key and Mouser searches go to konium.app and from there to Digi-Key or Mouser. JLCPCB lookups go to jlcsearch.tscircuit.com, a public copy of JLCPCB's parts list, not to JLCPCB itself. A bug report goes to konium.app, then the author's mailbox and the author's private repository at GitHub, where the author and the AI assistant that helps build Konium Designer read it. Nothing that is sent has changed, only what the list says of it.",
+     "image": "whats-new/26.191-connections.webp",
+     "alt": "Preferences, System, Network Activity: the Connections table from its AI rows down. AI jobs through the Konium service go to konium.app, then OpenRouter, then the company OpenRouter has run the chosen model; with your own key straight from your browser to OpenRouter or the address you gave; a local model at the address you gave. Then datasheets for the AI tools, shared AI results, JLCPCB lookups at jlcsearch.tscircuit.com (a public copy, not JLCPCB itself), Digi-Key and Mouser through konium.app, and bug reports to konium.app and the author's mailbox."
+    },
+    {
+     "text": "Links have a row of their own in that list: a page your browser opens when you click, such as Ko-fi for a donation, a part's page at a supplier or a datasheet's address. Konium Designer sends nothing there, and switching network activity off does not stop a click of yours. The list is the same in Help › About, Preferences › System › Network Activity, the User Guide and the website's FAQ."
+    },
+    {
+     "text": "EDIF schematics: texts in their own sizes. A file from xDX Designer says how high each text is, and designators, values, net names, notes and pin names now take a font of that size, where every text was 10 points. The lines of a note stand as far apart as their size asks."
+    },
+    {
+     "text": "The User Guide has four more pictures: a netlist loaded into a board as an Engineering Change Order, the Selection Filter, a part over its rating in Live Simulation with Solve for a value set up, and a footprint from the IPC wizard in 3D."
+    }
+   ]
+  },
+  {
+   "version": "26.190",
+   "title": "EDIF schematics from xDX Designer, and the list of overlapping objects",
+   "sha256": "ba7331b86af7487b5f7f3342f892d42f228a7770d1f578918d8c5ad8f73721d7",
+   "items": [
+    {
+     "text": "EDIF schematics from xDX Designer (.eds) open, and as they were drawn. The file was not taken at all under that name; EDIF is now told by its content, whatever the file is called. And what that tool writes in its own way is read: the designators and pin numbers the design was given, where they read R? and C? before; each text shown or hidden as the file says, at its place on the page, where hidden part names and tolerances lay scattered across the sheet; ground and supply symbols as power ports; and a net drawn in separate pieces as one net, where a label stood on every pin."
+    },
+    {
+     "text": "Net names in such a file: a name shown on the sheet is a net label where it was, ending at its place where the file has it so. A name of the designer's that the file hides is kept as one label in the middle of its wire, so that the netlist is the same; a name the tool made up is left out. The import checks every pin against the net EDIF joins it to, and says so if the drawing connects anything differently."
+    },
+    {
+     "text": "The list of overlapping objects on a board (Display popup selection dialog) stays while the wheel turns and when Shift, Ctrl or Alt goes down. It closed on any turn of the wheel, and a free-spinning wheel or a touchpad still gliding after a zoom closed it as it came, so that a click made straight after zooming never showed it. A press elsewhere or any other key still closes it."
+    }
+   ]
+  },
+  {
+   "version": "26.189",
+   "title": "Calculators, ratings and solving in Live Simulation, netlists into a board, choosing what a click takes on a board",
+   "sha256": "835886c9c9bf13ea287ff89b7a84140d57b3cff269e5251560c096337c9677c4",
+   "items": [
+    {
+     "text": "Calculators (Tools › Calculators, in every editor): the everyday sums beside your work. A voltage divider, where any one of the input, R1, R2 and the output is found from the others and a load across R2 is taken in; parts in series and in parallel, and the partner that makes a value; an LED's resistor; RC and LC; Ohm's law and power; a regulator's feedback pair; reactance; the 555 running free and as a one-shot; and the standard values nearest a value, from E6 to E192. A divider and a feedback pair also give the nearest standard pair, with the error it makes. Type quantities as you write them: 4k7, 4R7, 100n, 2.2M.",
+     "image": "whats-new/26.189-calculators.webp",
+     "alt": "The Calculators panel beside the demo board: a selected track's width and length taken into the track calculator, which gives the current it carries for a 10 °C rise, its resistance and the voltage it drops"
+    },
+    {
+     "text": "Calculators for the board, on the same formulas as Power Analysis and the Field Solver so that the figures agree: a track by IPC-2221, where any one of width, current and temperature rise is found from the other two and a length gives its resistance and the voltage it drops; a via's current, resistance, thermal resistance and inductance; the spacing for a voltage by IPC-2221B's table; and a single track's impedance, or the width for an impedance. With a board in front, From the selected track and From the selected via fill the boxes from what is selected."
+    },
+    {
+     "text": "Live Simulation flags a part worked beyond its rating: a resistor, potentiometer, Zener diode or transistor over its power, a capacitor over its voltage, a diode or an LED over its current is ringed on the sheet with the figure beside it and listed in the panel under Over their ratings. The rating is a parameter of the part (Power Rating, Voltage Rating, Maximum Current), shown as Rated for in the panel and changed there; a part with none takes its kind's common figure, such as a quarter of a watt for a resistor, 50 V for a capacitor and 30 mA for an LED.",
+     "image": "whats-new/26.189-ratings.webp",
+     "alt": "Live Simulation of an LED with a 47 Ω resistor from 5 V: the LED is ringed on the sheet with 50 mA against its 30 mA rating, and the panel lists it under Over their ratings, beside Solve for a value set to find the resistance for 20 mA"
+    },
+    {
+     "text": "Solve for a value, in the Live Simulation panel: select a part, choose one of its values under Find its, what is to read it (a voltmeter, an ammeter or a test point on the sheet, a monitor, or the probe) and the reading you want, and Find It works the value out at the circuit's operating point, to four figures, and writes it to the part. For a resistor, a capacitor and an inductor it names the nearest standard value too."
+    },
+    {
+     "text": "A part of a real design on the bench: select some of a sheet and choose Design › Simulate › Run the Selection as a Sketch, or Run the Selection in the panel. The selection is copied to a schematic of its own and runs there, and the design is not touched. A supply that says its voltage in its name (+5V, 3V3, -12V) gets a DC rail of that voltage; a ground under another name (AGND, DGND, VSS) is GND there; a supply whose name says no voltage (VCC, VBAT) is named for you to place a source on."
+    },
+    {
+     "text": "What Live Simulation watches is kept with the sheet: the monitors you kept, the scopes side by side with what each draws, and whether a run starts with everything discharged are saved with the file and come back when it is opened. A change to them is undone like any other change to the sheet."
+    },
+    {
+     "text": "Seven more parts for a sketch: a four-bit shift register, a ring counter of two to ten stages, a four-input multiplexer, a four-bit DAC and a four-bit ADC, a DIAC, and a slow-blow fuse that warms with the square of its current. The palette has 77 parts and there are 55 examples, seven of them new: quick and slow-blow fuses, a dimmer with a DIAC and a TRIAC, a ring counter running a light along, a shift register, a multiplexer, a counter and a DAC making a staircase, and an ADC and a DAC back to back."
+    },
+    {
+     "text": "Two faults of a live run are put right. An oscillator made of transistors ran at a rate that changed with the speed setting: the two-transistor astable read 21 Hz to 28 Hz, and is 20.1 Hz at every speed now. And Repeats at for a signal that swells and fades was low: two tones beating, 440 Hz and 444 Hz, read 416 Hz and now read within one per cent."
+    },
+    {
+     "text": "Load a Netlist (Design › Netlist › Load a Netlist..., on a board): bring a board to a netlist file from any tool. The differences come up as an Engineering Change Order, as Update PCB shows them from the schematics: parts added from the libraries by the names of their footprints, parts and nets the file does not have taken off, and pads given their nets. One Undo takes it all back. Ten kinds of netlist are told apart by their content: the .NET netlist in brackets and its later form with named fields, Tango, PADS, Telesis, KiCad, P-CAD in both its forms, MultiWire and EDIF.",
+     "image": "whats-new/26.189-netlist.webp",
+     "alt": "Load a Netlist on the demo board: an Engineering Change Order for a PADS netlist, adding two components, one net and four pins to nets, all validated"
+    },
+    {
+     "text": "A package that looks like one in 3D: a footprint from the IPC footprint wizard or the Component Builder used to get a plain box of the body's height, and now gets its package in pieces. A moulded body with its pin 1 mark, each gull-wing lead with its shoulder, slope and foot, J leads, the balls of a BGA on its substrate, the terminals of a chip part, the bands of a MELF and of a diode, the tab of a DPAK, and through-hole pins. Nothing stands above the package's height.",
+     "image": "whats-new/26.189-package.webp",
+     "alt": "An eight-pin SOIC from the IPC footprint wizard in the PCB library editor's 3D view: a dark moulded body with a pin 1 dot and eight gull-wing leads standing on their pads"
+    },
+    {
+     "text": "Boards from the 1990s. A board saved as PCB 2.8 ASCII, the text format the board programs of that time wrote and the desktop software still saves, opens through File › Open or the Import Wizard with its components, pads, tracks, arcs, fills, vias, strings and nets. A board in the PCB 5.0 binary format opens too, where it used to open empty, and is saved in the present format. The binary boards before that (PCB 3.0 and 4.0), the binary schematics and the .ddb design databases of that time are not read: opening one now says what it is and how to bring it in."
+    },
+    {
+     "text": "Choosing what a click takes on a board. Where a click could take more than one thing, the list beside the cursor now offers a component's pad as the pad itself as well as the component, and tells tracks apart by their lengths. What you choose stays chosen: a press on it drags it and a double-click opens it, where the object on top used to be taken again. A pad chosen on its own opens as a pad. A click inside a component's area where none of its parts is takes the component."
+    },
+    {
+     "text": "Selection Filter: with nothing selected on a board, the PCB Inspector panel has a button for each kind of object (Components, 3D Bodies, Keepouts, Tracks, Arcs, Pads, Vias, Regions, Polygons, Fills, Texts, Rooms, Other) and All - On. A kind that is off is passed over by a click, left out of a selection box and not listed among overlapping objects; with Components off, a click on a component's pad takes the pad. A click that finds only kinds that are off says so.",
+     "image": "whats-new/26.189-selection.webp",
+     "alt": "The PCB Inspector beside the demo board with nothing selected: the Selection Filter with a button for each kind of object, Tracks, Arcs, Pads, Vias, Regions and Polygons lit and the others off"
+    },
+    {
+     "text": "Lock Primitives, in a component's properties, now does what it says: with it cleared, a click on one of the component's primitives takes that primitive, which moves on its own, and the component is still there to choose, second in the list and by a click inside its area. And a kind that Shift Click To Select reserves for Shift is no longer taken by a plain click when it is alone under the cursor."
+    },
+    {
+     "text": "Follow Mouse Trail (Preferences › PCB Editor › Interactive Routing) now works: in Walkaround Obstacles and AutoRoute On Current Layer the route follows the way the cursor went since the last click, not only where it is now. Preferred Subnet Jumper Length is used as well: Route › Add Subnet Jumpers starts from it."
+    },
+    {
+     "text": "Preferences › PCB Editor › Defaults lists 25 kinds of object where it listed 11: each kind of dimension, Component Body, Drill Table, Layer Stack Table, Keepout Track and Keepout Arc have defaults of their own."
+    },
+    {
+     "text": "A notice with a lot to say stays long enough to be read."
+    }
+   ]
+  },
+  {
+   "version": "26.184",
+   "title": "Live Simulation: the sheet runs as a circuit while you draw it",
+   "sha256": "989db7f9896606d2368ae51053ebc1635aee296e5559a5ea16e1d7d66f6a983c",
+   "items": [
+    {
+     "text": "Live Simulation (Design › Simulate › Live Simulation, in the schematic editor): the sheet in front runs as a circuit while you draw it. Wires and pins take the colour of their voltage, red towards the most positive, blue towards the most negative and grey at 0 V; dots move along them the way the current flows, faster for more of it; the cursor on a wire or a pin reads its voltage and its current. It runs on the same engine and part models as Mixed Sim.",
+     "image": "whats-new/26.184-live.webp",
+     "alt": "The example of a 555 timer flashing an LED, running: the wires red towards the 9 V supply and grey at 0 V with dots along them, the LED lit with a red glow, test points reading 7.43 V at the timer's output and 5.01 V on the timing capacitor; on the right the panel's palette with the parts as tiles of their symbols under Passive, Diodes and thyristors, Transistors and Amplifiers and blocks, a key in the corner of each; along the bottom the Live Scope drawing the output's square wave and the capacitor's voltage rising and falling."
+    },
+    {
+     "text": "Sketch with it: a palette in the panel shows 70 parts as their symbols, by kind. Passive: resistor, capacitor, polarised capacitor, inductor, potentiometer, switch, changeover switch, push button, transformer, relay, crystal and fuse. Diodes and thyristors: diode, Schottky, Zener, LED, thyristor (SCR) and TRIAC. Transistors: NPN, PNP, N and P MOSFETs, N and P JFETs and a Darlington pair. Amplifiers and blocks: an op-amp with no supply pins to wire and one with them, a comparator, an analogue switch and the four controlled sources. Logic and chips: a logic input, an inverter, AND, NAND, OR, NOR and exclusive-OR gates, a Schmitt trigger, D, JK and T flip-flops, a four-bit counter, a seven-segment decoder, a 555 timer, a voltage regulator and an optocoupler. Click one and place it; wire, ground, supply, net label and text are beside them."
+    },
+    {
+     "text": "Fifteen sources: DC, sine, square, triangle, sawtooth, pulse, AM, FM, swept-sine and noise voltage sources, DC and sine current sources, and three that take one wire, their other end being 0 V: a voltage rail, a signal rail and a clock. Each has its amplitude, offset, frequency and phase to set, a square wave and a clock their duty cycle, and the others what makes them: a pulse's levels and times, a modulated source's carrier, signal and depth, a sweep's two frequencies and its time, the noise's bandwidth."
+    },
+    {
+     "text": "Every value in the panel: select a part and the panel lists what sets it, by name and unit. A diode's forward voltage, the current it is given at, its series resistance and its breakdown voltage; a Zener's voltage; a transistor's beta; a MOSFET's threshold; a JFET's pinch-off voltage and saturation current; an op-amp's gain and how far its output swings; a potentiometer's position; a transformer's ratio; a relay's pull-in and drop-out currents; a thyristor's gate trigger and holding currents; a fuse's rating; a counter's modulus; a gate's high level. Type a value, or hold the slider under it to turn it down to a tenth or up to ten times while the circuit runs. One Undo takes back a whole turn of the slider. A part that is not from the palette lists its simulation model's parameters the same way.",
+     "image": "whats-new/26.184-scope.webp",
+     "alt": "The example of the waveforms: a sine, a square, a triangle and a sawtooth source each driving a resistor, with a test point on each reading its voltage; the square source is selected and the panel lists its amplitude 1 V, offset 0 V, frequency 1k Hz, phase and duty cycle 50 %, each in a box with a slider under it; four scopes side by side along the bottom draw one waveform each."
+    },
+    {
+     "text": "Instruments and lights: a voltmeter, an ammeter and a test point read out beside themselves on the sheet, as the value now, its mean, its RMS or its peak to peak, and each can be drawn on a scope. They are parts of the sheet, so they are saved with it. An LED lights by its current, in the colour you give it, a lamp by its power, and a seven-segment display segment by segment: with the decoder and the counter it shows a count.",
+     "image": "whats-new/26.184-counter.webp",
+     "alt": "The example of a counter on a seven-segment display, held: a 2 Hz clock into the counter, its four outputs into the decoder, the decoder's seven outputs into the display, which shows 7 in red; a logic input stands low on the counter's reset. On the right the palette at Logic and chips, with the flip-flops, the counter and the decoder among the gates, then the sources, and under Instruments and outputs the voltmeter, ammeter, test point, lamp, display and speaker; along the bottom the Live Scope drawing the clock."
+    },
+    {
+     "text": "Monitors anywhere: click a wire, a pin or a two-pin part and its voltage and current are read out beside it as they change. Keep it, or right-click the point and choose Monitor Here, and it stays on the sheet while you take the next; up to 24 at once."
+    },
+    {
+     "text": "Switches and inputs: a click on a switch opens or closes it, on a changeover switch throws it to its other contact, and on a logic input changes it between low and high; the picture on the sheet is the state. A push button is closed for as long as the mouse button is held on it. A fuse blows when its current passes its rating, is struck through on the sheet, and a click on it puts a new one in."
+    },
+    {
+     "text": "The Live Scope: what you click is drawn as it goes, voltage and current, with the least, the most and how often they repeat. Put as many as six scopes side by side (+ on a scope's bar, or View in a New Scope on the right-click menu), each with its own probes. Each scope shows its probes against time, as a spectrum, or as the circuit's frequency response there: gain and phase from 0.1 Hz to 100 MHz, worked out again whenever the circuit changes."
+    },
+    {
+     "text": "Sound: a speaker is a part with two terminals and its impedance between them, and the voltage across it is played through the computer's sound while the sheet runs, at its true pitch, a stretch of the circuit's time at once (half a second, unless you set another). Sound from the speaker in the panel turns it off. Two of the examples play: a 555 timer's tone and two sine sources beating."
+    },
+    {
+     "text": "Keys while you sketch: with Keys place parts ticked in the panel, a single key picks up a part while the sheet runs, and each tile shows its key. R is a resistor, C a capacitor, Shift+L an inductor, S a switch, B a push button, U a fuse, D a diode, Z a Zener, L an LED, N and P the transistors, Shift+N and Shift+P the MOSFETs, A an op-amp, H a logic input, E a D flip-flop, J a JK flip-flop, K a counter, V a DC source, F a sine source, Q a square wave, X noise, I a current source, M a voltmeter, Shift+M an ammeter, O a test point, Y a speaker, W a wire, G a ground and T a text. They take the place of the menus those keys open otherwise, for as long as the sheet runs; clear the tick to have the menus back."
+    },
+    {
+     "text": "Examples to start from: 48 circuits ready drawn (Design › Simulate › Live Simulation Examples, Examples in the panel, or Live Simulation examples on the Home page). Basics, filters, diodes and thyristors, transistors, MOSFETs and relays, op-amps, logic and chips, and sources: from Ohm's law and a voltage divider to a bridge rectifier, a Zener voltage reference, a TRIAC lamp dimmer, a common-emitter amplifier, an astable multivibrator, a relay driver, an integrator, a latch from two gates, a counter on a seven-segment display and a 555 timer flashing an LED or playing a tone. Pick one and it opens as a sheet of its own and runs, with its test points on the scopes and a line on what to try."
+    },
+    {
+     "text": "Speed is the circuit's time for each second of yours, from a nanosecond to ten seconds, and starts at a pace the eye can follow. Hold stops the circuit where it is, to be read; From the Start begins again at its operating point, or, with Start with everything discharged ticked, with every capacitor empty and no current in any inductor, which is how an oscillator is seen to start. The run ends when its sheet is closed."
+    },
+    {
+     "text": "Opening a project that was sent as a ZIP archive: File › Open, or a drop on the window, takes the archive as the files in it, so the project opens with its schematics and board. And what the desktop software's newer versions write beside a project for their own use (the project's structure file, previews) no longer opens as a document in front of the project's own when the files are picked together."
+    },
+    {
+     "text": "PCB: a semi-circular jumper link was drawn between pads of one part that share a Jumper ID, even when the part was not a jumper and copper already joined them. A link, and a jumper's join in the connectivity, now need both: the component's type is Jumper and the pads share a Jumper ID that is not 0, as in the desktop software."
+    },
+    {
+     "text": "The toolbar's Open is a folder standing open with a document in it, and New is a page with a green plus: the two were easy to take for each other."
+    },
+    {
+     "text": "The antenna analysis's measured time is given for the processor too: the example board's model of 230,000 cells took 3 seconds on the graphics of an Intel Core Ultra 9 288V and 19 seconds on its processor."
+    }
+   ]
+  },
+  {
+   "version": "26.180",
+   "title": "Antenna analysis, default primitives you can change, and the fields put in line",
+   "sha256": "afb12435a347d662f13b8dc4a68c377940d0a2f4b0e3de58516a0d0edf5a39f3",
+   "items": [
+    {
+     "text": "Antenna analysis (Tools › Antenna Analysis, in the PCB editor): an antenna drawn in the board's copper, such as an inverted F, a meander, a patch or a printed dipole, is worked out from the copper itself. Pick the pad it is fed at and its ground, give the frequency, and Konium Designer steps Maxwell's equations through the board and the air round it. It gives the impedance and S11 at your frequency, S11 across the band with the band under −10 dB, the impedance on a Smith chart, and two-part networks that would match the antenna.",
+     "image": "whats-new/26.180-antenna.webp",
+     "alt": "The example board with the Antenna Analysis panel on the right: fed at the pad FEED against GND, for 2450 MHz from a 50 Ω source. The board is coloured by the current on its copper, red along the inverted F at the top and blue over the ground below it. Beside the cursor on the antenna a read-out gives 53 A/m for 1 W, −5.6 dB of the largest. Under Results: 48.5 + j2.0 Ω and S11 −32.0 dB (VSWR 1.05) at 2450 MHz, the S11 curve with its best match of −51.1 dB at 2435 MHz, under −10 dB from 2227 MHz to 2619 MHz, and the Smith chart."
+    },
+    {
+     "text": "How much it radiates and where: the share of the accepted power that is radiated (less the laminate's loss, and the copper's as estimated from the current on it), directivity and gain, the pattern in three cuts, and the pattern as a shape you can turn, with the board's outline inside it.",
+     "image": "whats-new/26.180-pattern.webp",
+     "alt": "The same board with the panel moved down to the radiation: it radiates 94 % of the power it accepts, the laminate taking 6 %. The pattern is drawn in three cuts, with the figures under it: directivity 3.1 dBi and gain 2.8 dBi. Below them are the pattern as a shape to turn, the ticks for the current on the board and for showing it in motion, and the model's line: 227,994 cells, in 45 s on the processor."
+    },
+    {
+     "text": "The current on the copper is laid over the board, red where it is largest, and the cursor reads it. In motion shows the current going through its cycle. Report... saves the figures, the match across the band and the gain round the board as text."
+    },
+    {
+     "text": "Where the browser has a graphics card it can use (WebGPU), the steps are taken on the card: a model of 230,000 cells, the size of the example board's, took 3 seconds on the graphics of an Intel Core Ultra 9 288V. Without one they are taken on the processor, and a run takes from half a minute to minutes. Both give the same figures. Open the example board from the panel to try it: an inverted F for 2.45 GHz."
+    },
+    {
+     "text": "What it is: the model is the board's copper as thin sheets, its vias, the laminate with its loss and the air round it. It leaves out the parts on the board, the copper's thickness, solder mask, an enclosure, cables and a hand. Expect the resonance within a few per cent, nearer with finer detail: an estimate to design by, then measure. The User Guide's section says the rest (F1 in the panel)."
+    },
+    {
+     "text": "Long work no longer pauses between its steps on a timer. A browser holds a hidden tab's timers back, so an analysis, the autorouter, automatic placement or an import that was started and left for another tab crawled until the tab was looked at again."
+    },
+    {
+     "text": "Preferences › Schematic › Default Primitives can be changed: it was a list to read. It lists 31 kinds of schematic object by group; Edit Values opens a kind's own properties (colours, widths, font, text, style), in mils or millimetres, and the next one placed starts from them. Reset and Reset All take them back, Save As and Load move them between browsers, and a changed default is starred. Tab while placing now opens the properties of a wire, a bus and every shape as it is drawn, not only of the objects that follow the cursor: the one being placed takes them and so does the default, unless Permanent is ticked. A font chosen with Tab now reaches the sheet it is placed on."
+    },
+    {
+     "text": "Preferences › PCB Editor › Defaults: Edit Values works with no board open (it was greyed for seven of its eleven kinds until a board was in front). Both pages are laid out alike: the list with Edit Values and Reset under it, and what the page is for, Save As, Load, Reset All and Permanent beside it."
+    },
+    {
+     "text": "The analysis panels' fields stand in columns: in Power Analysis, Supply Impedance, Thermal Analysis, EMC Check and Field Solver every box and list starts on one line and is one length, and the EMC Check's rules are in columns too."
+    },
+    {
+     "text": "More fields put in line in the same pass: a number in Preferences is as long as the lists beside it, with its unit inside its box; the AI page's model list starts where the page's other boxes do; the IPC footprint wizard's single figures line up with its ranges; and the Pad dialog's corner radius no longer stands out of its frame."
+    },
+    {
+     "text": "The rest of the UI was gone through for the same faults, every command's dialog, every panel and every Preferences page. Preferences' ticks are at their full size, and the kinds under Shift Click To Select keep inside their frame. The small dialogs that ask for one value, such as Jump To Location and Snap Grid, keep their box inside the dialog. Selection Memory's buttons fit their row. In an output job the data sources' lists are one length, and the variant's list is under its name. Sheet Number Spaces in Document Options and Current Variant in Variant Management stay on one line, and the Lock Pins tick in a component's properties is no longer squeezed."
+    }
+   ]
+  },
+  {
+   "version": "26.177",
+   "title": "Power, thermal and EMC analysis of the board",
+   "sha256": "5d45920a5abc17786925bedc1a237dce80007306d79eb0df29c57e8a3a2ab75b",
+   "items": [
+    {
+     "text": "Power analysis (Tools › Power Analysis, in the PCB editor): pick a supply net, the part that feeds it and what each load draws. Konium Designer works out the voltage each load is left with, the current in every track, copper area and via of the net and of the net it returns on, and what is over your limits: loads against a voltage drop, tracks and vias against IPC-2221's current for a temperature rise, copper areas against a current density. The copper on the board is coloured by voltage drop or current density, and the cursor reads the place under it.",
+     "image": "whats-new/26.177-power.webp",
+     "alt": "The demo board with the Power Analysis panel on the right: the supply net VIN returning on GND, fed by J1 at 5 V, with U1 drawing 0.8 A. The copper is coloured by voltage drop, the VIN track from blue at J1 to red at U1. Beside the cursor on the track a read-out gives 4.9860 V, 14.00 mV from the source, 37.5 A/mm² and 800 mA in the track. Under Results, U1 is left with 4.9772 V, a drop of 22.8 mV or 0.5 %."
+    },
+    {
+     "text": "Thermal analysis (Tools › Thermal Analysis): type what each part dissipates and see the temperature the board settles at, layer by layer: the hottest place, each heated part's board and junction temperature, and the warmest parts, which matters to a capacitor or a crystal beside a regulator. Still air is worked out from how warm each face gets, or you give the coefficients for moving air. The copper's own heat can be added from the power analysis, and Warm-up draws how the board warms over time.",
+     "image": "whats-new/26.177-thermal.webp",
+     "alt": "The demo board with the Thermal Analysis panel on the right: still air at 25 °C, the board lying flat, U1 given 0.5 W and a junction-to-board resistance of 15 K/W. The board is coloured by temperature, red at U1 through yellow to blue-green at the far end. Beside the cursor a read-out gives 43.9 °C, 18.9 above the air. Under Results, the hottest place is 76.3 °C on the Top Layer, U1's board is at 73.0 °C and its junction at 80.5 °C."
+    },
+    {
+     "text": "EMC check (Tools › EMC Check): the layout looked over for the places where a signal's return current has no easy way back: tracks over slots and splits in the copper under them or along its edge, layer changes with no via or capacitor beside them, supply pins of ICs with no capacitor close by, ground copper too far from a via. Nothing is simulated: each rule is geometry, and each finding is a place to click to."
+    },
+    {
+     "text": "Supply impedance (Tools › Supply Impedance): what a load sees looking into its supply from kilohertz to gigahertz, with the source, every capacitor and the planes' own resonances, against the target that your ripple and current step set. For a switching regulator there is an estimate of the differential-mode noise it conducts back to its input, against the Class A and Class B limits of CISPR 11 and CISPR 32."
+    },
+    {
+     "text": "Field solver (Tools › Field Solver): a track's impedance from its cross-section, solved rather than taken from a formula: on the surface with its solder mask, under a layer of dielectric, or between two planes; alone or as a pair; with ground copper beside it; with the copper's thickness and etched slope. It takes a layer's figures from the board's stack and finds the width for the impedance you want."
+    },
+    {
+     "text": "All five work in the browser on the board as it is, offline, and send nothing anywhere. Each has a section in the User Guide's PCB design chapter (F1 in its panel opens it) that says what it counts and what it leaves out: airflow, common-mode noise and the radiated emission of a whole board are not worked out. They are estimates to design by, so measure before relying on a narrow margin."
+    },
+    {
+     "text": "F1 from a field: pressed while typing in a panel's field, F1 now opens the User Guide at that panel's section (it did nothing there), and a panel you have clicked in counts as the one in use even when the click was on its text. An auto-hide panel tucks away so that the guide can be read."
+    },
+    {
+     "text": "Place › Interactive Routing with no net: a track started on bare board, or on a pad with no net, now goes on click after click. It stopped after its first segment in every routing mode but Ignore Obstacles, because the segment it had just laid stood in its own way. Copper with no net is no longer in the way of a route with no net, so a board with no netlist can be drawn by hand; copper that belongs to a net still is, and a route with no net is still in a net's way."
+    },
+    {
+     "text": "A route with no net is pulled to the centre of a pad or a via with no net and ends there, as a net's route does on its own pads."
+    }
+   ]
+  },
+  {
+   "version": "26.171",
+   "title": "Dragging tracks: boards routed to their clearance, joints, and what a violation is",
+   "sha256": "58484d4d354f3328c31e0495200072b57cec9ea77cd64b42d6c16cfaab753218",
+   "items": [
+    {
+     "text": "Tracks that would not move: with Avoid Obstacles (the default), a track segment could not be dragged at all when the segments joined to it lay at exactly the rule's clearance from another net. They stretch as it moves, and were taken for an obstacle already hit. Tracks are often routed at exactly the clearance, so on such a board many of them stayed where they were. Copper that already lies at its clearance from something, or nearer, now goes anywhere that brings it no nearer; everything else still stops at the clearance."
+    },
+    {
+     "text": "A piece of a straight run laid in several pieces could not be dragged in any mode: there was no corner for it to slide along. It now steps out of the run through a new 45° segment at each end, cut from the pieces in line with it. A neighbour a fraction of a degree off the line counts as in line."
+    },
+    {
+     "text": "A selected track's end handle on a joint between segments moved that one end and broke the track in two. The handle is now the joint: every segment that meets there stretches to it, and a via on the joint goes with it. An end on a pad still leaves the pad alone."
+    },
+    {
+     "text": "The status bar says what stopped a drag: a track, pad or via and its net, a keep-out, the board's edge, or that the tracks either side allow no more."
+    },
+    {
+     "text": "What a violation marker means: rest the cursor on a marker, or on an object drawn in the marker colour, and the violation is spelled out beside it. That used to need the heads-up display, which is off at first. Right-click › Violations and Shift+V list them as before."
+    },
+    {
+     "text": "Net names on tracks are dark on a layer given a light colour (they were light on any colour, so unreadable on green or yellow). Use Smart Display Colour now judges a colour as the eye does: a pure green is light, a pure red or blue is not."
+    },
+    {
+     "text": "A board whose copper regions are kept twice in its file, as the desktop software saves them, opened with a warning in Messages that a primitive record was shorter than expected, preserved and not drawn. Nothing was wrong: a region's second copy had been counted as unread. A record that really cannot be read is now named by its kind."
+    }
+   ]
+  },
+  {
+   "version": "26.170",
+   "title": "Fixes from a review of the whole program",
+   "sha256": "a5f037d8e20be2ba6ac86996ed8bc50da54d888f26fafd3e523220b0adf597d9",
+   "items": [
+    {
+     "text": "The library editors: with the Properties or Requirements panel open, selecting anything in a schematic library or a PCB library stopped Konium Designer with an error screen. Fixed. A panel that fails now says so in its own place and everything else keeps working, so your documents can still be saved."
+    },
+    {
+     "text": "Files from someone else could run script inside Konium Designer: a requirements document as it was opened (through a picture's file type), a web page or an SVG attached to a requirement when it was opened from there, and a diagram's label when it was edited. All three are closed. A file's type is checked as it is read, an attachment opens in a tab only if a browser merely shows it (a PDF, a picture, plain text) and is saved to the computer otherwise, and the page now refuses any script written into an attribute."
+    },
+    {
+     "text": "A file cut short no longer hangs Konium Designer. An EAGLE, DipTrace or IPC-2581 file, or a diagram, that ended in the middle of a tag was read again from its start without end, until the browser ran out of memory. A character reference that names no character no longer stops a file from opening."
+    },
+    {
+     "text": "Large boards: more than about 120,000 tracks, pads or vias added in one step (a Specctra session read back, a hatched pour) failed with \"Maximum call stack size exceeded\". Fixed."
+    },
+    {
+     "text": "The Download page: a 26.169 downloaded there did not match its published SHA-256, because the network the site is served through added its analytics script to the file on the way. The site now asks for its pages and the file to be passed on untouched, so check a download against the SHA-256 on the Download page. The installed app and a copy saved from inside Konium Designer (Help › Get Konium Designer on This Computer) were not affected."
+    }
+   ]
+  },
+  {
+   "version": "26.169",
+   "title": "konium.app is a website, and Konium Designer is at konium.app/app",
+   "sha256": "04cf0e876631fedf59357174e3a51df40f19795b6da9780abedd05c11249b3f2",
+   "items": [
+    {
+     "text": "konium.app is now Konium Designer's website: what it does and the files it reads and writes, installing it (or downloading it as one file, with its checksum), What's New, answers to common questions (it runs on your computer and works offline), and a form to write to the author. It follows the system's light or dark setting. Konium Designer itself is at konium.app/app.",
+     "image": "whats-new/26.169-website.webp",
+     "alt": "The website's home page: Konium Designer's name and what it is, an Install Konium Designer button and a Download as one file button, and below them the showcase board in the PCB editor.",
+     "focus": "0% 0%"
+    },
+    {
+     "text": "An installed Konium Designer moves to its new address by itself, and your settings, recent projects and local history come with it, since the browser keeps them for konium.app. A copy kept on its version (updates or network activity off) stays as it is at the old address until updates are switched on again. A downloaded file is as before; its Update button now opens the website's Download page."
+    }
+   ]
+  },
+  {
+   "version": "26.168",
+   "title": "Documents in windows of their own; DipTrace and EAGLE both ways; EasyEDA Pro projects; autorouting with Freerouting",
+   "sha256": "2d59c3d4caccb2d6a4c71aef5d551182b5b61c2c557fe11b3fd530a27083e3f1",
+   "items": [
+    {
+     "text": "A document in a window of its own: Window › Open In New Window, or a tab dragged out of the window, puts it in a second window run by this one, so the schematic can sit on one monitor and the board on the other. The two share the project, the undo and the clipboard, and a click in one shows the same thing in the other (with Cross Select Mode's Zoom, it zooms there at once). The second window has its own tabs, menus, toolbars and layer tabs; the panels stay in the main window and follow the document last clicked. Drag a tab back, or close the window, and its documents return.",
+     "image": "whats-new/26.168-document-windows.webp",
+     "alt": "Two Konium Designer windows side by side: on the left the demo project's schematic, its 3.3 V regulator circuit, with the regulator U1 picked; on the right, in a window of its own, the demo board, U1 picked there too."
+    },
+    {
+     "text": "Shift+drag on a schematic or schematic library puts a copy of what you pressed on under the cursor, as in the desktop software: placed when you let go, in one step to undo, with designators, net labels, ports and pin numbers stepped on as placing again would."
+    },
+    {
+     "text": "Text in other alphabets: files the desktop software wrote in a Windows code page other than Western (Cyrillic, Greek, Central European, Turkish and others) show their text as written, each file read in the page its words fit best; Preferences › System › General › Text without Unicode chooses one. Changed text goes back in the file's own page, and unchanged files byte for byte. Text in the Symbol font shows as Windows draws it, and sheets in portrait (A1 and the other standard sizes) stand on their end.",
+     "image": "whats-new/26.168-alphabets.webp",
+     "alt": "A schematic sheet written as a Bulgarian system writes it, a row for each script (Latin, Central European, Cyrillic, Greek, Turkish, Hebrew, Arabic, CJK, Vietnamese, symbols) in six faces (Times New Roman, Arial, Arial italic, Courier New, Tahoma, Calibri), and a last row in the Symbol font, the letters W m p a b g D S drawn as Ω μ π α β γ Δ Σ."
+    },
+    {
+     "text": "DipTrace both ways: DipTrace's XML export opens as a project (schematics .dchxml, boards .dipxml, component and pattern libraries; a schematic and a board of one name together). On a DipTrace-made board every pad, hole and part lands where DipTrace's own Gerber, drill and placement files put it. File › Export › DipTrace writes the project as DipTrace XML: the schematic, the board and a component library with its patterns. A design read from DipTrace and unchanged goes back as DipTrace wrote it, byte for byte. Read back in, an export keeps every net, part, pad, via, pour and routed length; it has yet to be tried in DipTrace itself."
+    },
+    {
+     "text": "EAGLE both ways: an EAGLE schematic and board exported for EAGLE unchanged are the files EAGLE wrote, byte for byte. A board changed only by parts moved or turned and nets rerouted is EAGLE's own file with those changes written in, every other element as EAGLE wrote it; changed further, it is written anew with its signals named as EAGLE named them, so the schematic and the board still pair."
+    },
+    {
+     "text": "EasyEDA Pro projects: File › Export › EasyEDA Pro writes the project as one .epro, the project file EasyEDA Pro imports with File › Import › EasyEDA Professional: a page for each sheet, the board, and the symbols, footprints and devices they use, every net named as the project compiles it, pours with their copper. Read back in, it keeps every part, net, pad, via, pour and routed length, and every pin where it was; it has yet to be tried in EasyEDA Pro itself. Opening EasyEDA Pro projects improves too: the dielectrics in the stack's order, no doubled names beside power flags, and net ports that join only what they touch."
+    },
+    {
+     "text": "Autorouting with Freerouting: Route › Auto Route › Export Specctra Design... writes the board as a Specctra design (.dsn) for Freerouting or another Specctra autorouter: layers, outline, keep-outs, footprints, parts (bottom ones as Specctra flips them), nets, vias, width and clearance, and the routes already there, locked ones protected. Route it there and save its session (in Freerouting, File › Export as a Specctra Session File); Route › Auto Route › Import Specctra Session..., or opening the .ses with the board in front, puts its routes in place of the board's and pours the pours again round them, in one step to undo. Each pin goes where Freerouting's own code places it; a full round through Freerouting has yet to be tried."
+    },
+    {
+     "text": "Smaller things: fonts checked across scripts and faces (Latin, Central European, Cyrillic, Greek, Turkish, Hebrew, Arabic, CJK, Vietnamese and symbols; Times New Roman, Arial, Courier New, Tahoma, Calibri), and the interface's own font gains its Central European letters."
+    }
+   ]
+  },
+  {
+   "version": "26.162",
+   "title": "KiCad, PADS and Cadence both ways; requirements as a tree, a graph and with an adviser",
+   "sha256": "3203901147db9e85b00ac5129fca447dc3613069dbfc79ab39927113fe2754b9",
+   "items": [
+    {
+     "text": "KiCad both ways: a KiCad project opened in Konium Designer and exported to KiCad again comes back as KiCad had it. What Konium Designer has no place for (KiCad's own pad shapes, curves, text boxes, groups, tuning patterns, fields and settings) is kept with the object it belongs to and written again while that object is unchanged; what you changed goes back as you changed it. On KiCad's own demo projects every board object (495,079) and every schematic object (40,258) comes back the same, setting by setting (two junctions added where KiCad's own rule wants one), with 99.9 % of KiCad's identifiers kept, and so do the libraries' 408 symbols and 326 footprints. The project's settings come back with your changes to rules and net classes merged in; its custom rules and local settings as they were."
+    },
+    {
+     "text": "PADS both ways: a PADS Layout board or PADS Logic design opened and written back unchanged is the file PADS wrote, byte for byte. A board you changed goes back as PADS wrote it but for what you changed: parts moved, turned or flipped; nets rerouted (a net's stubs and loose stretches as partly routed connections, as PADS keeps them); free texts, drawings, copper, keep-outs and pours changed, added or deleted, each in its own place. It is written in the file's own units and in the line format of its PADS version, PowerPCB 5 to PADS VX. A board changed beyond that is written anew in the file's coordinates and units, with its layer numbers and its decal and part type names. On KiCad's collection of PADS test files (39 boards, 39 designs) every unchanged file comes back byte for byte, and with a part moved, tracks deleted and a text moved, every other part, decal, layer and pour comes back unchanged."
+    },
+    {
+     "text": "Cadence: an Allegro board (.brd) or an OrCAD Capture design (.dsn) opened and exported for Cadence unchanged is the file Allegro or Capture wrote, byte for byte. Changed, it goes out in the ASCII formats Cadence's own translators read, so Allegro and Capture make their native files themselves. Allegro boards are read as Allegro has them: against Allegro's own extract of two boards, every part's place, turn and side, every net with its pins, every routed track and every via match."
+    },
+    {
+     "text": "Requirements as a tree: each requirement shows under its parent wherever it is in the document, and giving it a parent moves it there. New Requirement adds one beside the one picked; Move Up and Move Down move it among those at its level, with everything under it. Exports and the compliance report follow the tree. Columns are resized by dragging the edge of their heading; a double-click puts one back."
+    },
+    {
+     "text": "Connection graph, on the requirements toolbar: the requirements left to right under their parents, coloured by where their verification stands, and on the right the parts, nets, documents and board they are linked to. Click a requirement to light up what it is part of, what it breaks down into and what in the design meets them; click a part or net to show it in the design.",
+     "image": "whats-new/26.162-requirements-graph.webp",
+     "alt": "The connection graph of a requirements document beside the demo project: Board power broken down into Input range 4.5 V to 5.5 V and 3.3 V rail, the 3.3 V rail into Ripple under 30 mV and Load up to 250 mA (red: failed), the Mechanical and Interfaces sections below, and on the right Net VIN, Part C2, Net +3V3, Part U1, Part J1 and the board; the 3.3 V rail is picked, so it, its parent, its children and the parts and nets they are linked to are lit and the rest faded."
+    },
+    {
+     "text": "Requirements Adviser: work through the requirements with an AI model. It reviews them (vague, not verifiable, two in one, repeated or contradicting another), rewrites them, breaks one down, builds the hierarchy, finds what is missing and suggests how each is best verified. Every change comes with its reason, the old wording struck through beside the new; nothing changes until you apply the ones you tick, in one step Undo takes back. It never changes a figure you wrote unless you ask, and leaves [value] where a figure is yours to give.",
+     "image": "whats-new/26.162-requirements-adviser.webp",
+     "alt": "The Requirements Adviser under the requirements table: asked to review them all, it answers that two need work and the 3.3 V rail has no start-up requirement, and proposes a measurable wording for REQ-004 (the old text struck through, the new in green, with its reason) and a new wording and parent for REQ-008, each ticked to apply."
+    },
+    {
+     "text": "Mechanical layers: View Configurations sets a mechanical layer's Layer Type (Assembly, Courtyard, 3D Body, Designator and the rest) and its Component Layer Pairs, saved in the board as the desktop software keeps them; a part flipped to the other side takes what it has on a paired layer to that layer's pair. KiCad's fabrication and courtyard layers come in as Assembly and Courtyard layers paired top and bottom, and typed layers go to KiCad's layers of their kind."
+    },
+    {
+     "text": "The Design Adviser and the Component Builder drop \"AI\" from their names: it goes without saying."
+    },
+    {
+     "text": "Smaller things: a layer turned off (in View Configurations, or Ctrl+click on its tab) leaves the tabs along the bottom, so the layers in use are easy to pick; the button beside the menus says Install, and where the browser hasn't offered to install Konium Designer the window says where the browser's own Install is; Help › Get Konium Designer on This Computer works in every copy; KiCad's largest demo board opens in less than half the memory it took."
+    }
+   ]
+  },
+  {
+   "version": "26.155",
+   "title": "Bug fixes: internal planes and the design rule check",
+   "sha256": "6db19b65345ed9da084eb82dec24c7b5c04d355c8148c7ff999548d0969d3c75",
+   "items": [
+    {
+     "text": "Internal planes in Gerber, Gerber X2, ODB++ and IPC-2581 output, in the KiCad, EasyEDA and PADS exports and in the plane view now have a clearance round every pad and via of another net and a thermal relief round every one of their own net. Since 26.071 holes were left out of the planes depending on where the board lies in the design space: on most boards, most or all of them, so their vias and through-hole pads were joined to the planes in those outputs. If you made these outputs for a board with internal planes with 26.071 or later, make them again."
+    },
+    {
+     "text": "Internal planes work when the board is opened in the desktop software: a plane's net is saved as a split plane over the board, the way that software keeps it (it loaded planes saved before with no net), and a board with such a plane gets that software's default Power Plane Connect Style rule if it has none (without it, that software joined nothing through the planes until an edit made it apply its rules). Pads and vias carry their plane connection settings too, as that software writes them. Boards saved by an earlier Konium Designer get all this the next time they are saved."
+    },
+    {
+     "text": "Thermal reliefs on internal planes cross the air gap at 45 degrees, as the desktop software makes them."
+    },
+    {
+     "text": "Design rule check: run side by side with the desktop software's own on a 6-layer board of 130 parts with 58 faults put in on purpose, it now finds 1452 of that software's 1569 violations the same way. Silk To Solder Mask and Silk To Silk measure silkscreen text by its strokes; Minimum Solder Mask Sliver reports each sliver once; Acute Angle no longer reports teardrop joins (559 false reports gone); Un-Routed Net counts every piece of copper of a net, tracks joined to no pad too; Un-Connected Pin reports free pads; Board Outline Clearance checks the silkscreen too."
+    },
+    {
+     "text": "Design rule check, internal planes: pieces of a plane cut off from the rest of it are reported under Un-Routed Net as isolated copper, and thermal reliefs whose conductors reach too little of the plane under the Power Plane Connect Style rule, as the desktop software reports them. On the same board it reports the same 15 pieces of isolated copper as that software, and 8 of its 9 starved thermals (with 3 that it doesn't report). A plane that nothing of its net reaches isn't reported. Net Antennae: a via that passes through an internal plane of its own net is joined to it, so it isn't reported as an antenna."
+    },
+    {
+     "text": "Rules applied when the board has none of their kind, with the usual defaults, as the desktop software applies them: Net Antennae, Modified Polygon, Routing Layers, and the fabrication and assembly testpoint styles and usage."
+    },
+    {
+     "text": "The Design Rule Verification Report heads each rule with its values and scopes, such as Clearance Constraint (Gap=10mil) (All),(All), and lists the rules in the desktop software's order."
+    },
+    {
+     "text": "Smaller things: What's New marks only the newest release as New; the demo board's sample arc and rounded region have no net, so its design rule check is clean; shelving a polygon pour saves the layer and net to restore it to; KiCad export leaves out an empty plane zone where a split plane covers the board, and no longer stops on a zone with a very large number of points."
+    }
+   ]
+  },
+  {
+   "version": "26.150",
+   "title": "The User Guide and wire links",
+   "sha256": "6cbc11ee483f1c2759d2218b209be4e0acb7b22014c552ae6619db2b49fe95b7",
+   "items": [
+    {
+     "text": "Help › User Guide: the whole of Konium Designer explained in a tab of its own, in seven chapters (Getting started, Schematic capture, Libraries and components, PCB design, Outputs and manufacturing, More tools, Reference), with pictures throughout, links between sections and a search across it. F1 opens it at the section for what you are doing: the panel you are working in, else the document in front.",
+     "image": "whats-new/26.150-guide.webp",
+     "alt": "The User Guide in a tab beside the demo project's documents, the PCB design chapter's sections listed on the left, open at Wire links: what they are for, the four steps of placing one, and below them a picture of a wire link on the demo board."
+    },
+    {
+     "text": "Wire links: Place › Wire Link draws an insulated wire from copper of a net to more copper of the same net on the same side of the board, straight or with bends, where a track can't go. It is a part of its own (W1, W2 and so on) with a pad to solder to at each end. It joins the net, so the connection line goes and the design rule check is satisfied; it is listed in bills of materials with its length, and it shows as a wire in 3D.",
+     "image": "whats-new/26.150-wire-link-3d.webp",
+     "alt": "The demo board in 3D with a wire link in place of the track between U1 and C2: a dark red wire raised above the board, bending in the middle and dropping at each end to a small blob of solder on its pad."
+    },
+    {
+     "text": "Preferences › System › Mouse Wheel Configuration: choose what the wheel does on its own and with Ctrl, Shift or Alt: zoom, scroll up and down, scroll sideways, or nothing. The Shortcut Keys sheet shows the wheel as set."
+    },
+    {
+     "text": "Each key now runs one command in each editor (13 keys were bound to two). Ctrl+N opens File › New; Ctrl+Shift+G on a board sets the snap grid; Ctrl+S and File › Save work in Output Jobs, BOM documents, Draftsman and the other documents too."
+    },
+    {
+     "text": "Fixed in schematics and libraries: Place › Pin no longer skips a number between runs; Swap ID Pin in a schematic library is kept when it is saved; Show Template Graphics shows and hides a sheet template's graphics (they weren't drawn at all); new sheets take the metric or imperial units chosen in Preferences; Library Component Properties keeps the Standard (No BOM) type."
+    },
+    {
+     "text": "Fixed on boards and in outputs: the design rule check's Stop when N violations found limits the markers on the board as well; Remove Net Antennas works, with Automatically Remove Loops; an Output Job's Variant Choice sets the variant of every output; the project's Output Path is used; Remove Duplicates applies to IPC-2581, ODB++, pick and place and test point files too; the CAM editor's RFQ report gives the smallest spacing after a clean design check; a multi-board project takes child projects with Add Existing to Project."
+    },
+    {
+     "text": "Konium Designer is free and runs on donations. Rarely, someone who uses it often sees a small card in the corner asking whether they would like to chip in; it closes with Not now, and I've chipped in stops it for half a year. The starts it counts stay in your browser. Online, its wording is the day's own from konium.app; that request carries nothing about you or your work."
+    },
+    {
+     "text": "Smaller things: the Offline chip looks the same in every browser; the CAM editor's panel is called CAM; Preferences › Keyboard Shortcuts lists each command once; a few menu letters no longer clash (File › Export Wizard is on W, File › New › 3D Model on O)."
+    }
+   ]
+  },
+  {
+   "version": "26.146",
+   "title": "Scripting and polygon pads",
+   "sha256": "31380dc8f4bb7ab5bc36f0c1322f1f3dba7aa209186a6591f2a15ab69c888093",
+   "items": [
+    {
+     "text": "Scripting: Tools › Scripts, in the PCB and PCB library editors, opens the Scripts panel, where a few lines of JavaScript work on the board or footprint in front: place parts by a rule, renumber designators, add stitching vias, tracks or pads, change nets and widths, or write a report or a file for a manufacturer. A script sees the board in millimetres from its origin, with layers and nets by name, and every change it asks for is made when it ends, as one step Undo takes back.",
+     "image": "whats-new/26.146-scripts.webp",
+     "alt": "The demo board with the Scripts panel beside it showing the Via fence along selected tracks example; after it ran on the VIN track from J1 to C1, rows of GND vias line both sides of the track, stopping short of C1's pad, and the panel's output says 11 vias on GND, 3 left out as too close to other nets."
+    },
+    {
+     "text": "Scripts run in a sandbox, apart from Konium Designer: no network, and no access to your files, other documents or Konium's own storage. A script gets a copy of the board and hands back the changes it wants; it is stopped after 20 seconds, or with Stop. If it fails, the error shows with the line of the script it came from, and nothing is changed."
+    },
+    {
+     "text": "Six examples to run or start from: parts placed round a circle, designators renumbered by position, a pick-and-place file in JLCPCB's columns, a via fence along selected tracks (clear of other nets), a net report, and pads round a circle in a footprint. Change an example and it becomes your own. A script can make files to save (CSV or text)."
+    },
+    {
+     "text": "Keeping scripts: yours are kept in the browser, and saved and opened as .js files. A project open from its folder keeps its own in a Scripts folder beside the project file, so they go with the project, version control included."
+    },
+    {
+     "text": "Write with AI: say what a script should do and the AI model chosen in Preferences › System › AI writes it, or changes the one shown. It is sent your request, the script shown when it is to be changed, and the board's layer and net names, designator prefixes, how many objects of each kind it has and how many are selected, never the design itself."
+    },
+    {
+     "text": "Help › Scripting Reference (F1 in a script): everything a script can use, how it runs, its limits, recipes and JavaScript in brief, in a tab of its own; searchable, with every example ready to copy or to try.",
+     "image": "whats-new/26.146-reference.webp",
+     "alt": "The Scripting Reference in a tab beside the demo project's documents, its sections listed on the left, open at Adding objects: a table of the add methods with what each needs and its defaults, an example that puts a GND via at each corner of the board with Copy and Try it, and the start of the Nets section."
+    },
+    {
+     "text": "Polygon pads: Tools › Convert › Create Pad from Selected Primitives makes a pad of any shape drawn as one piece from what is selected: tracks and arcs as closed outlines (one inside another a hole, so two circles make a ring), regions and fills as areas. A ring for a microphone, a notched or irregular outline: the copper, its solder mask opening and, on a surface-mount pad, its paste go with the pad, take its net and select as one; the file keeps them as a pad and ordinary regions, which any tool reading the board understands.",
+     "image": "whats-new/26.146-polygon-pad.webp",
+     "alt": "A microphone footprint in the PCB library editor: a round pad 1 in the middle and, round it, pad 2, a copper ring made from two circles, its solder mask opening shown as a purple edge, inside a circle on the top overlay; the PCB Library panel lists the footprint's two pads, its three regions (copper, solder mask, paste) and the overlay arc."
+    },
+    {
+     "text": "Installed, Konium Designer's window can show its own buttons over the page, the title bar folded away: the menu bar now takes the title bar's place, clear of those buttons, and drags the window by its empty parts. The title bar takes the theme's colour."
+    }
+   ]
+  },
+  {
+   "version": "26.142",
+   "title": "Version control and team projects",
+   "sha256": "d0ae64c0d033ac54acf234d39a30890d84e44b82c7ce9967809ef00db25823d2",
+   "items": [
+    {
+     "text": "Version control: a project opened from its folder can be put under version control (Project › Version Control › Add Project to Version Control). Every version is kept in a Git repository in the project's folder, which any Git tool can read too, and shared with your team in one of two places: Konium's store, with nothing to set up (a team's key is made in your browser and seals everything before it leaves, so konium.app can't read it; colleagues join with the key, in Preferences › Data Management › Version Control), or your team's own Git server (GitHub, GitLab, Bitbucket, Gitea and others, with your user name and an access token; reached through Konium's relay, which passes it on and keeps nothing, unless you switch the relay off).",
+     "image": "whats-new/26.142-version-control.webp",
+     "alt": "The demo project under version control: the Projects panel marks each document as unchanged or changed, with a padlock on the schematic Ben Carter is working on and on the board Ana Petrova has locked; over the board, the project's history lists its three versions with when they were made, who made them and what changed, and beside them the file Ben's version changed, the board, with Compare."
+    },
+    {
+     "text": "Commit and update: Commit Whole Project lists what changed since the last commit, takes a note of what you did and pushes it to the team. Update Whole Project brings in what the others have pushed; a file changed both in your commits and by someone else is shown with who changed it, to keep yours, theirs, or both (theirs saved beside yours); a file you changed but haven't committed is committed or put back first. Konium Designer looks for the others' changes every few minutes, and the Projects panel marks each document as unchanged, changed, new, out of date or changed on both sides, with arrows on the project for what is waiting to be pushed and to be brought in."
+    },
+    {
+     "text": "History: the project's history, and each document's (Document History), list the versions with who made each one, when, and the files it changed. Open a version, save it as a file, restore it, or export the whole project as it was as a zip, in Konium's store as on your own server."
+    },
+    {
+     "text": "Locks: Lock tells the team you are working on a document, and a padlock shows it in the Projects panel (blue yours, amber someone else's) as the others look for changes. A lock doesn't stop anyone: whoever tries to lock it too is told whose it is and since when, and can take it over; changing a document someone else has locked tells you so, once. Your locks go when you commit and push their files (unless you untick that), or with Unlock."
+    },
+    {
+     "text": "Compare: two versions of a schematic or a board side by side, kept at the same place and zoom, with what was added in green, what was removed in red and what changed in amber, and listed (a part moved, a track widened, a net label renamed). Click a difference to go to it in both. From Document History (Compare with Current), the history's changed files, and the Storage Manager's Local History versions.",
+     "image": "whats-new/26.142-compare.webp",
+     "alt": "The demo board as it was in Ana Petrova's version beside the board as it is now: C2 moved nearer the regulator in amber, a new via in green on the right, the track taken out near J1 in red on the left, the rest dimmed; below, the three differences listed with C2 moved 85.4 mil."
+    },
+    {
+     "text": "Open Project from Version Control (File menu): a team's project from Konium's store, or a repository on a Git server, into an empty folder, and opened from there. Repository Settings moves a project to another place with all its versions."
+    },
+    {
+     "text": "Changed: a specification split into requirements runs on Qwen Flash, a cheap text model (always its family's newest), on the Konium service, where it takes one job token, and with an OpenRouter key, whichever model is chosen for drawings; should it fail there, the model chosen does it. A model on your computer or another endpoint still does it itself."
+    },
+    {
+     "text": "Fixed: pdf.js, which reads datasheets and specifications, updated to a version without a known flaw that let a malicious PDF run script."
+    }
+   ]
+  },
+  {
+   "version": "26.139",
+   "title": "Requirements",
+   "sha256": "cc9ea7f50b063fec38a640092479bddf8db0cddad83dcd3470929a22e892df00",
+   "items": [
+    {
+     "text": "Requirements: a new document type (.ReqDoc) for a project's requirements. File › New › Requirements makes one; so do the Home page and Add New to Project › Other. Requirements sit under sections, each with an identifier unique across the project (REQ-001 and on; the prefix is yours to set), a title, the requirement in full, its source, type, priority (Must, Should, Could), status (Draft, Approved, Obsolete) and, when it is part of another, its parent. The table lists them with the one picked shown in full beside it (drag the line between them to widen it): add one (Insert), add one under the one picked, add sections, move rows up and down, delete, undo, redo and search.",
+     "image": "whats-new/26.139-requirements.webp",
+     "alt": "A requirements document in the demo project: requirements under Power, Board and Environment, two of them under the 3.3 V rail requirement, each with its type, priority, status and verification, most of the board's verified by their checks and Low profile failed; on the right the requirement Fits the housing in full, its text with a bold figure, a mounting drawing and a table of hole positions, its source, and an attached PDF of the housing drawing."
+    },
+    {
+     "text": "Formatted text, pictures and attached files: a requirement's text is formatted as you type: bold, italic, underline (Ctrl+B, Ctrl+I, Ctrl+U), superscript and subscript, bullet and numbered lists, tables (Tab moves from cell to cell; rows and columns added and deleted where the caret is), links (Ctrl+K), and pictures pasted, dropped or inserted, each shown small, medium, large or full. What is pasted from Word or a web page keeps its formatting as far as these go. Files attached to a requirement (drawings, datasheets, test reports, up to 25 MB each) open in a new tab (PDFs, pictures and text) or are saved. Pictures and files are kept in the .ReqDoc, so it stays one file to save and send; the table marks the requirements that have them with a paperclip."
+    },
+    {
+     "text": "Verification: each requirement says how it is verified (test, analysis, inspection or review), where that stands (not verified, verified, failed or waived) and a note of the evidence. The foot of the table counts them."
+    },
+    {
+     "text": "Checks against the design: give a requirement a check and the design is measured for it as you work: the board's copper layers, size and thickness, the tallest part above and below it, parts and BOM lines, the parts' cost per board from the BOM document's prices, the parts' operating temperature (from their parameters), the narrowest track, the smallest hole, the design rule check (run when you ask), compile errors, and whether the project's enclosure fits a space. A check passes, fails, or says why it can't tell yet, and the verification follows it unless you untick that."
+    },
+    {
+     "text": "The Requirements panel (the Design Compiler button at the bottom right): the project's requirements beside the schematic or the board, searched and filtered (not verified, failed, Must, or linked to the selection), the one picked with its text, pictures and attached files. Link it to the selected parts and nets, or to the sheet or the board itself, and click a link to go back to it in the design, selected and zoomed to. Properties lists the requirements of the selected parts and nets. What you change in the panel goes into the document, one step to undo there.",
+     "image": "whats-new/26.139-requirements-board.webp",
+     "alt": "The demo board with the Requirements panel on the right: the project's requirements with how many links each has and where its verification stands, and the regulated 3.3 V rail requirement picked, linked to the part U1 and the net +3V3; U1 selected on the board by following its link."
+    },
+    {
+     "text": "Import and export: requirements come in from an Excel workbook or a CSV file, each column matched to a field by its heading (ID, Section, Title, Requirement, and other names such as Req ID, Description, MoSCoW or Compliance; you can change any match), and are shown before they are added; a table (Markdown rows) or a list in a cell comes in formatted. They go out to Excel or CSV, one row each with its text (tables as Markdown rows), verification, its check and what the design measures, its links and the names of its attached files; Import reads such a file back, all but its links, checks, pictures and files."
+    },
+    {
+     "text": "The compliance report: one page to read, print or send, with the share of requirements verified or waived, counts by state and by priority, what needs attention (failed, and Must requirements not yet verified), and every requirement under its section with its formatted text and pictures and its evidence: its check and what the design measured, the note, its links, its source and the names of its attached files. Open it in a new tab from the toolbar, or save it from Export."
+    },
+    {
+     "text": "Split a specification with AI: paste a specification, or open it (text, Markdown, Word .docx or PDF), and the AI model chosen in Preferences › System › AI splits it into single requirements in the specification's own words and figures, each with its section, clause, type, priority and how it would be verified. From a Word document, the rows of a table a requirement needs come as a table, and its pictures go with the requirements that refer to them (the model reads where they are, not the pictures themselves). Tick the ones to keep: they are added under their sections, with the specification's name and clause as their source, one step to undo. Only the specification's text and name are sent, nothing of the design."
+    }
+   ]
+  },
+  {
+   "version": "26.135",
+   "title": "The enclosure designer; ActiveRoute's Route Guide and Pin Swapping",
+   "sha256": "14334e10fe7faa9ef4f12f2d925c0cf77dd2edfad5db9ccb3b40fa96586af5c3",
+   "items": [
+    {
+     "text": "Enclosure designer: File › New › Enclosure makes a box for your board, made to be 3D printed. It is built round the board as it is (its size, mounting holes and parts) and shown in 3D with the board inside; with no board open, it opens the project's, or asks for the PCB document to build round. The tools down the left put a feature where you click a face of the box, in 3D (a boss, pin, block or rib inside or outside, by the side you click) or in the face view under it. The Features list holds what was found from the board and what you added; the Properties on the right set up the box, or the feature you picked.",
+     "image": "whats-new/26.135-enclosure.webp",
+     "alt": "The demo board's enclosure in the enclosure designer: the tools down the left over the Features list (a cut-out and a hole in the front, vents in the left wall, DEMO on the top in orange); in the middle the box in 3D with its white top lifted off the charcoal base and the board inside, and under it the top drawn flat with the board's parts and the orange text; on the right the box's Properties with its size, weight, filament and colours."
+    },
+    {
+     "text": "The box: a base and a flat lid, or two shells joined part-way up the walls; corners rounded, top and bottom edges square, rounded or chamfered. It closes with a press fit, snap catches, or M2 to M4 screws (in bosses in the box's corners, or down through the board's mounting holes) into a pilot hole, a heat-set insert or a captive nut, countersunk or pan head, with the screw length they take. The board sits on standoffs at its mounting holes, or on ledges under its corners when it has none; posts from the top can hold it down."
+    },
+    {
+     "text": "Openings are found for the parts at the board's edge and for LEDs, switches and displays under the top; a part that reaches into a wall gets a slot open to the joint, so the board drops in. Add your own: holes (countersunk or counterbored for a screw), cut-outs, slots, pockets, vents (slots, holes or a honeycomb), bosses with a screw hole, pins, blocks and ribs (outside or inside any face), text, and logos from SVG drawings (cut in, raised or cut through). Duplicate, mirror, repeat in a row, centre or delete the feature you picked; undo and redo for every change to the box."
+    },
+    {
+     "text": "The face view draws a face flat as seen from outside, with the parts behind it. Zoom with the wheel, drag the background to pan; a grid and rulers in millimetres, and the picked feature's distances to the face's edges. Features are dragged into place, and openings, vents and protrusions sized by their handles; they snap to the middle across the face (on a wall, also to the board's top and halfway up the inside) and to the middles of the parts and other features (the line is shown), else to 0.5 mm (0.1 mm with Shift). Double-click a part to make its opening."
+    },
+    {
+     "text": "Also: recesses for stick-on feet, mounting ears, keyhole slots for hanging the box on a wall, light tubes down to LEDs, buttons onto switches printed as parts of their own, and a seal: a groove for a rubber cord, or a gasket printed in TPU."
+    },
+    {
+     "text": "Colours: each part's filament colour (15 common ones, or any other) and finish (matte, satin, gloss, silk, metal, clear or fuzzy skin), shown in 3D. Text and logos can have a colour of their own, for printing in two colours: raised, they stand out in it; cut in, the cut is filled flush with it."
+    },
+    {
+     "text": "Made for printing: set the nozzle, layer height, material and hole allowance. Round holes in walls become teardrops (unless you turn it off), vent bars and text strokes follow the nozzle, the edges on the bed get a small chamfer, and checks point out thin walls, long bridges, protrusions and parts that run into something, and shallow text. See the parts laid out as they print, or a section through the box. Export STL (one colour), 3MF (each part an object of its own in its colour, text in another colour a part of the object it prints with) or STEP (the box with the board in place, in their colours)."
+    },
+    {
+     "text": "Export › Picture (PNG) saves a picture of the box to show, up to 8192 pixels a side (40 megapixels in all): in a room of any colour (its background shaded, flat or left see-through), lit by a key light from the direction and height you set and by the room's light all round, with a soft shadow under it; as the view shows it or from a side, with a preview.",
+     "image": "whats-new/26.135-enclosure-picture.webp",
+     "alt": "A picture made by Export › Picture (PNG): the demo board's box from above and in front, a charcoal base with a cut-out and a hole in the front showing the green board inside and vent slots in the side, a white top with DEMO in orange, on a light grey studio background with a soft shadow under it."
+    },
+    {
+     "text": "ActiveRoute routes each connection on one of the chosen layers, with no vias. Route Guide: draw the way the selected connections should go, and they are routed side by side along it, in the order they meet it, on alternate layers where their pads allow. Its width is worked out from the connections' tracks and gaps; Up and Down change it while you draw, and it shows how many connections fit. Track-Track Space in Route Guide widens the spacing between routes (never below their width and clearance rules); Tune Selected tunes the selected nets to their Matched Lengths rules."
+    },
+    {
+     "text": "Pin Swapping: with Pin Swap Routing on, ActiveRoute first swaps pins within their swap groups, on the selected components that have pin swapping on, where that shortens the connections. The PCB ActiveRoute panel lists the components that have pin swap groups and turns pin swapping on or off for each."
+    },
+    {
+     "text": "Design Rule Check: a polygon pour's own copper is no longer reported against a keep-out unless it lies over it, and a solid pour's copper is named Polygon Region in the messages; Silk To Solder Mask Clearance is measured from each pad's actual solder mask opening (or, checking clearance to exposed copper, from the copper that opening bares); and the messages are in the board's units (millimetres on a metric board). Polygon pours now flow round keep-out arcs, and solder mask Gerbers give a through pad its opening from its pad stack."
+    },
+    {
+     "text": "With display scaling (125 %, 150 % and so on), the multi-board assembly's 3D view now fits its panel, so a click picks what is under the pointer."
+    }
+   ]
+  },
+  {
+   "version": "26.123",
+   "title": "Diagrams",
+   "sha256": "78c8f851557a23f363825d8fd0ffa3eaa60521d855fcf355ac34f07ba11dc6b0",
+   "items": [
+    {
+     "text": "Diagrams: a new document type (.DgmDoc) for block diagrams, flowcharts and circuit sketches beside your design. File › New › Diagram makes one; so do the Home page and Add New to Project › Other. A block can be linked to one of the project's schematic sheets (Ctrl+click it to open the sheet), and Add Project Sheets draws the project's sheet hierarchy as linked blocks.",
+     "image": "whats-new/26.123-diagrams.webp",
+     "alt": "A diagram in the demo project: the Shapes panel with its Electrical library open, the project's sheets as blocks linked to them (Demo picked, its Format panel showing its colours and its linked sheet), a battery joined to the Demo block, a diode and an LED from the library, and a yellow note with a formatted label."
+    },
+    {
+     "text": "The Shapes panel: General, Misc, Advanced and Electrical libraries (37 circuit symbols drawn for Konium Designer, from resistors and transistors to logic gates), and the project's schematic sheets; search by name. Click a shape to add it beside the selected one, joined to it, or drag it onto the page; hovering shows it larger."
+    },
+    {
+     "text": "Drawing: shapes moved, resized, turned (in 15° steps, or freely with Alt) and flipped, with guides to line them up. Hover arrows add a joined copy or start a connector. Connectors end on a shape's outline or on one of its connection points and go straight, orthogonal, simple, isometric, curved or entity-relation. Straight, curved and isometric ones have waypoints to drag, add and remove; orthogonal and simple ones have segments to drag. Connectors can jump where they cross, and have 24 kinds of line end."
+    },
+    {
+     "text": "The Format panel: the page's grid, page view, paper size and background; a shape's quick styles, fill, gradient, line, shadow, opacity and rounding; its text's font, size, bold, italic, underline, alignment, position, colours and spacing; its size, position, angle, order, grouping, alignment and spacing out. Edit Style, Copy and Paste Style, Set as Default Style. Labels can be formatted as you type them (bold, italic, colours, sizes, lists), with a formatting bar."
+    },
+    {
+     "text": "Pages, layers (shown or hidden, locked, renamed, shapes moved between them), groups, containers that take in what is dropped on them, lists that stack their items, copy, cut, paste and duplicate, lock, find, undo and redo. While a diagram is in front the menu bar has Edit, Arrange and Extras, and View has the diagram's own items. Edit Data keeps a shape's properties, Edit Link a web address or another page (Ctrl+click follows it), Edit Diagram shows a page's XML. The toolbar's Insert › Image (or a picture dropped on the page) puts a picture in."
+    },
+    {
+     "text": "Export a page, or what is selected, as PNG, SVG or PDF (made by the print dialog's Save as PDF), and print the current page on the diagram's paper (in page view, sheet by sheet). Diagrams from other tools: .drawio files and Visio drawings (.vsdx) open as Konium Designer diagrams, by File › Open or the Import Wizard (a Visio drawing's pages, shapes, groups, connectors, text, fill and line), and Extras › Export as saves a diagram as a .drawio file or a Visio drawing (.vsdx)."
+    },
+    {
+     "text": "File › New › Multi-board Schematic and Multi-board Assembly are now also in the File menu when no document is open, or when the document in front has no editor of its own (a BOM document, an output job)."
+    }
+   ]
+  },
+  {
+   "version": "26.114",
+   "title": "Digi-Key and Mouser in the BOM",
+   "sha256": "80a896d2bad59d963b1af00e9b54600865b95d68608a08ef4e0703f6132844e1",
+   "items": [
+    {
+     "text": "BOM documents: a line's part can now also be searched for at Digi-Key and at Mouser, chosen beside the Solutions panel's search box, besides the public copy of JLCPCB's parts list. These searches go through Konium's parts service at konium.app, which holds Konium's own keys for them; only what is typed in the search box is sent. A result shows the distributor's part number, the manufacturer's part number, the packaging, the minimum order where it is more than one, stock and the price for the run's quantity, and can be added to the line as a part choice with its price breaks."
+    },
+    {
+     "text": "The parts service keeps each search's answer for a day and gives it again without asking the distributor. Each user can make 100 new searches a day, and the service stays under Digi-Key's and Mouser's own daily and per-minute limits. Prices are shown in the currency the distributor gives them in: Digi-Key's in pounds, from its UK site."
+    },
+    {
+     "text": "Update Supplier Data now also looks Digi-Key and Mouser part choices up again by their own part numbers, for stock, prices and lifecycle status."
+    },
+    {
+     "text": "A BOM's cost is now added up separately for each currency, for example pounds and dollars. Before, prices in different currencies were added together."
+    },
+    {
+     "text": "Network Activity lists the Digi-Key and Mouser searches and where they go. Answers from Konium's own services (AI and parts) are no longer kept by the offline copy, so the AI allowance shown is read afresh each time."
+    }
+   ]
+  },
+  {
+   "version": "26.113",
+   "title": "BOM tools, rules from the schematic, and the previously greyed options finished",
+   "sha256": "26209c4105ae76a358f41effcfc31045bd738e8638d28398fb884b0f740786a0",
+   "items": [
+    {
+     "text": "BOM part choices and cost: a line of a BOM document can now be given part choices. A line has one without any action only when the BOM document already holds choices for it (shown and priced as saved, whatever the supplier), or when its part's parameters carry an LCSC number, a manufacturer part number or a supplier part number (a choice with no price until it is looked up). Any other line needs one added, by hand or by searching a public copy of JLCPCB's parts list (jlcsearch.tscircuit.com) one line at a time, by LCSC number, part number or value and package; a result shows stock, price breaks and Basic or Extended where the list gives them. With a production quantity set, the cost per board and for the run is worked out from the lines that have prices. BOM Checks flag a line with no part, a part with no supplier, too little stock where the stock is known, a saved part choice with no price, a risky lifecycle, parts in one line that differ in a parameter, and repeated designators or line numbers. Update Supplier Data looks the LCSC part numbers up again for stock and prices, and Export For JLCPCB saves the BOM with the columns of JLCPCB's assembly BOM (Comment, Designator, Footprint, LCSC Part #).",
+     "image": "whats-new/26.113-bom-supply.webp",
+     "alt": "The demo project's BOM document grouped by comment and footprint, for a production quantity of 100: five lines given parts found by LCSC number in the public copy of JLCPCB's parts list, with their unit prices and subtotals, the cost per board and for the run from the five priced lines, BOM Checks flagging the connector with no part, and the resistor's part choice with its price and description."
+    },
+    {
+     "text": "Fill Part Numbers With AI asks the AI model for a manufacturer part for each BOM line with no part choice (or for every line, if chosen). Each suggestion is looked up in the same copy of JLCPCB's parts list before it is offered, and you tick the ones to keep. It runs on the Konium AI service, your own key, or a model on your computer or network."
+    },
+    {
+     "text": "The Konium AI service's daily allowance is now 25 job tokens. A job takes one on the cheapest model offered, and on a dearer model about as many as it costs times more. Preferences › System › AI shows each model's tokens a job, and a job's cost line shows what it takes and how many are left today."
+    },
+    {
+     "text": "Rules from the schematic: Add as Rule on a Parameter Set or a component carries design rules (width, clearance, via style, masks, hole sizes, impedance and more). Update PCB Document adds them to the board, scoped to the net the Parameter Set sits on, or to the component. In Design › Rules, the Rule Wizard... button adds its rule to the rules being edited.",
+     "image": "whats-new/26.113-rules-from-schematic.webp",
+     "alt": "The Engineering Change Order from the demo schematic: besides the components, net and pins to add, an Add Rules group with a Width rule scoped to InNet('VIN'), from a Parameter Set placed on the VIN wire."
+    },
+    {
+     "text": "Compiled sheets: after a compile, tabs under a sheet show it as compiled, or one tab per channel of a repeated sheet, with each instance's designators, net labels, ports, sheet entries, power ports, and document and sheet numbers. Compiled views are read-only; the Editor tab goes back to editing."
+    },
+    {
+     "text": "Schematic and libraries: a component's Library Name can be unticked, so the part is looked for in any library, and its Table Name, so a database part is looked for in any of the library's tables; the IBIS and Signal Integrity entries under its models' Add... open Model Assignments. Browse Libraries' Find... searches every library by name or description, and its 3D button shows a footprint in 3D (the PCB Model dialog too). Place Component can place a schematic library's part, its footprint, designator and comment taken from it. Where libraries are looked for can be set: open ones, the project's and Installed Libraries; the project's and open ones only; or Installed Libraries only."
+    },
+    {
+     "text": "Show Differences: Advanced Mode compares one schematic with the board. OrCAD designs: a part's footprint can come from a Part Field on import, and Orcad ports mode sizes a port to its name and places it with one click."
+    },
+    {
+     "text": "Library options: the PCB library's Snap To Grids and a sheet round the footprint; the schematic library's Style (Standard or ANSI), kept in the library file. The PCB library's Component Rule Check adds Shorted Copper (copper joining pads of different names) and Unconnected Copper (copper that reaches no pad or via)."
+    },
+    {
+     "text": "Board Insight: the net under the cursor lights up as it passes over (Live Highlighting, fading in and out over the times set, or only with Shift held). The heads-up display (Shift+H) shows beside the cursor where it is, how far from the last click (Insert or a click makes a new delta origin), the current layer and the snap grid; rest the cursor a moment and it adds what lies under it: a summary, the component, and up to three of the nets, objects and violations. Pad and via names are drawn in the font and sizes chosen, dark or light against the pad, and Monochrome Other Layers can join Shift+S.",
+     "image": "whats-new/26.113-heads-up.webp",
+     "alt": "The demo board with the heads-up display beside the cursor over C1's first pad: its position and its distance from the origin, the layer and snap grid, then the four objects under it (a pad, two tracks and a 3D body), their nets VIN and GND, the component C1, and the pad and tracks one by one; the VIN net lit up by live highlighting."
+    },
+    {
+     "text": "Board display: a net's colour override drawn checkered, striped or solid over its layer colour, and as set when zoomed out; objects in violation hatched, cross-hatched or solid; locked objects textured; selected objects outlined unless Highlight In Full; tiny strings drawn as boxes and hairline tracks as single lines (Draft Thresholds); hard-edged text; the selection area shaded; masked objects see-through or solid; the DRC overlay and its crosses each with its own switch."
+    },
+    {
+     "text": "View Configurations: every kind of object drawn Final, Draft (as outlines) or Hidden, Coordinates and Rooms included; the System Colours rows, among them DRC markers, the large grid, highlighting, the board's and the sheet's lines, a workspace gradient and Measure Distance's lines; with Display Sheet on, the sheet drawn under the board. Mechanical layers can stay in view in single layer mode, or be linked to the sheet: shown only with it and, with Lock sheet primitives on, out of reach. In 3D, Show Rooms draws rooms as see-through boxes. View Options: special strings converted, connection lines in their ends' layer colours, component reference points, testpoint marks, the object under the cursor in the status bar, planes filled in their nets' colours, and a colour for new nets."
+    },
+    {
+     "text": "Board Options: Snap To Grids, Linear and Point Guides, Object Axis (placing lines up with nearby pads, vias and track ends, a guide line drawn) and Arc Centres, with the Axis Snap Range, kept in the board file. Grids... and Guides... open the Grid and Guide Managers, and Auto-size to linked layers fits the sheet round them. Route Tool Path names the router's layer: in 3D a one-piece board is milled along it."
+    },
+    {
+     "text": "Layer Stack Manager: Presets (two to twelve layers), Save and Load a stack as a file, and a 3D option that draws each layer as a slab beside its row.",
+     "image": "whats-new/26.113-layer-stack.webp",
+     "alt": "The Layer Stack Manager with the Six Layer preset: each layer drawn in 3D beside its row, from the overlays and solder masks through the signal layers, internal planes, cores and prepregs, with thicknesses, materials and dielectric constants."
+    },
+    {
+     "text": "PCB editing: a click on overlapping objects lists them to choose from, and Shift Click To Select keeps the kinds you tick from a plain click. Smart Component Snap, Snap To Room Hot Spots, Protect Locked Objects, Click Clears Selection, Double Click Runs Inspector, Comp Drag, and Undo/Redo setting how many steps are kept (30 by default, 0 for no limit). A partly routed net's connection lines run from where its copper ends (Smart Track Ends). A component moved onto others can stop short of them (Avoid) or push them aside (Push). Autopan can re-centre, jump or glide at a set speed. Paste takes a drawing (SVG) or text another application copied, when nothing from a board is on Konium Designer's clipboard."
+    },
+    {
+     "text": "Pads and routing: Pad Template takes the size, shape and hole of another of the board's pads, named by shape, size and hole (such as c150h100); Electrical Type; Edit Full Pad Layer Definition, for a through pad that has a per-layer stack; the bottom solder mask expansion unlinked from the top, and a through pad's or a via's opening measured from the hole's edge (Gerber output follows both); the Assembly testpoint ticks. Interactive Routing: with User Choice widths and Apply to all layers off, a layer keeps a width of its own while the board is open, and Template picks one of the board's via sizes. Re-Annotate names each component from where it is (Name from Position), and Fanout can lead each via out from under its component (escape routes)."
+    },
+    {
+     "text": "Preferences › PCB Editor › Defaults: Component, Coordinate, Dimension and Polygon can be edited; the next one placed starts from them, and Save As / Load carry them with the rest."
+    },
+    {
+     "text": "Boards carry their fonts: TrueType fonts embedded in a board draw its strings, and with Embed TrueType fonts on, saving a binary board puts in it the fonts its strings use, once the browser (Chrome or Edge) is allowed to read this computer's fonts. A substitution font is drawn for text whose font this computer doesn't have. The File Format Change Report says what may differ in a board saved by another version of the format. Remove Duplicates leaves exact duplicates out of Gerber and NC drill files and the files output jobs write, and Confirm Global Edit asks before a PCB List change goes to every selected object."
+    },
+    {
+     "text": "Outputs: PCB reports (Netlist Status, Board Information, a BGA's fanout, Move Component Origin To Grid, Stackup Compatibility) can be shown, written as text or HTML to the project's outputs folder, or both. DRC Sub-Net Details lists an un-routed net's pieces. Gerber: Include unconnected mid-layer pads, off by default, so inner-layer pads that connect to nothing are now left out unless it is ticked; with Embedded apertures off, RS-274-D files sharing one aperture list (.APR), which the CAM document opened after generating reads them with. NC Drill: Optimise change location commands (on by default, so a coordinate that hasn't changed is left out), slots routed by default or drilled with G85, and Generate Board Edge Rout Paths with the Rout Tool Dia given; output jobs keep them all. Impedance formulas: Helper puts in variables, functions and operators."
+    },
+    {
+     "text": "The desktop: Reopen Last Workspace and Restore open documents; a panel layout for each kind of document; the documents bar putting a kind's tabs under one when they don't all fit, wrapping onto several lines, or hiding while only one document is open; with Dynamic transparency on, floating panels growing see-through as the cursor nears while a tool is at work; a Clipboard panel; Document Path; the startup screen, popup panel delays and shadows round menus and panels; the window's title naming the document; document tabs of equal width; middle click closes a tab."
+    },
+    {
+     "text": "Navigation: cross-probing can dim everything else, or draw the net as a connection graph; Zooming, Masking, Selecting and Include Power Parts decide what it does. The Navigator lists a net's pins, net labels, ports, sheet entries, sheet connectors and, if asked, its wires; Cross Select Mode can instead zoom to the matching objects when their document is next shown, or mask the rest."
+    },
+    {
+     "text": "Projects panel: documents grouped by class, by type or not at all; open and modified status; each document's number in the project; the sheet structure or a plain list; sorting; a schematic's sheet symbols and ports under it; each document's path from the project folder in its tooltip; and what a single click does. Two defaults change: only Source Documents start open, and a single click brings an open document to the front (a closed one opens with a double-click). Both can be set back."
+    },
+    {
+     "text": "Data management: File › New › Schematic can start from a sheet template chosen once; auto save can also copy to a folder you choose (Chrome or Edge), while the browser allows it; Tab's changes to power ports, net labels, off sheet connectors, junctions, No ERC markers, bus entries and text are kept between sessions unless Permanent is on; Temporary Mesh Data shows how many 3D models are kept and can clear them; Show VCS status gives each document's number of versions in Local History; Use localised resources writes dates, times and counts as your computer's language does; the text editor's Insert key can switch to overwriting."
+    },
+    {
+     "text": "Every option in Preferences and in the editors' dialogs that was greyed out as not yet built now works. The planned features are still greyed, labelled as planned."
+    }
+   ]
+  },
+  {
+   "version": "26.099",
+   "title": "Signal Integrity, multi-board and harness design",
+   "sha256": "ad079e218cbc17ac95c98fbd5c034c9462e4f23cbf387efc3c3700b3a2147c34",
+   "items": [
+    {
+     "text": "Signal Integrity: Tools › Signal Integrity (schematic and PCB) screens every net, with drivers and receivers by the schematic's pin types, IC models by technology (CMOS-3.3V, CMOS-5V, CMOS-2.5V, CMOS-1.8V, LVTTL, TTL) or IBIS (Model Assignments › Import IBIS), the copper as transmission lines from the layer stack, input capacitance, clamps, series parts and parts to the rails, and lists each net's status with the overshoot and undershoot of each edge; Show Columns adds the top and base values, flight times, slopes, length and impedance. The picked net shows its pins and the terminations to try, each with its value worked out from the line.",
+     "image": "whats-new/26.089-signal-integrity.webp",
+     "alt": "The Signal Integrity panel under the demo board with two long lines added: each net's status and overshoot, CLK's driver and receiver, and the terminations with their suggested values, the series resistor ticked"
+    },
+    {
+     "text": "Reflections... draws the picked nets' waveforms in SimView, driven by the stimulus (a single pulse, a constant level or pulses), unterminated and with each termination ticked; Crosstalk... the noise an aggressor puts on the near and far ends of the nets beside it. Setup Options (track impedance and length for the schematic alone, the default technology, supply nets, the stimulus), Set Tolerances and the panel's terminations are kept in the project.",
+     "image": "whats-new/26.089-reflections.webp",
+     "alt": "SimView with CLK's reflections: the driver's and the receiver's waveforms ringing unterminated, and calm with a series resistor"
+    },
+    {
+     "text": "Signal Integrity rules: Signal Stimulus, Overshoot and Undershoot of each edge, Impedance, Signal Top and Base Value, Flight Time and Slope of each edge and Supply Nets are in Design › Rules with their constraints, and Design Rule Check checks them when they are ticked in its Rules To Check: each net a rule takes simulated and held to it."
+    },
+    {
+     "text": "Multi-board design: multi-board projects (.PrjMbd) open with their child projects. The multi-board schematic (.MbsDoc) shows the modules, their entries and the direct, wire, cable and harness connections between them; Place Module, Import From Child Projects (connectors by their System = Connector parameter, with their pins and nets) and moving modules edit it, and the side lists every pin the boards share (pin to pin, with the net on each board) and what doesn't meet. The multi-board assembly (.MbaDoc) shows the boards in 3D where the assembly puts them, with mechanical parts from their STEP models; pick a board to move or turn it, Insert Board adds one. Both are saved in their own format, the rest of each file untouched."
+    },
+    {
+     "text": "Harness design: harness projects (.PrjHar) open with their wiring diagram in front. Wiring diagrams (.WirDoc) and layout drawings (.LdrDoc) open as sheets: connectors with their pins, wires, splices, cables, shields and twists; the layout's bundles and connection points: moved and edited as on a schematic, saved with everything kept. Reports › Harness Wire List gives each wire's ends, colour, cable, shield and twist, and its length along the layout's bundles; save it as CSV. Harness Draftsman drawings (.HarDwf) open as Draftsman documents."
+    },
+    {
+     "text": "Network activity (the Home page, and Preferences › System › Network Activity): Allow network activity: off, Konium Designer makes no connections at all (no updates, What's New, AI jobs, supplier data or reports), and the browser itself is told to refuse any the page could make, so it holds whatever the code does; Offline shows beside the menus while it is off. Check konium.app for updates and What's New: off, Konium Designer doesn't ask, and a copy installed from konium.app stays on the version it has. Network Activity and Help › About list every connection Konium Designer makes: when, where to, what goes, and whether it is allowed. The website's visit count runs only at konium.app itself, never in a downloaded copy."
+    },
+    {
+     "text": "Help › Contact the Author: a message to Konium Designer's author (a question, a comment, or a request to audit Konium Designer's source code), sent through konium.app, which keeps the author's address (it isn't in Konium Designer). About now says how Konium Designer is made: from scratch, by its author, with the help of AI tools."
+    },
+    {
+     "text": "What's New gives each release's SHA-256 checksum at the right of its heading, from this one on: the checksum of its single file as a download saves it (Konium-26.099.html for this one), to check a copy is the one published (Windows: certutil -hashfile <file> SHA256; macOS and Linux: shasum -a 256 <file>). Click it to copy it."
+    },
+    {
+     "text": "The Konium AI service's daily allowance is now counted in jobs on the cheapest model it offers: a dearer model's job uses as many as it costs times more, so the day's allowance costs about the same whichever model is chosen. Each model's share is beside it in Preferences › System › AI, and each job's cost line says how much it takes."
+    }
+   ]
+  },
+  {
+   "version": "26.097",
+   "title": "Design Adviser, Draftsman drawings and ActiveBOM documents",
+   "items": [
+    {
+     "text": "Design Adviser: Tools › Design Adviser opens the Design Adviser panel. Check Design has the model you choose review the project (or the sheet in front) before layout, as an experienced engineer would: supplies and decoupling, floating inputs and enable pins, missing pull-ups, UART, I2C, SPI, USB and CAN wired the wrong way, regulators', crystals' and LEDs' parts, nets that look alike but aren't joined. Only the design as text goes (parts, pins, nets), and the panel says what goes where and what it costs first. Each finding has its severity, why, the fix, and its parts and nets, shown on the sheet at a click; dismissed findings stay dismissed; Copy puts the review on the clipboard."
+    },
+    {
+     "text": "In depth: each part worth it (ICs, transistors, crystals, regulators, connectors with a part number) is checked against its own datasheet (a PDF you add or drop on the panel, the link in its parameters, else one the model finds on the web), pin by pin: what each pin is joined to, the parts the datasheet asks for and their values, the rails against its ratings, the symbol against the pin table. Findings give the datasheet pages they rest on (a click shows the page). Ask: questions about the design and the review, answered with the design, the datasheets and the review in view."
+    },
+    {
+     "text": "On the board: with a PCB in front the adviser checks it before it is made: its layers and rules, each component's place and side, each IC supply pad's nearest capacitors and how far they are, crystals' distances, each net's length, widths, vias and pours, unrouted connections, differential pairs, parts by the edge, exposed pads' vias: all measured in Konium Designer and sent as text with the schematic and what the datasheets said about layout. Findings are selected on the board at a click.",
+     "image": "whats-new/26.089-ai-adviser.webp",
+     "alt": "The Design Adviser panel beside the demo board: what it sends, the board's review with a warning about C2's distance from U1's output, and the parts and nets shown on the board"
+    },
+    {
+     "text": "Draftsman documents: .PCBDwf files open in their own tab. Each sheet is drawn with its border and zones and its board assembly and fabrication views from the project's board at their scale, side and rotation (the board outline stored in the drawing when the board isn't open), drill tables, bills of materials, layer stack tables, text and title blocks; items not drawn yet show as named boxes and are kept. Drag an item to move it, change its scale, side, rotation, title or text on the right, delete it, add, remove or resize sheets, undo and redo, print every sheet, and save it back in its own format, the rest of the file untouched. File › New › Draftsman Document lays a new one out for the board: assembly and fabrication views, drill, layer stack and BOM tables, notes and a title block.",
+     "image": "whats-new/26.089-draftsman.webp",
+     "alt": "A new Draftsman document for the demo board: top and bottom assembly views, the fabrication view, the drill, layer stack and BOM tables, and the top view's properties"
+    },
+    {
+     "text": "BOM documents are now ActiveBOM files (.BomDoc), read and written in their own format (the columns shown and their widths, sorting, grouping, not-fitted parts, line numbering and each line's part choices, the rest of the file untouched), with lines made as ActiveBOM makes them. Set Line Numbers numbers the lines from the document's start and step; Export saves the BOM as Excel, CSV, tab-delimited text or a web page."
+    },
+    {
+     "text": "Design Rule Check › Creepage Distance is measured round cutouts, slots and unplated holes: the shortest way across the board's surface that keeps out of them. Before, a pair with one of them between it wasn't reported, even where the copper beside it was too near."
+    },
+    {
+     "text": "Interactive Routing at any angle (forum): Shift+Space reaches any angle while routing tracks, as on lines: Preferences › PCB Editor › Interactive Routing › Restrict To 90/45 is off by default."
+    },
+    {
+     "text": "Coming next: Signal Integrity, multi-board and harness design, BOM supply and cost with JLCPCB stock and prices, diagrams, ActiveRoute's Route Guide and Pin Swapping, and an enclosure designer are already in the menus, greyed as planned features: each is switched on in a release of its own."
+    }
+   ]
+  },
+  {
+   "version": "26.084",
+   "title": "Component Builder: schematic symbols from pin tables",
+   "items": [
+    {
+     "text": "Tools › Component Builder makes schematic symbols too: Create Symbol (a variant's Symbol tab or column, or Create Symbols for the ticked variants) reads the variant's pin table (its pages' text, and pictures of them) and lays the pins round a body on a 100 mil grid: supplies on top, grounds below, inputs left, outputs right, the other pins by function group, each group together; a connector's in number order, a diode's anodes facing its cathodes, a transistor's gate or base left. Active-low names get AD's overbar. Variants with the same pinout share one reading.",
+     "image": "whats-new/26.084-ai-symbol.webp",
+     "alt": "The Component Builder's Symbol tab for a made-up USB-to-UART bridge in QFN-24: the symbol drawn with its pins grouped, the checks against the footprint, and the pin table to edit"
+    },
+    {
+     "text": "The symbol's review: every pin to change (number, name, active low, type, side), Sides by Function or by Number, the symbol drawn as it will be, and checks against the variant's footprint: pins without a pad, pads without a pin, numbers used twice, a pin count that doesn't match the package. Add to Library puts it in an open schematic library or a new one, linked to its footprint."
+    },
+    {
+     "text": "Preferences › Schematic › Default Primitives › Pin › Length: Place › Pin and the builder's symbols start with it (AD's 300mil)."
+    },
+    {
+     "text": "Also: the model lists run from the cheapest (Gemini Flash, the default) to the dearest; the model can't be changed while a job is under way; the builder's fields, buttons and reviews line up."
+    }
+   ]
+  },
+  {
+   "version": "26.082",
+   "title": "Component Builder: footprints from datasheets; track corners with arcs; AD's layer drawing order",
+   "items": [
+    {
+     "text": "Tools › Component Builder (in a schematic or PCB library): a datasheet PDF read in Konium Designer, then surveyed by an AI model: every orderable variant, its part numbers, package, pins, lead form, body, pitch and pinout, and the pages of its drawing, land pattern and pin table; the part number you will use ticks its own variant, and any page is shown at a click. Then Create Footprint: the variant's drawings found on their pages and read enlarged: the package family by the drawing's shape, its dimensions, and the datasheet's own land pattern (rows, staggered rows, shield slots, unplated posts, the outline), or the footprint worked out by IPC-7351B from the dimensions when the datasheet draws none (DIP by IPC-7251). Each step shows as it goes, with its time.",
+     "image": "whats-new/26.082-ai-builder.webp",
+     "alt": "The Component Builder on a USB-C receptacle's datasheet: the variant surveyed, its land pattern read, measured on the drawing and checked, the footprint beside the datasheet's page"
+    },
+    {
+     "text": "The pads are measured in the drawing itself: the model says which pads there are, their names and sizes; their places come from the drawing, on the lines the PDF draws (each pad's exact edges), so a stagger between rows or a row's distance comes out as drawn. Then the footprint is drawn and shown back to the model with the datasheet's drawing, its pads outlined in red over it, and the model puts right what doesn't match until it finds nothing more (Preferences › System › AI › Footprint checks: up to 3 rounds). A drawing not to scale is said so."
+    },
+    {
+     "text": "The review beside the datasheet's page: the dimensions and pads to edit, Add Pad, Mirror and Rotate, checks (pin count, pitch, overlapping pads, unconverted inches, what the model's check found), the footprint drawn as it will be; then Add to Library (the open PCB library or a new one) with courtyard, silkscreen, assembly outline, 3D body and pin-1 mark. What you accept from a public datasheet can be shared, so the next person reading it gets it at once."
+    },
+    {
+     "text": "Preferences › System › AI, off until switched on: the Konium service (free within a daily allowance), your own key (OpenRouter, or any endpoint that speaks OpenAI's chat completions; the key stays in this browser), or a model on your computer (Ollama, LM Studio, llama.cpp). One model does every job, chosen there or in the builder: the latest Claude Opus, GPT Sol, Gemini Pro or Gemini Flash (the default), each always its family's newest. Before anything is sent the builder says what goes where and what it costs; nothing leaves the computer unless you start a job."
+    },
+    {
+     "text": "Land-pattern drawings made up with their answers (rows, quad packages, chips, SOT, headers, connectors with staggered rows and shield slots, flex connectors, ball grids, drawn every way datasheets draw them) measure Konium Designer's measuring and the models, and are the start of a footprint model of Konium Designer's own.",
+     "image": "whats-new/26.082-synthetic-drawings.webp",
+     "alt": "Four made-up land-pattern drawings: a staggered connector with shield slots, a QFN, a ball grid and a flex connector, dimensioned as datasheets dimension them"
+    },
+    {
+     "text": "Track corners as AD (forum): Shift+Space cycles 45°, 45° with arc, 90°, 90° with arc and any angle in Interactive Routing and Place Track / Line; in the arc modes , and . shrink and grow the arc (Shift faster), smaller where the clearance needs."
+    },
+    {
+     "text": "Layers drawn in AD's Layer Drawing Order (forum: the silkscreen was hidden under the mechanical layers): multi-layer pads and vias, the overlays, the connection lines, the current layer, the other signal layers, paste, solder mask, planes, drill guide, keep-out, mechanical layers, drill drawing, the grid; the grid now shows on the board. Preferences › PCB Editor › Display › Layer Drawing Order changes it (Promote, Demote, Default); with the board flipped the bottom side's layers come over the top's.",
+     "image": "whats-new/26.082-layer-order.webp",
+     "alt": "Preferences › PCB Editor › Display with the Layer Drawing Order dialog: Multi Layer, Top Overlay, Bottom Overlay … Visible Grids"
+    },
+    {
+     "text": "Sharper drawing: System › View › Smooth edges off draws lines, edges and fills hard on whole screen pixels; on smooths filled shapes too. On displays scaled to 125 % or 150 % the drawing is made at the screen's own pixels, not stretched."
+    },
+    {
+     "text": "Units as the document has them: a board opens in its Board Options unit and each document keeps its own (Q changes the active one's); a schematic's dialogs and panels use the sheet's unit, as AD does; a length typed with its unit (2.54mm, 100mil) is taken as written."
+    },
+    {
+     "text": "Also: Ctrl + drag on a selected polygon's edge adds a vertex there; View Configurations' T, B, E, R and 1, 2, 3 … switch layers on and off as in AD; Preferences opens at the page last open; the IPC wizard makes SOJ packages, and a lopsided package's courtyard (DPAK, SOT-223) follows its pads and body."
+    }
+   ]
+  },
+  {
+   "version": "26.071",
+   "title": "Design Rule Check as AD's, every rule kind; ActiveRoute; fab-house profiles",
+   "items": [
+    {
+     "text": "Design Rule Check follows the board's own Rules To Check (Online and Batch, kept in the board as AD keeps them), its Report Options and its stop count, with AD's defaults for a board without them. Violations a designer waived in AD are left out and listed in the report with their comment, author and date. One violation per pair of objects; objects described on their own layers.",
+     "image": "whats-new/26.071-drc-options.webp",
+     "alt": "The showcase board with the Design Rule Checker's Report Options: shorting copper, broken planes, dead copper, starved thermals"
+    },
+    {
+     "text": "Every AD rule kind but Signal Integrity is checked now. New: Modified Polygon, Height, Un-Connected Pin, Net Antennae, Acute Angle, Length and Matched Lengths (in length or in delay), SMD Neck-Down, SMD To Corner, SMD To Plane, SMD Entry, Vias Under SMD, Routing Via Style, Routing Layers, Differential Pairs Routing (widths, uncoupled length), Parallel Segment, Daisy Chain Stub Length, Maximum Via Count, Max Via Stub Length (Back Drilling), Return Path, Creepage Distance, Minimum Solder Mask Sliver, Silk To Solder Mask, Silk To Silk, Silk To Board Region, Component Clearance (3D bodies), Permitted Layers, Layer Pairs, Fabrication and Assembly Testpoint Style and Usage. The Report Options too: drilled SMT pads, multilayer pads with no hole, net ties' shorting copper, broken planes, dead copper and starved thermals, as warnings.",
+     "image": "whats-new/26.071-drc-kinds.webp",
+     "alt": "Rules To Check › High Speed: Parallel Segment to Return Path, each ticked for Online and Batch as the board keeps it"
+    },
+    {
+     "text": "Fewer false violations: rule scopes asked as AD asks them (OnLayer, InPolygon, missing classes, No Net copper), Width limits per layer, net ties, keep-out restrictions, pad and via shapes per layer, Different / Same Differential Pairs clearances, shelved polygons, regions to their arc resolution, board outline arcs to 0.005 mil, copper text by its strokes. Every region was taken twice (AD keeps each in two streams): now once. Split planes inside split planes take their own area. Checked against AD's own waivers on public boards and against a bug report's board that AD passes with no violations: none found there either. A large board's clearance check 59 s → 11 s."
+    },
+    {
+     "text": "Route › ActiveRoute (Shift+A) and the PCB ActiveRoute panel: the selected components', pads' or routing's connections routed on the layers ticked in the panel, through vias; Meander tunes the routed nets up to their Matched Lengths rule's longest net, in the same undo step."
+    },
+    {
+     "text": "Design › Fab-House Profile…: JLCPCB, PCBWay, OSH Park, Eurocircuits and Aisler standard services (their own published capabilities, with the page and the date read) against the board's rules, those allowing less than the house makes in red. Check Board runs a Design Rule Check with the house's limits; Apply raises the general rules to them in one undo step.",
+     "image": "whats-new/26.071-fab-profile.webp",
+     "alt": "Design › Fab-House Profile on the showcase board: JLCPCB's limits against its rules, the hole size and mask sliver rules below them in red"
+    },
+    {
+     "text": "Bug reports sent from Report a Bug can also be filed for the AI assistant that helps build Konium Designer, so a report reaches a fix sooner; the dialog says so."
+    },
+    {
+     "text": "Fixed: the Rules editor's constraints for Creepage, Return Path, Back Drilling and the testpoint styles, and AD's defaults for new rules of them; Silk To Solder Mask Clearance's value (the rules editor and CAMtastic's design check read another key); new boards' silk rule keeps silk off pads only, as AD's; the Fabrication Testpoint and Daisy Chain Stub Length rules named as AD names them."
+    }
+   ]
+  },
+  {
+   "version": "26.070",
+   "title": "The CAM editor edits, checks and panelises; EDIF schematics; 3D modelling",
+   "items": [
+    {
+     "text": "The CAM editor edits: place flashes, lines, polylines, rectangles, polygons and voids, arcs and circles five ways each, text and dimensions; drills, slots, drilled text and routed circles. Cut, copy and paste, move, rotate, mirror, array, scale, break, chamfer, fillet, extend, join and offset; change D-codes, polarity and layers; composite layers and step-and-repeat blocks; selection by window, crossing, trace and filter; views such as negative, translucent and difference. Every CAMtastic command now works."
+    },
+    {
+     "text": "Netlist extraction (copper joined through plated holes, planes by their clearances and thermals) and comparison with an IPC-D-356 netlist; PCB Design Check (clearance, track width, annular rings, hole sizes, holes to copper, silk over pads, the rules taken from the open board); RFQ, D-code usage, DRC/DFM, rout, XY and netlist reports.",
+     "image": "whats-new/26.070-cam-check.webp",
+     "alt": "The showcase board's films in the CAM editor: the design checked, the PCB RFQ Report over it"
+    },
+    {
+     "text": "Panelise, film placement, copper pour, teardrops, venting, trim silkscreen, pad removal, homebase pads, epoxy bars and rout paths. Import and export ODB++, IPC-D-356, DXF and mill files; import HPGL and aperture lists; export centroids, bitmaps, and a board (.PcbDoc) made from the films. Macros record commands, clicks and answers and play them back.",
+     "image": "whats-new/26.070-cam-panel.webp",
+     "alt": "Tools › Panelize PCB: four of the showcase board in a framed panel"
+    },
+    {
+     "text": "File › Export › EDIF Schematic (and the Export Wizard): the schematics as one EDIF 2 0 0 file: the symbols placed, power symbols and each schematic library as libraries, a page for each sheet with its parts, wires, labels, power ports and ports, every net by the name the project compiles it to."
+    },
+    {
+     "text": "3D model editor: Split an assembly (or several bodies in one model) into a part for each solid, placed as the assembly places it. Box corners and cylinder rims filleted or chamfered; Cone and Dome: all exact B-rep.",
+     "image": "whats-new/26.070-model-split.webp",
+     "alt": "The showcase board's STEP model split into its parts in the 3D model editor"
+    },
+    {
+     "text": "Library editor › Place › Pin: after each pin the cursor steps one grid on (down the side, or along the row for pins pointing up or down) and the number counts up; click again without moving the mouse, or press Enter, to place the next."
+    },
+    {
+     "text": "Fixed: round rectangles with a corner radius larger than half the box draw as AD draws them; colours a file leaves out are black, as in AD; No ERC marks show their style (Thin Cross, Thick Cross, Small Cross, Checkbox, Triangle) and orientation; the EDIF import labels fewer nets."
+    }
+   ]
+  },
+  {
+   "version": "26.066",
+   "title": "Auto Save and recovery, Local History, Storage Manager",
+   "items": [
+    {
+     "text": "Storage Manager (View › Workspace Panels › System): the project's files and each one's history: open a version, label it, revert to it (the file written as it was, the one it replaces kept), delete versions, purge the history, show the auto-saved copies.",
+     "image": "whats-new/26.066-storage-manager.webp",
+     "alt": "The Storage Manager beside the showcase's MCU sheet: its project files, and the sheet's Local History with a labelled version"
+    },
+    {
+     "text": "Local History: each save keeps the file it replaces: in a History folder beside the project, zipped as AD does (Name.~(n).Ext.Zip), or in the browser for documents without a project folder. Preferences › Data Management › Local History sets the days kept."
+    },
+    {
+     "text": "Auto Save (Preferences › Data Management › Backup, on every 10 minutes): changed documents are copied into the browser, also when the page is hidden or closed. After a crash or a tab closed with work unsaved, the Home page offers them back (Open or Discard)."
+    },
+    {
+     "text": "Updating: the app's page is asked for afresh whenever you're online, so a new version shows as soon as it's out (Update now waits for it to arrive)."
+    }
+   ]
+  },
+  {
+   "version": "26.065",
+   "title": "Rigid-flex coverlay and Advanced Rigid-Flex, EDIF, faster on large boards",
+   "items": [
+    {
+     "text": "Rigid-flex coverlay as a layer of its own: Layer Stack Manager › right-click a layer › Insert layer above or below › Coverlay, in the flex stacks, with its Coverlay Expansion. A flex region on such a stack is covered by it, or, with Custom Coverlays, by the polygons drawn for it (Design › Place Coverlay Polygon and Place Coverlay Cutout; Coverlay Actions). Openings for pads and vias as the solder mask's. The coverlay shows in Board Planning Mode and in 3D, and Gerber output writes a file for each coverlay layer (Gerber X2 too).",
+     "image": "whats-new/26.065-coverlay.webp",
+     "alt": "The showcase's sensor head folded in 3D, its flex tail under the Top Coverlay",
+     "focus": "50% 62%"
+    },
+    {
+     "text": "Advanced Rigid-Flex (Layer Stack Manager › Advanced › Rigid-Flex): regions stand on their own, with no split lines: Place › Board Region, Design › Slice Board Region, a region's corners dragged, Delete; the Board Region dialog's Priority decides which region shows where they overlap. Back to Standard when the regions meet edge to edge.",
+     "image": "whats-new/26.065-layer-stack.webp",
+     "alt": "The Layer Stack Manager on the showcase flex board: the Flex stack with its Top Coverlay, and the Rigid-Flex mode"
+    },
+    {
+     "text": "EDIF 2 0 0 files open (Import Wizard › EDIF Files, File › Open, drops): schematic pages as sheets with the SchLib of their cells, parts turned and mirrored as drawn, nets with their names; a netlist with no drawings as parts in rows with their nets named. EAGLE 8 and later's modules: each instance's sheets under a sheet symbol for it, its parts named as on the board."
+    },
+    {
+     "text": "The netlist and model editor complete: Replace, Find Next Selected, Clear Browser Marks, Indent and Unindent, Change Case, Word Wrap, Code Templates, editor settings from Visual Studio, split views, and Preferences › Text Editors. SimView: a wave picked by its name dims the others (Wave › Clear Filter), waves cut, pasted and inserted, and more plots than fit scroll."
+    },
+    {
+     "text": "Large boards: Design Rule Check and Gerber output many times faster, polygon pours faster, and pours not triangulated again on every redraw."
+    },
+    {
+     "text": "Fixed: a keepout track stays one when its width or its union is changed; tracks routed on a board take nothing of its first track (locked, keepout, in a pour); a component exploded keeps its designator's font. Simulation: a library's .lib section is the only one read, an included file's .END no longer ends the netlist, a DC sweep that fails leaves its source as it was, a .TRAN starting past its stop is reported; wave expressions keep numbers apart from nodes named as numbers; model files are saved in the encoding they were read in. The text editor's Replace All replaces every match (past 10,000), and Indent works on a first empty line. SimView's cursor B reads its own wave; a chart's zoom and cursors stay with it when another is deleted. EAGLE sheets leave room for AD's title block."
+    }
+   ]
+  },
+  {
+   "version": "26.062",
+   "title": "Simulation, the CAM editor, EAGLE and database libraries",
+   "items": [
+    {
+     "text": "Mixed-signal simulation: Design › Simulate › Mixed Sim runs the project's schematics in Konium Designer's own SPICE simulator, in the browser. Analyses Setup as AD lays it out: Operating Point, Transient with Fourier, DC Sweep, AC Small Signal, Transfer Function, Noise, Pole-Zero, Temperature and Parameter Sweeps, Monte Carlo. The results open in SimView: stacked plots, waves that are expressions of signals, cursors and their measurements, FFT, more Y axes, each sweep's runs drawn together. A part's SIM model is added or edited in the Sim Model dialog; netlists and models open in a text editor; Home has a simulation demo.",
+     "image": "whats-new/26.062-simulation.webp",
+     "alt": "SimView: the simulation demo's amplifier with R1 swept, the runs of each signal drawn together"
+    },
+    {
+     "text": "The CAM editor: Gerber (RS-274X and X2) and NC drill files open as a CAM document, a layer per file, typed, coloured and stacked as AD's CAMtastic does them. The CAMtastic panel, the layer and aperture tables, Query and Measure, drill, aperture and status reports; objects erased and the layers exported again. File › Fabrication Outputs opens what it writes in a CAM document, as AD does.",
+     "image": "whats-new/26.062-cam-editor.webp",
+     "alt": "The CAM editor with the showcase board's Gerber and drill files"
+    },
+    {
+     "text": "EAGLE: the Import Wizard (and File › Open) reads EAGLE 6 and later and Fusion Electronics' EAGLE schematics, boards and libraries; a schematic and a board of one name become one project. The Export Wizard writes the project as EAGLE 9's schematic, board and library.",
+     "image": "whats-new/26.062-eagle.webp",
+     "alt": "The Export Wizard on EAGLE with the showcase board behind it"
+    },
+    {
+     "text": "Database libraries (.DbLib, .SVNDbLib) open, are made and are saved as AD writes them, on Excel workbooks, CSV, Access and SQLite databases. The Libraries panel lists their records as parts and places them as AD does; the demo project has one."
+    },
+    {
+     "text": "File › Save As saves schematics and boards in AD's ASCII formats too. Browsers without WebGL 2 (many older Windows computers) open documents again, drawn with the 2D canvas."
+    },
+    {
+     "text": "Fixed: 3D Layout Mode draws TrueType text on the overlay; File › Open (Ctrl+O) works in Chrome and Edge again; an auto-hide panel can be resized by the edge of its slide-out; the Preferences gear looks like a gear."
+    }
+   ]
+  },
+  {
+   "version": "26.056",
+   "title": "OrCAD and Allegro export, ASCII PCB files",
+   "items": [
+    {
+     "text": "OrCAD and Allegro: File › Export Wizard › OrCAD and Allegro (AD ASCII Files), also File › Export › OrCAD and Allegro, writes the project in AD's own ASCII formats, which Cadence's translators for AD designs read (OrCAD Capture and PCB Editor 17.2 and later, File › Import): the project file and its structure file (the sheet tree), every schematic as an ASCII schematic and the board as an ASCII PCB file. Capture makes its parts from the schematics, PCB Editor its footprints from the board.",
+     "image": "whats-new/26.056-orcad-allegro.webp",
+     "alt": "The Export Wizard on OrCAD and Allegro with the showcase board behind it"
+    },
+    {
+     "text": "ASCII PCB files: a .PcbDoc saved as PCB ASCII File (by AD, or by another tool's export to AD) opens as a board and is saved in ASCII again. ASCII schematics were already read and written."
+    },
+    {
+     "text": "Home page: What's New now sits in the middle column, so Get Konium Designer, Support Konium Designer and Report a bug stay in view. A copy opened from disk hears of new versions from konium.app again, and shows What's New. Texts an importer puts on a mechanical layer past 16 keep their layer."
+    }
+   ]
+  },
+  {
+   "version": "26.054",
+   "title": "Import and export: KiCad, PADS, EasyEDA, OrCAD, Allegro, STL",
+   "items": [
+    {
+     "text": "File › Import Wizard (also File › Open, and dropping files or a folder on the window) brings other tools' designs in as AD projects: KiCad 6 and later (projects, schematics, boards, symbol and footprint libraries), PADS Logic and PADS Layout ASCII files, EasyEDA Standard and Pro (projects, backups and libraries), OrCAD Capture designs and libraries (.dsn, .olb, 16.0 and later), Allegro and OrCAD PCB Editor boards (.brd, 16.0 to 19) and IPC-2581 boards from any tool. A schematic and its board become one project with its nets named as the schematic compiles them, so Design › Update PCB has little or nothing to change; each tool's symbols and footprints come in as a SchLib and a PcbLib.",
+     "image": "whats-new/26.054-import.webp",
+     "alt": "The Import Wizard with the showcase project as KiCad files"
+    },
+    {
+     "text": "What comes in: each sheet as a SchDoc with its parts as the tool places them, wires, buses, junctions, power ports, ports, off-sheet connectors, sheet symbols, title blocks and fonts; each board with its layer stack, outline and cut-outs, pads by their stacks (slots, custom shapes, mask and paste), tracks, arcs, vias (blind and buried), pours with their poured copper, keep-outs, text and drawings on named mechanical layers, and the design rules' clearances, widths and net classes. Where the other tool joins names that AD would not, the labels or connectors AD needs are added."
+    },
+    {
+     "text": "File › Export Wizard (also Export to another tool on the Home page): a project as KiCad 8 files (the project, schematics, board, symbol and footprint libraries with their tables, 3D models), as PADS ASCII files (PADS Logic and PADS Layout) or as EasyEDA Standard source files, into a folder or as a zip. Nets are written as the project compiles them and a multi-channel sheet once for each channel. Exported and imported again, the demo, the showcase and the real projects tried keep every net.",
+     "image": "whats-new/26.054-export.webp",
+     "alt": "The Export Wizard with the showcase project, KiCad Project chosen"
+    },
+    {
+     "text": "STL: File › Export › STL 3D writes the board, drilled, with its bodies and models as one mesh, for printing or an enclosure's design. STL files open in the 3D model editor (saved as STEP), import there as parts and embed as a 3D body's model. STEP export now takes linked models too, not only embedded ones.",
+     "image": "whats-new/26.054-stl.webp",
+     "alt": "The showcase board exported as STL and opened in the 3D model editor"
+    },
+    {
+     "text": "Outputs: internal planes now plot in Gerber, Gerber X2, IPC-2581 and ODB++ as their copper, with their clearances and thermal reliefs (they were left out), worked out about three times faster; plane and polygon connect styles set per kind of object (pads, through-hole and SMD pads, vias) are used. TrueType PCB text plots at its true size."
+    },
+    {
+     "text": "Fixes: dotted, dashed and dash-dotted schematic lines were drawn solid (reported). Compile compared ports and sheet entries across sheets in the Connection Matrix, so hierarchical designs reported an Output Pin against another sheet's Input Port. Buses on sheet entries, ports and off-sheet connectors now join member by member as AD joins them, and a sheet symbol may name several files. DRC and connectivity are much faster on boards with large pours. What's New is at the top of the Home page's side column."
+    }
+   ]
+  },
+  {
+   "version": "26.049",
+   "title": "Initial Release",
+   "items": [
+    {
+     "text": "Konium Designer is an electronics design tool for schematics, PCB layout, 3D and manufacturing outputs that runs in the browser, and offline once loaded. It opens, edits and saves AD's file formats (projects, schematics, boards, libraries, Output Jobs) and works as AD does: its menus, shortcuts, toolbars, dialogs and docking panels. The six-layer board in these pictures was designed, placed and routed in Konium Designer.",
+     "image": "whats-new/26.049-initial-release.webp",
+     "alt": "A six-layer controller board in 3D, its schematic and a folded rigid-flex board"
+    },
+    {
+     "text": "Schematic capture: multi-sheet and hierarchical designs with sheet symbols, ports, harnesses, buses, power ports and directives; every drawing and placing tool, Move and Drag that keep wires attached, the SCH Inspector, Filter and List; Compile with AD's error reporting and connection matrix; annotation, variants, the Parameter Manager and Update From Libraries; schematic libraries with multi-part symbols; Bill of Materials to Excel, CSV and HTML.",
+     "image": "whats-new/26.049-schematic.webp",
+     "alt": "The MCU and FPGA sheets of the showcase project and its Bill of Materials"
+    },
+    {
+     "text": "PCB layout: interactive routing (Walkaround, Push, Hug And Push), differential pairs, bus routing, length tuning, dragging and via pushing; the autorouter and fanout; polygon pours, internal and split planes, teardrops, via stitching and shielding; design rules with online and batch DRC; the Layer Stack Manager with impedance; classes, rooms, unions, queries, the PCB panel, Filter and Inspector; Update PCB and Back Annotate, both ways.",
+     "image": "whats-new/26.049-pcb-layout.webp",
+     "alt": "The routed six-layer board, its BGA fan-out and the Layer Stack Manager"
+    },
+    {
+     "text": "3D Layout Mode: the board at its layer stack's thickness with copper, mask, silkscreen and plated holes, every 3D body and its embedded or linked STEP model, and View Configurations as AD's. Rigid-flex: split and bending lines, a layer stack for each region, flex regions showing their polyimide where the stack has no mask, and Fold/Unfold (5) in 3D.",
+     "image": "whats-new/26.049-3d-rigid-flex.webp",
+     "alt": "The board in 3D close up, a rigid-flex board folded and in Board Planning Mode"
+    },
+    {
+     "text": "Libraries and outputs: PCB libraries with the IPC Compliant Footprint Wizard (14 package families) and the component wizards, schematic and integrated libraries, library packages, and a 3D model editor for STEP files (move, turn, recolour, add boxes and cylinders, place on a footprint). Gerber RS-274X and X2, NC Drill, pick and place, STEP export, Draftsman fabrication and assembly drawings, print and PDF, and Output Jobs that make them all.",
+     "image": "whats-new/26.049-outputs.webp",
+     "alt": "The board exported to STEP in the 3D model editor, an IPC footprint in 3D and a Draftsman drawing"
+    },
+    {
+     "text": "Around it: design workspaces and projects, Preferences laid out as AD's, every word in British English, Help › Report a Bug, and this log of what changes from here on."
+    }
+   ]
+  }
+ ]
+}
