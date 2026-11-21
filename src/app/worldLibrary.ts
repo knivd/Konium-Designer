@@ -4,8 +4,9 @@
  * platform/libraryService.ts's; this keeps the views in step with them.
  */
 import { signal } from '@preact/signals';
-import { keptSession, libraryNote, publishPart, sayOfPart, signOut, type FoundPart, type LibrarySession, type Published } from '../platform/libraryService';
-import { standingText, type LibraryEntry, type Verdict } from '../model/worldLibrary';
+import { findInLibrary, keptSession, libraryNote, publishPart, sayOfPart, signOut, type FoundPart, type LibrarySession, type Published } from '../platform/libraryService';
+import { keepOrg, keptOrg, orgFind, orgPublish } from '../platform/orgService';
+import { standingText, type LibraryEntry, type OrgRole, type Verdict } from '../model/worldLibrary';
 import { SR, bagOf, ownedBy, type SchDocument } from '../model/sch';
 import { partSource } from '../model/schUpdate';
 import { partKey } from '../model/partKey';
@@ -19,7 +20,42 @@ import { featureOn } from '../core/release';
 export const librarySession = signal<LibrarySession | null>(keptSession());
 /** After a request: what is kept now (a pass the service refused has been forgotten). */
 export const syncSession = (): LibrarySession | null => (librarySession.value = keptSession());
-export function leaveLibrary(): void { signOut(); librarySession.value = null; }
+export function leaveLibrary(): void { signOut(); librarySession.value = null; companyRole.value = null; }
+
+/* ─── A company's own library (step 4) ─────────────────────────────────────────────────── */
+
+/** The company whose library this browser works with ('' for none), and the signed-in person's part in it once it has been asked (null: none, or not asked yet). */
+export const companyDomain = signal<string>(keptOrg());
+export const companyRole = signal<OrgRole | null>(null);
+/** The company chosen (or given up, with ''). */
+export function useCompany(domain: string, role: OrgRole | null = null): void {
+  keepOrg(domain);
+  companyDomain.value = keptOrg();
+  companyRole.value = companyDomain.value ? role : null;
+}
+/** A part of the shelf published to the company's library: its members' only. The copy on the shelf then carries the library's note. */
+export async function publishToCompany(p: PartPackage, name?: string, f: typeof fetch = fetch): Promise<LibraryEntry> {
+  try {
+    const entry = await orgPublish(companyDomain.value, p, { name, app: APP_VERSION }, f);
+    keepPart({ ...p, record: { ...p.record, library: entry } });
+    return entry;
+  } finally { syncSession(); }
+}
+/**
+ * A part number looked up wherever this browser may look: in the company's library first, where one is chosen and somebody is
+ * signed in, then in the world library. A company's library that can't be asked (no longer a member, the sign-in too old) does
+ * not stand in the way of the world's; what it said is given back as `note`.
+ */
+export async function findAnywhere(mpn: string, f: typeof fetch = fetch): Promise<{ found: FoundPart | null; note: string }> {
+  let note = '';
+  if (companyDomain.value && keptSession()) {
+    try {
+      const own = await orgFind(companyDomain.value, mpn, f);
+      if (own) return { found: own, note };
+    } catch (e) { note = e instanceof Error ? e.message : String(e); syncSession(); }
+  }
+  return { found: await findInLibrary(mpn, f), note };
+}
 
 /** A part found in the library put on the shelf, with the library's note about it. True when it replaced one. */
 export const keepFound = (f: FoundPart): boolean => keepPart(f.part);
@@ -76,7 +112,7 @@ export function libraryWarnings(sheets: { name: string; doc: SchDocument }[], pa
       if (o.kind !== 'component' || partSource(s.doc, o.index)?.library !== SHELF_SCH) continue;
       const mpn = (kids.get(o.index) ?? []).map((k) => bagOf(s.doc, k)).find((b) => b?.int('RECORD', -1) === SR.PARAMETER && (b.get('NAME') ?? '').toLowerCase() === 'manufacturer part number')?.get('TEXT') ?? '';
       const e = noted.get(partKey(mpn)), wrong = e?.problems ?? [];
-      if (!e) continue;
+      if (!e || e.org) continue;   // (a company's own part is its own to vouch for)
       if (e.status === 'unverified') out.push({ doc: s.name, level: 'warn', message: `${o.designator} (${e.mpn}) is an Unverified part of the world library (${standingText(e)}): check it against its datasheet` });
       else if (wrong.length) out.push({ doc: s.name, level: 'warn', message: `${o.designator} (${e.mpn}): ${wrong.length === 1 ? 'a problem has' : `${wrong.length} problems have`} been reported with this part in the world library: ${wrong.at(-1)!.note ?? ''}` });
     }

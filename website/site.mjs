@@ -9,7 +9,16 @@
  * (website/guides.mjs, under guides/) are the pages for what people search for, and name Altium
  * Designer in their titles and headings; they are reached from the footer and from each other.
  */
+import { readFileSync } from 'node:fs';
 import { GUIDES } from './guides.mjs';
+
+/**
+ * The AI service's daily allowance for each user, in job tokens, as the service is set (its own
+ * settings file, so that the page says what the service does; 25 where the file can't be read).
+ */
+export const AI_TOKENS = (() => {
+  try { return Number(/^JOBS_PER_DAY\s*=\s*"(\d+)"/m.exec(readFileSync(new URL('../cloudflare/ai/wrangler.toml', import.meta.url), 'utf8'))?.[1]) || 25; } catch { return 25; }
+})();
 
 export const PAGES = [
   { path: 'index.html', nav: 'Home' },
@@ -185,7 +194,8 @@ function home(d) {
       <div class="wrap">
         <div class="hero-text">
           <h1>Konium Designer</h1>
-          <p class="lead">Schematic capture and PCB layout for engineers who work in Altium Designer. It opens, edits and saves your projects, schematics, boards and libraries in their own formats, with the menus, panels, dialogs and shortcut keys you already use. It is free.</p>
+          <p class="hero-free"><strong>Free</strong> The whole program, for any use, work included. No account, no licence key, no adverts. <a href="#free">What free covers</a></p>
+          <p class="lead">Schematic capture and PCB layout for engineers who work in Altium Designer. It opens, edits and saves your projects, schematics, boards and libraries in their own formats, with the menus, panels, dialogs and shortcut keys you already use.</p>
           <p class="actions"><a class="btn primary install" href="app/?install">Install Konium Designer</a><a class="btn" href="download/#file">Download as one file</a></p>
           <p class="fine">Version ${esc(d.version)}. Chrome or Edge on Windows, macOS or Linux. No account. Installed, it has a window of its own and works offline.</p>
           <p class="fine"><a href="download/">More on installing</a>, or <a href="app/">try it in a browser tab</a>.</p>
@@ -194,7 +204,20 @@ function home(d) {
       </div>
     </section>
 
-    <section class="band">
+    <section class="band" id="free">
+      <div class="wrap narrow">
+        <h2>Free</h2>
+        <p>Konium Designer costs nothing: all of the program, for any use, work included. There is no account, no licence key, no trial period and no advert, and nothing in it is held back for payment. Its <a href="${SOURCE}">source is open</a> under the GNU General Public License.</p>
+        <p><strong>What "free" does not cover</strong></p>
+        <ul class="ticks">
+          <li>The AI tools are optional, and off until you switch them on. Konium's own AI service is free within an allowance: ${AI_TOKENS} job tokens a day for each user (a job takes one or more, by the model chosen), and a daily budget for the whole service, which its author pays. When either is used up the service stops until the next day; nothing is charged. With your own key, your provider charges you. A model on your own computer costs nothing.</li>
+          <li>What you order with its help, parts and boards, costs what its makers and suppliers charge. Konium Designer sells nothing and is paid nothing by them.</li>
+        </ul>
+        <p>If Konium Designer saves you time or money, a <a href="support/">donation</a> helps keep it going.</p>
+      </div>
+    </section>
+
+    <section>
       <div class="wrap narrow">
         <h2>It runs on your computer</h2>
         <p>konium.app is where you get Konium Designer. The program itself runs inside your browser, on your own computer. Your projects are opened from your disk and saved back to it; they are not uploaded anywhere. Once it has been opened, it starts without a connection.</p>
@@ -249,12 +272,6 @@ function home(d) {
       </div>
     </section>
 
-    <section class="band">
-      <div class="wrap narrow">
-        <h2>Free</h2>
-        <p>Konium Designer costs nothing, with no account and no adverts. The AI service is paid for by its author and has a daily allowance. If Konium Designer saves you time or money, a <a href="support/">donation</a> helps keep it going.</p>
-      </div>
-    </section>
 `;
   return layout({
     page: PAGES[0], depth: 0, home: true, body,
@@ -555,7 +572,8 @@ export const FAQ = [
   { id: 'ai', q: 'Does it use AI?',
     a: ['Only if you switch it on, in Preferences › System › AI. It is off to begin with, and then nothing is sent anywhere. With it on, you choose where jobs go: the Konium service (free within a daily allowance; it passes jobs to the chosen model through OpenRouter and excludes providers that train on what they are sent), your own key, or a model on your own computer, where nothing leaves it. Each job shows what it will send before it goes.'] },
   { id: 'cost', q: 'Is it really free? Do I need an account?',
-    a: ['It is free, with no account and no adverts. It is supported by donations, which help pay for the AI service.'] },
+    a: ['It is free: all of the program, for any use, work included, with no account, no licence key, no trial period and no adverts. Its source is open. It is supported by donations, which help pay for the AI service.',
+      `Two things "free" does not cover. The AI tools are optional: Konium's own AI service is free within a daily allowance (${AI_TOKENS} job tokens for each user, and a daily budget for the whole service) and stops until the next day when that is used up, while your own key is charged by your provider and a model on your own computer costs nothing. And what you order with its help, parts and boards, costs what its makers and suppliers charge: Konium Designer sells nothing.`] },
   { id: 'altium', q: 'Can I open Altium Designer files without Altium Designer?',
     a: ['Yes. Konium Designer opens .PrjPcb, .SchDoc, .PcbDoc, .SchLib and .PcbLib files, shows them as they look there and saves them back in the same formats. It reads integrated libraries (.IntLib) too. See <a href="../formats/">Formats</a>.'] },
   { id: 'familiar', q: 'Will it feel familiar?',

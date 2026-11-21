@@ -637,8 +637,8 @@ function symbolSet(style: SymbolStyle) {
 
 const SYMBOLS_STORE = 'live.symbols.v1';
 export const SYMBOL_STYLES: [SymbolStyle, string, string][] = [
-  ['european', 'European', 'European (IEC): a resistor is a box, a capacitor two plates, an electrolytic capacitor has a hollow plate for its positive side, an inductor is half circles'],
-  ['american', 'American', 'American (ANSI): a resistor is a zigzag, a capacitor a plate and a curved one, an inductor is loops'],
+  ['european', 'European', 'European (IEC): a resistor is a box, a capacitor two plates, a polarised capacitor has a hollow plate for its positive side, an inductor is half circles'],
+  ['american', 'American', 'American (ANSI): a resistor is a zigzag, a capacitor a plate and a curved one, an inductor is loops; the parts\' names are spelt the American way'],
 ];
 /** How the palette's parts are drawn (remembered). */
 export const liveSymbols = signal<SymbolStyle>((() => { try { return localStorage.getItem(SYMBOLS_STORE) === 'american' ? 'american' : 'european'; } catch { return 'european'; } })());

@@ -5934,7 +5934,7 @@ with sync_playwright() as p:
     check(f"The palette (26.186): {pal['n']} tiles by kind {pal['groups']}, each a picture of its symbol over its name ({pal['drawn']} drawn); the first five in one row ({pal['rows']}), all of one width ({pal['widths']}): {pal['names']}",
           pal["groups"] == [["Passive", 13], ["Diodes and thyristors", 7], ["Transistors", 7], ["Amplifiers and blocks", 8], ["Logic and chips", 21], ["Sources", 15], ["Instruments and outputs", 6], ["Wiring and notes", 5]]
           and pal["n"] == 82 and pal["drawn"] == 82 and pal["rows"] == 1 and pal["widths"] == 1
-          and pal["names"] == ["Resistor", "Capacitor", "Electrolytic capacitor", "Inductor", "Potentiometer"])
+          and pal["names"] == ["Resistor", "Capacitor", "Polarised capacitor", "Inductor", "Potentiometer"])
     c.close()
 
     c, pg = site_page("26.182-hands")
@@ -7097,7 +7097,7 @@ with sync_playwright() as p:
           "Your shelf is empty" in empty and "kept in this browser only" in empty and len(rows) == 1 and "KD-EX1833-SO8" in rows[0] and "Konium (example) · SO-8 · 8 pins" in rows[0]
           and len(shelf) == 1 and shelf[0]["package"]["footprint"] == "SOIC127P600X175-8N" and "SOIC127P600X175-8N" in detail and "pads by IPC-7351B" in detail and "Every one of its 8 pins has its pad, and every pad its pin" in detail
           and "It doesn't say which datasheet it was read from" in detail and count.inner_text() == "1" and "My Parts.SchLib" in (count.get_attribute("title") or "")
-          and tools == ["Add a Part File", "Add the Example Part", "Publish to the World Library", "Save as Integrated Library", "Save as Part File", "Remove"] and pp.locator(".parts-row .parts-mark.pm-warning").count() == 1)
+          and tools == ["Company Library", "Add a Part File", "Add the Example Part", "Publish to the World Library", "Save as Integrated Library", "Save as Part File", "Remove"] and pp.locator(".parts-row .parts-mark.pm-warning").count() == 1)
     # Placed in the schematic in front from the shelf's library, with what a bill of materials reads from it
     comps = "window.konium.state.active.value.doc.records.filter((r) => r.bag.get('RECORD') === '1').length"
     n0 = pg.evaluate(comps)
@@ -7391,7 +7391,7 @@ with sync_playwright() as p:
     # here (the real one is not set up, and nothing outside can be reached from the run): it keeps what is published and gives it back
     c, pg = site_page("26.201-library")
     import base64 as _b64l, time as _timel
-    lib = {"parts": {}, "blobs": {}, "calls": [], "auth": [], "sent": {}, "mail": "", "n": 1}
+    lib = {"parts": {}, "blobs": {}, "calls": [], "auth": [], "sent": {}, "mail": "", "n": 1, "orgs": {}, "dns": False}
     LIB_USER = {"id": "k-0123abcd", "name": "", "email": "ada@example.org"}
     LIB_TOKEN = "0123456789abcdef." + str(int(_timel.time() * 1000) + 90 * 86400000) + "." + "a" * 64
     def lib_route(route):
@@ -7426,6 +7426,48 @@ with sync_playwright() as p:
             commit = f"{lib['n']:040x}"; lib["n"] += 1
             lib["parts"][key] = {"entry": entry, "commit": commit, "files": {"part.json": json.dumps(body["record"]).encode(), "symbol.SchLib": lib["blobs"][body["symbol"]["sha"]], "footprint.PcbLib": lib["blobs"][body["footprint"]["sha"]]}}
             return J({"ok": True, "entry": entry, "commit": commit, "url": f"https://github.com/o/parts/tree/main/parts/{key[:2]}/{key}"})
+        if path.startswith("/org"):   # (26.204: a company's own library; who asks is the stand-in's LIB_USER)
+            body = json.loads(rq.post_data) if rq.method == "POST" else {}
+            dom = body.get("domain") if rq.method == "POST" else re.search(r"domain=([^&]+)", path).group(1)
+            org = lib["orgs"].setdefault(dom, {"members": {}, "parts": {}, "log": []})
+            me = LIB_USER["email"]; role = org["members"].get(me, {}).get("role")
+            op = path.split("?")[0][4:]
+            rec = {"name": "_konium." + dom, "value": "konium-library=" + "ab" * 16}
+            members = lambda: [{"email": e, "role": m["role"], "since": "2026-11-21T10:00:00.000Z", "seen": m.get("seen", ""), "by": m["by"]} for e, m in sorted(org["members"].items(), key=lambda kv: (kv[1]["role"], kv[0]))]
+            if rq.method == "GET" and op == "":
+                at = me.endswith("@" + dom)
+                if not role: return J({"domain": dom, "open": True, "exists": bool(org["members"]) and at, "role": None, **({"record": rec} if at else {})})
+                return J({"domain": dom, "open": True, "exists": True, "role": role, "parts": len(org["parts"]), "allowance": 200, **({"members": members(), "record": rec} if role == "admin" else {})})
+            if op == "/claim":
+                if not lib["dns"]: return J({"error": f"The record isn't in {dom}'s DNS yet (a new record can take some minutes to be seen)", "record": rec}, 409)
+                how = "claimed" if org["members"] else "opened"
+                org["members"][me] = {"role": "admin", "by": "the domain's record", "seen": "2026-11-21T10:00:00.000Z"}; org["log"].insert(0, [me, "opened the library by the domain's record", ""])
+                return J({"ok": True, "domain": dom, "role": "admin", "how": how})
+            if not role: return J({"error": f"You are not a member of {dom}'s library"}, 403)
+            if op == "/member":
+                who = body["email"]
+                if body.get("remove"): org["members"].pop(who, None); org["log"].insert(0, [me, "put out", who]); return J({"ok": True, "removed": True, "members": members()})
+                added = who not in org["members"]; org["members"][who] = {"role": body.get("role", "member"), "by": me}; org["log"].insert(0, [me, "let in as a member", who])
+                return J({"ok": True, "added": added, "mailed": added, "members": members()})
+            if op == "/parts": return J({"parts": [x["listed"] for x in org["parts"].values()]})
+            if op == "/audit": return J({"events": [{"at": "2026-11-21T10:%02d:00.000Z" % (59 - i), "who": w, "what": what, "about": about} for i, (w, what, about) in enumerate(org["log"])]})
+            m2 = re.fullmatch(r"/part/([A-Z0-9]+)(?:/([\w.]+))?", op)
+            if rq.method == "GET" and m2:
+                part = org["parts"].get(m2.group(1))
+                if not m2.group(2): return J({"found": True, "entry": part["entry"]} if part else {"found": False})
+                if not part: return J({"error": "That part isn't in the library"}, 404)
+                if m2.group(2) == "part.json": org["log"].insert(0, [me, "fetched", part["entry"]["mpn"]])
+                return route.fulfill(status=200, content_type="application/json" if m2.group(2) == "part.json" else "application/octet-stream", body=part["files"][m2.group(2)])
+            if op == "/publish":
+                key = re.sub(r"[^A-Z0-9]", "", body["record"]["mpn"].upper()); had = org["parts"].get(key)
+                LIB_USER["name"] = body.get("name", LIB_USER["name"])
+                entry = {"key": key, "mpn": body["record"]["mpn"], "status": "unverified", "by": LIB_USER["id"], "name": LIB_USER["name"], "published": "2026-11-21T10:00:00.000Z", "revision": (had["entry"]["revision"] + 1 if had else 1), "licence": "private", "app": body.get("app", ""), "org": dom}
+                org["parts"][key] = {"entry": entry, "listed": {"key": key, "mpn": entry["mpn"], "maker": body["record"]["maker"], "package": body["record"]["package"]["name"], "pins": body["record"]["package"]["pins"], "by": entry["by"], "name": entry["name"], "published": entry["published"], "revision": entry["revision"]},
+                                     "files": {"part.json": json.dumps(body["record"]).encode(), "symbol.SchLib": _b64l.b64decode(body["symbol"]), "footprint.PcbLib": _b64l.b64decode(body["footprint"])}}
+                org["log"].insert(0, [me, "published", entry["mpn"]]); lib["sent"] = {k: (v[:11] if k in ("symbol", "footprint") else v) for k, v in body.items()}
+                return J({"ok": True, "entry": entry})
+            if op == "/drop": return J({"ok": True}) if org["parts"].pop(body["key"], None) else J({"error": "That part isn't in the library"}, 404)
+            return J({"error": "Not here"}, 404)
         if path == "/check":   # (26.203: what somebody says of a part; the standing follows from the lists as the service works it out)
             body = json.loads(rq.post_data); lib["said"] = body
             part = lib["parts"].get(body.get("key")); me = LIB_USER["id"]
@@ -7693,6 +7735,110 @@ with sync_playwright() as p:
           len(w1) == 1 and w1[0][0] == "warn" and re.fullmatch(r"U\S+ \(KD-EX1833-SO8\) is an Unverified part of the world library \(0 of 2 checks\): check it against its datasheet", w1[0][1]) is not None and w2 == [])
     c.close()
 
+    # 26.204 (R21, step 4, planned): a company's own library. Opened by a record in the domain's DNS, its members let in, a part published to
+    # it and fetched from it, its log. The same stand-in service, begun again (it takes the record to be in the DNS when told)
+    c, pg = site_page("26.204-company")
+    lib.update({"parts": {}, "blobs": {}, "calls": [], "auth": [], "sent": {}, "said": {}, "mail": "", "n": 1, "orgs": {}, "dns": False})
+    LIB_USER.update({"id": "k-0123abcd", "name": "", "email": "ada@example.com"})
+    pg.route("https://konium.app/api/library/**", lib_route)
+    pg.goto(URL); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(1200)
+    pg.evaluate("window.konium.prefs.set({ openHomePage: false })")
+    pg.evaluate("window.konium.run('file.openDemo')"); pg.wait_for_timeout(2500)
+    pg.evaluate("window.konium.run('parts.panel')"); pg.wait_for_timeout(700)
+    pin = pg.locator("button[aria-label='Pin Parts']")
+    if pin.count(): pin.first.click(); pg.wait_for_timeout(500)
+    pp = pg.locator(".parts-panel")
+    pp.locator(".btn", has_text="Add the Example Part").click(); pg.wait_for_timeout(900)
+    pp.get_by_role("button", name="Company Library").click()
+    org = pg.locator(".dlg.orgpart")
+    org.locator("#pub-email").wait_for(timeout=10000)
+    asked0 = list(lib["calls"])
+    show0 = org.locator(".btn", has_text="Show").is_disabled()
+    org.locator("#pub-email").fill("ada@example.com"); org.locator(".btn", has_text="Send the Link").click()
+    org.locator(".org-record").wait_for(timeout=12000); pg.wait_for_timeout(200)
+    dom = org.locator("#org-domain").input_value()
+    record = org.locator(".org-record code").all_inner_texts()
+    setup = org.inner_text()
+    shot(pg, "204-setup.png")
+    check_btn = org.locator(".btn", has_text="Check the Record")
+    check_btn.click(); org.locator(".pub-error").wait_for(timeout=10000)
+    not_yet = org.locator(".pub-error").inner_text()
+    errors[:] = [e for e in errors if not ("26.204-company" in e and "409" in e)]   # (the browser notes the refusal that was asked for)
+    lib["dns"] = True
+    check_btn.click(); org.locator("ul[aria-label=\"The library's members\"]").wait_for(timeout=10000); pg.wait_for_timeout(300)
+    chip = org.locator(".pub-part .pub-status").inner_text()
+    org.locator("#org-who").fill("bob@example.com"); org.locator(".btn", has_text="Let In").click(); pg.wait_for_timeout(1200)
+    toast = pg.locator(".toast").last.inner_text() if pg.locator(".toast").count() else ""
+    members = org.locator("ul[aria-label=\"The library's members\"] li b").all_inner_texts()
+    kept_org = pg.evaluate("localStorage.getItem('konium.library.org')")
+    shot(pg, "204-admin.png")
+    org.locator(".dlg-foot .btn", has_text="Close").click(); pg.wait_for_timeout(300)
+    check(f"A company's library (26.204): nothing is asked before a sign-in ({asked0}; Show waits: {show0}). Signed in, the company is taken from the address ('{dom}') and its library, not there yet, is set up by a record in its DNS ({record}); Check the Record says '{not_yet}' until the record is seen, then whoever asked runs the library ('{chip}'). A member let in ('{toast}'): {members}; the library is this browser's from here on ('{kept_org}')",
+          asked0 == ["GET /config"] and show0 and dom == "example.com" and record == ["TXT", "_konium.example.com", "konium-library=" + "ab" * 16] and "Open example.com's library" .lower() in setup.lower() and "take the library back" in setup
+          and "isn't in example.com's DNS yet" in not_yet and chip == "Administrator" and toast == "bob@example.com let in, and told by mail" and members == ["ada@example.com", "bob@example.com"] and kept_org == "example.com")
+    # A part published to it: the window offers the company's library beside the world's; there the part is given to nobody
+    pp.get_by_role("button", name="Publish to the World Library").click()
+    pub = pg.locator(".dlg.pubpart")
+    pub.locator(".rev-choices").wait_for(timeout=10000); pg.wait_for_timeout(200)
+    where = pub.locator(".rev-choice b").all_inner_texts()
+    go = pub.locator(".dlg-foot .btn", has_text="Publish")
+    agree0 = pub.locator(".pub-agree").count(); why0 = go.get_attribute("title")
+    pub.locator(".rev-choice", has_text="example.com's library").click(); pg.wait_for_timeout(200)
+    agree1 = pub.locator(".pub-agree").count(); can1 = go.is_enabled()
+    shot(pg, "204-publish.png")
+    n_before = len(lib["calls"])
+    go.click(); pub.locator(".pub-done").wait_for(timeout=10000)
+    done = pub.locator(".pub-done").inner_text()
+    sent = dict(lib["sent"]); went = lib["calls"][n_before:]
+    pub.locator(".dlg-foot .btn", has_text="Close").click(); pg.wait_for_timeout(300)
+    card = pp.locator(".parts-card").inner_text()
+    tools = pp.locator(".parts-card .parts-tools .ex-icon-btn").evaluate_all("(els) => els.map((e) => e.getAttribute('aria-label'))")
+    mark = pp.locator(".parts-row .pm-world").get_attribute("title")
+    shot(pg, "204-shelf.png")
+    # Off the shelf and looked up: found in the company's library, before the world's is asked at all
+    pp.get_by_role("button", name="Remove").click(); pg.wait_for_timeout(300)
+    pp.get_by_label("Part number").fill("KD-EX1833-SO8"); pg.wait_for_timeout(300)
+    callout = pp.locator(".parts-callout").inner_text()
+    n_before = len(lib["calls"])
+    pp.locator(".btn", has_text="Look in the World Library").click()
+    pp.locator(".parts-found").wait_for(timeout=10000); pg.wait_for_timeout(200)
+    found = pp.locator(".parts-found").inner_text()
+    looked = lib["calls"][n_before:]
+    shot(pg, "204-found.png")
+    pp.locator(".btn", has_text="Keep on My Shelf").click(); pg.wait_for_timeout(600)
+    kept_toast = pg.locator(".toast").last.inner_text() if pg.locator(".toast").count() else ""
+    back = pg.evaluate("window.konium.parts().map((p) => [p.mpn, p.library.org, p.library.licence, p.library.revision])")
+    check(f"…Publish offers {where}; for the world it waits for the agreement ({agree0}, '{why0}'), for the company there is none to give ({agree1}; ready: {can1}). Sent: {went} with {sorted(sent.keys())} (no licence: it is given to nobody); '{done.splitlines()[0]}'. The card says '{[l for l in card.splitlines() if 'library' in l][:2]}' with {tools}; its row's mark: '{mark}'. Looked up ('{callout.splitlines()[-2][:80]}…'): {looked}, found as '{[l for l in found.splitlines() if 'library' in l][:1]}', kept ({back})",
+          where == ["The world library", "example.com's library"] and agree0 == 1 and why0 == "Tick the agreement first" and agree1 == 0 and can1 and went == ["POST /org/publish"]
+          and sorted(sent.keys()) == ["app", "domain", "footprint", "name", "record", "symbol"] and sent["domain"] == "example.com" and sent["symbol"] == "0M8R4KGxGuE" and "KD-EX1833-SO8 is in example.com's library" in done and "nobody else does" in done
+          and "In example.com's library" in card and "Company" in card and "given to nobody else" in card and tools == ["Publish Again", "Save as Integrated Library", "Save as Part File", "Remove"] and mark == "In example.com's library"
+          and "example.com's library and the world library" in callout
+          and looked == ["GET /org/part/KDEX1833SO8?domain=example.com"] + [f"GET /org/part/KDEX1833SO8/{n}?domain=example.com" for n in ("part.json", "symbol.SchLib", "footprint.PcbLib")]
+          and "In example.com's library" in found and "Company" in found and back == [["KD-EX1833-SO8", "example.com", "private", 1]] and kept_toast == "KD-EX1833-SO8 added to your shelf from example.com's library")
+    # The library again: its parts, its members and what happened, to its administrator; its parts alone to a member; neither to one put out
+    pp.get_by_role("button", name="Company Library").click()
+    org.locator("ul[aria-label=\"The library's parts\"]").wait_for(timeout=10000); pg.wait_for_timeout(300)
+    listed = org.locator("ul[aria-label=\"The library's parts\"] li").all_inner_texts()
+    log = org.locator(".org-log li").all_inner_texts()
+    head = org.locator(".pub-part").inner_text()
+    shot(pg, "204-library.png")
+    pg.evaluate("window.konium.prefs.set({ theme: 'dark' })"); pg.wait_for_timeout(400)
+    shot(pg, "204-library-dark.png")
+    pg.evaluate("window.konium.prefs.set({ theme: 'light' })"); pg.wait_for_timeout(300)
+    lib["orgs"]["example.com"]["members"]["ada@example.com"]["role"] = "member"
+    org.locator(".btn", has_text="Show").click(); pg.wait_for_timeout(1200)
+    as_member = [org.locator(".pub-part .pub-status").inner_text(), org.locator("ul[aria-label=\"The library's parts\"] li").count(), org.locator("ul[aria-label=\"The library's members\"]").count(), org.locator(".org-log").count()]
+    lib["orgs"]["example.com"]["members"].pop("ada@example.com")
+    org.locator(".btn", has_text="Show").click(); pg.wait_for_timeout(1200)
+    out = org.inner_text()
+    as_out = [org.locator(".pub-part .pub-status").inner_text(), org.locator("ul[aria-label=\"The library's parts\"]").count(), org.locator(".org-record").count()]
+    shot(pg, "204-out.png")
+    org.locator(".dlg-foot .btn", has_text="Close").click(); pg.wait_for_timeout(200)
+    check(f"…the library to its administrator: '{head.splitlines()[1] if len(head.splitlines()) > 1 else head}', its part ({[l.splitlines()[0] for l in listed]}), and what happened, the latest first ({[' '.join(l.split()[2:]) for l in log][:4]}). To a member: {as_member} (its parts; no members, no log). To one put out: {as_out}, and since their address is at the domain, the way to take the library over",
+          "1 of 200 parts" in head and [l.splitlines()[0] for l in listed] == ["KD-EX1833-SO8"] and len(log) == 4 and "ada@example.com fetched KD-EX1833-SO8" in log[0] and "published KD-EX1833-SO8" in log[1] and "let in as a member bob@example.com" in log[2] and "opened the library" in log[3]
+          and as_member == ["Member", 1, 0, 0] and as_out == ["Not a member", 0, 1] and "take example.com's library over" in out.lower())
+    c.close()
+
     # 26.202: Live Simulation from anywhere (the red button of the menu bar), a new circuit that leaves what is open alone, the two drawings
     # of resistors, capacitors and inductors, and the electrolytic capacitor watched for a voltage the wrong way round
     c, pg = site_page("26.202-live")
@@ -7718,14 +7864,15 @@ with sync_playwright() as p:
     eu = drawn()
     docs2 = names()
     tile = lambda name: pg.evaluate("""(n) => { const t = document.querySelector(`.livepanel .live-tile[aria-label='${n}'] svg`); return t ? [...t.querySelectorAll('*')].map((e) => e.tagName.toLowerCase()).filter((x) => x !== 'g').sort().join(' ') : ''; }""", name)
-    tiles_eu = [tile(n) for n in ("Resistor", "Capacitor", "Electrolytic capacitor", "Inductor", "Potentiometer")]
+    tiles_eu = [tile(n) for n in ("Resistor", "Capacitor", "Polarised capacitor", "Inductor", "Potentiometer")]
     stress = pg.evaluate("window.konium.liveStress().filter((s) => s.designator === 'C1')")
     net_eu = pg.evaluate("Object.keys(window.konium.liveReading().volt).sort()")
     shot(pg, "202-european.png")
     lp.locator("select[aria-label='Symbols']").select_option("american"); pg.wait_for_timeout(1500)
     us = drawn()
     toast = pg.locator(".toast").last.inner_text() if pg.locator(".toast").count() else ""
-    tiles_us = [tile(n) for n in ("Resistor", "Capacitor", "Electrolytic capacitor", "Inductor", "Potentiometer")]
+    tiles_us = [tile(n) for n in ("Resistor", "Capacitor", "Polarized capacitor", "Inductor", "Potentiometer")]   # (26.204: the American set spells the names its own way)
+    names_us = pg.evaluate("[...document.querySelectorAll('.livepanel .live-tile')].map((t) => t.getAttribute('aria-label')).filter((n) => /olari|nalog/.test(n))")
     run_us = pg.evaluate("(() => { const r = window.konium.liveReading(); return r ? Object.keys(r.volt).sort() : null; })()")
     kept = pg.evaluate("[window.konium.liveSymbols(), localStorage.getItem('live.symbols.v1')]")
     shot(pg, "202-american.png")
@@ -7738,7 +7885,8 @@ with sync_playwright() as p:
           and len(stress) == 2 and [s["reverse"] for s in stress] == [False, True] and stress[0]["shown"] > 5 and stress[1]["shown"] == 0 and not stress[1]["over"] and stress[1]["rating"] == 1
           and [p[:2] for p in us] != [] and sorted(p[0] for p in us) == sorted(p[0] for p in eu) and all(p[2] == "american" for p in us) and "redrawn in the American style" in toast
           and all(a != b and a and b for a, b in zip(tiles_eu, tiles_us)) and "polyline" in tiles_us[0] and "rect" in tiles_eu[0] and run_us is not None and run_us == net_eu
-          and all(p[2] == "european" for p in undone) and all(p[2] == "american" for p in redone) and kept == ["american", "american"])
+          and all(p[2] == "european" for p in undone) and all(p[2] == "american" for p in redone) and kept == ["american", "american"]
+          and names_us == ["Polarized capacitor", "Analog switch", "Digital-to-analog converter", "Analog-to-digital converter"])
     # The next example follows the choice; a new circuit leaves the others open; the menu's item is in the same red
     pg.evaluate("window.konium.liveExample('lrc')"); pg.wait_for_timeout(3000)
     lrc = drawn()

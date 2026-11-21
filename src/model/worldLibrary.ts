@@ -46,6 +46,46 @@ export interface LibraryEntry {
   built?: LibraryWord[];
   /** What has been found wrong with this revision, a line each. */
   problems?: LibraryWord[];
+  /** A company's own part (step 4): the company's domain. Such a part is in no public repository and is its members' only. */
+  org?: string;
+}
+
+/* ─── A company's library (step 4, 26.204) ─────────────────────────────────────────────── */
+
+/** The licence field of a part that is a company's own: not given to anybody. */
+export const PRIVATE_LICENCE = 'private';
+/** A domain as a company's library goes by: lower case, its labels letters, digits and hyphens, two labels at least; '' when it isn't one. */
+export function orgDomain(s: unknown): string {
+  const d = typeof s === 'string' ? s.trim().toLowerCase().replace(/\.$/, '') : '';
+  return d.length <= 253 && /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(d) ? d : '';
+}
+/** Whether an address is at a domain: at it, or at a part of it (ada@eng.example.com is at example.com). */
+export function atDomain(email: string, domain: string): boolean {
+  const at = mailAddress(email).split('@')[1] ?? '';
+  return !!domain && !!at && (at === domain || at.endsWith(`.${domain}`));
+}
+/** The DNS record by which a company proves that a domain is its own: a TXT record of this name with this text before the code. */
+export const orgRecordName = (domain: string): string => `_konium.${domain}`;
+export const ORG_RECORD_PREFIX = 'konium-library=';
+export type OrgRole = 'admin' | 'member';
+export interface OrgMember { email: string; role: OrgRole; since: string; seen: string; by: string }
+/** A part of a company's library as its list shows it. */
+export interface OrgPart { key: string; mpn: string; maker: string; package: string; pins: number; by: string; name: string; published: string; revision: number }
+/** What happened in a company's library: who (an address: its members know each other), what, about what, when. */
+export interface OrgEvent { at: string; who: string; what: string; about: string }
+/** How a company's library stands for whoever asks. */
+export interface OrgStatus {
+  domain: string;
+  /** Company libraries are open for this domain on the service. */
+  open: boolean;
+  exists: boolean;
+  /** The asker's part in it (null: none). */
+  role: OrgRole | null;
+  /** The record to put in the domain's DNS (for whoever has an address at it, or runs the library). */
+  record?: { name: string; value: string };
+  parts?: number;
+  allowance?: number;
+  members?: OrgMember[];
 }
 /** Somebody's word about a part: who (a contributor's number and the name they show), when, and for a problem what. */
 export interface LibraryWord { by: string; name: string; at: string; note?: string }
@@ -118,6 +158,7 @@ export function readEntry(v: unknown): LibraryEntry | null {
     licence: text(e.licence, 40) ? e.licence : LIBRARY_LICENCE, app: text(e.app, 20) ? e.app : '',
     // (a list nobody is in is left out: a part nobody has spoken of is as it was before there were any)
     ...(checked.length ? { checked } : {}), ...(built.length ? { built } : {}), ...(problems.length ? { problems } : {}),
+    ...(orgDomain(e.org) ? { org: orgDomain(e.org) } : {}),
   };
 }
 

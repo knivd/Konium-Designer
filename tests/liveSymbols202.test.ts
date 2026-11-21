@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { LIVE_EXAMPLES, liveExampleBytes, liveExampleFile, type LiveExample } from '../src/app/liveExamples';
 import { STYLED_PARTS, drawingOf, livePartSymbol, restyleSheet, LIVE_PARTS } from '../src/app/liveSim';
-import { SIM_PARTS_LIB, simPartSymbols, simSourceSymbols, type SymbolStyle } from '../src/formats/synthetic/simLib';
+import { SIM_PARTS_LIB, inStyle, simPartSymbols, simSourceSymbols, type SymbolStyle } from '../src/formats/synthetic/simLib';
 import { UPDATE_ALL, applyPartUpdates, updatedPart } from '../src/model/schUpdate';
 import { readSchDoc } from '../src/formats/altium/schdoc';
 import { compileProject } from '../src/model/compile';
@@ -48,11 +48,16 @@ describe('European and American symbols (26.202)', () => {
     expect(simSourceSymbols().length).toBeGreaterThan(10);
   });
 
-  it('the electrolytic capacitor is named as one, in the palette and in the library', () => {
+  it('the polarised capacitor keeps its name; the American set spells the names its own way (26.204)', () => {
     const cap = LIVE_PARTS.find((p) => p.libRef === 'CAP_POL')!;
-    expect([cap.label, cap.caption]).toEqual(['Electrolytic capacitor', 'Electrolytic']);
-    expect(cap.hint).toMatch(/positive side is marked \+/);
-    for (const style of ['european', 'american'] as const) expect(simPartSymbols(style).find((s) => s.libRef === 'CAP_POL')!.description).toMatch(/^Electrolytic capacitor \(polarised: pin 1 is its positive side\)/);
+    expect([cap.label, cap.caption]).toEqual(['Polarised capacitor', 'Polarised']);
+    expect(cap.hint).toMatch(/an electrolytic or a tantalum one\): its positive side is marked \+/);
+    const described = (style: SymbolStyle, libRef: string) => simPartSymbols(style).find((s) => s.libRef === libRef)!.description;
+    expect(described('european', 'CAP_POL')).toBe('Polarised capacitor (pin 1 is its positive side)');
+    expect(described('american', 'CAP_POL')).toBe('Polarized capacitor (pin 1 is its positive side)');
+    expect([described('european', 'ANALOG_SWITCH'), described('american', 'ANALOG_SWITCH')].map((d) => d.split(' ')[0])).toEqual(['Analogue', 'Analog']);
+    expect(LIVE_PARTS.filter((p) => inStyle(p.label, 'american') !== p.label).map((p) => inStyle(p.label, 'american'))).toEqual(['Polarized capacitor', 'Analog switch', 'Digital-to-analog converter', 'Analog-to-digital converter']);
+    expect(LIVE_PARTS.every((p) => inStyle(p.label, 'european') === p.label)).toBe(true);
   });
 
   it('every example is the same circuit in either drawing: the pins end where the wires are', () => {

@@ -33,10 +33,11 @@ import { keepPart, removePart, shelf, shelfPart } from '../partShelf';
 import { webLink } from '../../core/webLink';
 import { mayConnect } from '../../platform/network';
 import { findInLibrary, type FoundPart } from '../../platform/libraryService';
+import { CompanyLibraryDialog } from '../dialogs/CompanyLibrary';
 import { ReviewPartDialog } from '../dialogs/ReviewPart';
 import { LICENCE_NAME, STATUS_NAMES, standingText, type LibraryEntry } from '../../model/worldLibrary';
 import { PublishPartDialog } from '../dialogs/PublishPart';
-import { keepFound, librarySession, refreshNote } from '../worldLibrary';
+import { companyDomain, findAnywhere, keepFound, librarySession, refreshNote } from '../worldLibrary';
 
 const FROM: Record<PartPackage['record']['package']['from'], string> = { datasheet: 'the datasheet\'s land pattern', ipc: 'pads by IPC-7351B', drawn: 'drawn by hand' };
 const pages = (n: number[]) => (n.length ? `page${n.length > 1 ? 's' : ''} ${n.join(', ')}` : '');
@@ -68,6 +69,8 @@ const MARK: Record<PartCheck['level'], { icon: string; label: string }> = { note
 const byOf = (e: LibraryEntry) => e.name || e.by || 'someone unnamed';
 /** The library's note in a line: by whom, which revision, when. */
 const noteOf = (e: LibraryEntry) => [`published by ${byOf(e)}`, e.revision > 1 ? `revision ${e.revision}` : '', e.published.slice(0, 10)].filter(Boolean).join(' · ');
+/** Which library a part is in, in words. */
+const whereOf = (e: LibraryEntry) => (e.org ? `In ${e.org}'s library` : 'In the world library');
 /** What the three states mean, for the chip's tooltip. */
 const STATUS_HINT: Record<LibraryEntry['status'], string> = {
   unverified: 'Unverified: as its author published it. Two others have yet to find it right, so check it against the datasheet yourself',
@@ -75,6 +78,8 @@ const STATUS_HINT: Record<LibraryEntry['status'], string> = {
   proven: 'Proven: found right by two others, and built on a board that works',
 };
 export function StatusChip({ entry }: { entry: LibraryEntry }) {
+  // A company's own part: its members' only, and its own to vouch for
+  if (entry.org) return <span class="pub-status ps-company" title={`${entry.org}'s own: only its members can fetch it, and it is in no public repository`}>Company</span>;
   const disputed = entry.status === 'unverified' && (entry.problems?.length ?? 0) > 1;
   return <span class={`pub-status ps-${entry.status}`} title={disputed ? 'Unverified: people have found it wrong. It is for its author to publish it again, put right' : STATUS_HINT[entry.status]}>{STATUS_NAMES[entry.status]}</span>;
 }
@@ -117,7 +122,7 @@ export function PartsPanel() {
     const asked = key;
     setLook({ key: asked, state: 'busy' });
     let next: Look;
-    try { const found = await findInLibrary(missing); next = found ? { key: asked, state: 'found', found } : { key: asked, state: 'none' }; } catch (e) { next = { key: asked, state: 'error', text: (e as Error).message }; }
+    try { const { found } = await findAnywhere(missing); next = found ? { key: asked, state: 'found', found } : { key: asked, state: 'none' }; } catch (e) { next = { key: asked, state: 'error', text: (e as Error).message }; }
     if (alive.current) setLook((now) => (now && now.key === asked ? next : now));
   };
   const keep = () => {
@@ -125,7 +130,8 @@ export function PartsPanel() {
     const p = found.part;
     const had = keepFound(found);
     setLook(null); setLater(null); setTyped(''); setOpen(p.record.mpn);
-    notify(had ? `${p.record.mpn} was on your shelf: replaced by the world library's` : `${p.record.mpn} added to your shelf from the world library`);
+    const from = p.record.library?.org ? `${p.record.library.org}'s library` : 'the world library';
+    notify(had ? `${p.record.mpn} was on your shelf: replaced by the one from ${from}` : `${p.record.mpn} added to your shelf from ${from}`);
   };
   const build = () => showDialog(AiBuilderDialog, { part: missing });
   const place = () => {
@@ -157,7 +163,8 @@ export function PartsPanel() {
   const r = sel?.record;
   const lib = r?.library ?? null;
   /** A part of one's own may be published, and published again while nobody has confirmed it; another's is theirs to change. */
-  const mayPublish = !lib || (lib.status === 'unverified' && (!me || !lib.by || lib.by === me));
+  const mayPublish = !lib || !!lib.org || (lib.status === 'unverified' && (!me || !lib.by || lib.by === me));
+  const company = librarySession.value ? companyDomain.value : '';
   const found = seen?.state === 'found' ? seen.found : !missing && later && later.entry.key === lib?.key ? later : null;
   /** Where the part selected stands in the library now; a later revision there is fetched and offered. */
   const refresh = async () => {
@@ -191,7 +198,7 @@ export function PartsPanel() {
           </div>
           {seen?.state === 'error' && <p class="parts-callout-error" role="alert">{seen.text}{/[.:!?]$/.test(seen.text) ? '' : '.'}</p>}
           {canLook && seen?.state !== 'none' ? (<>
-            <span class="parts-callout-sub">Somebody may have made it already. Looking sends this part number to the world library at konium.app, and nothing else.</span>
+            <span class="parts-callout-sub">Somebody may have made it already. Looking sends this part number to {company ? `${company}'s library and the world library` : 'the world library'} at konium.app, and nothing else.</span>
             <button type="button" class="btn default parts-cta" disabled={seen?.state === 'busy'} onClick={() => void lookUp()}><Icon name="partsWorld" />{seen?.state === 'busy' ? 'Looking...' : seen?.state === 'error' ? 'Look Again' : 'Look in the World Library'}</button>
           </>) : (<>
             <span class="parts-callout-sub">The Component Builder finds its datasheet from the number, reads it, and makes its footprint and symbol for you to check.{seen?.state === 'none' ? ' Publish it afterwards, and it is there for everyone.' : ''}</span>
@@ -211,7 +218,7 @@ export function PartsPanel() {
           <dl class="parts-facts">
             <dt>Maker</dt><dd>{found.part.record.maker || 'not said'}</dd>
             <dt>Package</dt><dd>{found.part.record.package.name}<span class="parts-sub">{found.part.record.pins.length} pins · {FROM[found.part.record.package.from]}</span></dd>
-            <dt>Library</dt><dd>{later === found ? `Revision ${found.entry.revision}, later than yours` : 'In the world library'}<span class="parts-sub">{noteOf(found.entry)} · {standingText(found.entry)}</span></dd>
+            <dt>Library</dt><dd>{later === found ? `Revision ${found.entry.revision}, later than yours` : whereOf(found.entry)}<span class="parts-sub">{noteOf(found.entry)}{found.entry.org ? '' : ` · ${standingText(found.entry)}`}</span></dd>
           </dl>
           <ul class="parts-checks">
             {found.checks.map((c, i) => <li key={i} class={`pm-${c.level}`}><Icon name={c.level === 'note' ? 'partsOk' : 'warn'} size={14} /><span>{c.text}</span></li>)}
@@ -226,6 +233,7 @@ export function PartsPanel() {
         {parts.length > 0 && <span class="parts-count" title={`Placed from the library ${SHELF_SCH}`}>{words && shown.length !== parts.length ? `${shown.length} of ${parts.length}` : parts.length}</span>}
         {parts.length > 0 && (
           <span class="parts-tools">
+            <button type="button" class="ex-icon-btn" aria-label="Company Library" title="Company library: your company's own parts, its members' only…" onClick={() => showDialog(CompanyLibraryDialog, {})}><Icon name="partsCompany" /></button>
             <button type="button" class="ex-icon-btn" aria-label="Add a Part File" title="Add a part file…" onClick={addFile}><Icon name="partsFileIn" /></button>
             <button type="button" class="ex-icon-btn" aria-label="Add the Example Part" title="Add the example part: a made-up regulator of Konium Designer's own, to try the shelf with" onClick={example}><Icon name="partsExample" /></button>
           </span>
@@ -252,7 +260,7 @@ export function PartsPanel() {
                 <Icon name="part" />
                 <span class="parts-row-text"><b>{p.record.mpn}</b><span>{[p.record.maker, p.record.package.name, p.record.package.pins ? `${p.record.package.pins} pins` : ''].filter(Boolean).join(' · ')}</span></span>
                 <span class="parts-marks">
-                  {p.record.library && <span class="parts-mark pm-world" title={`In the world library: ${STATUS_NAMES[p.record.library.status]}`} aria-label={`In the world library: ${STATUS_NAMES[p.record.library.status]}`}><Icon name="partsWorld" size={14} /></span>}
+                  {p.record.library && <span class="parts-mark pm-world" title={p.record.library.org ? whereOf(p.record.library) : `In the world library: ${STATUS_NAMES[p.record.library.status]}`} aria-label={p.record.library.org ? whereOf(p.record.library) : `In the world library: ${STATUS_NAMES[p.record.library.status]}`}><Icon name={p.record.library.org ? 'partsCompany' : 'partsWorld'} size={14} /></span>}
                   <span class={`parts-mark pm-${level}`} title={MARK[level].label} aria-label={MARK[level].label}><Icon name={MARK[level].icon} size={14} /></span>
                 </span>
               </li>
@@ -267,12 +275,12 @@ export function PartsPanel() {
           <div class="parts-card-head">
             <b title={r.mpn}>{r.mpn}</b>
             <span class="parts-tools">
-              {lib && <button type="button" class="ex-icon-btn" aria-label="Check the World Library" disabled={!canLook || asking} title="Ask the world library where this part stands now: its standing, who has checked it, a later revision. Its number is all that goes"
+              {lib && !lib.org && <button type="button" class="ex-icon-btn" aria-label="Check the World Library" disabled={!canLook || asking} title="Ask the world library where this part stands now: its standing, who has checked it, a later revision. Its number is all that goes"
                 onClick={() => void refresh()}><Icon name="partsRefresh" /></button>}
-              {lib && <button type="button" class="ex-icon-btn" aria-label="Review" title="Review it: say that it is right, that a board with it works, or what is wrong with it…"
+              {lib && !lib.org && <button type="button" class="ex-icon-btn" aria-label="Review" title="Review it: say that it is right, that a board with it works, or what is wrong with it…"
                 onClick={() => showDialog(ReviewPartDialog, { part: sel })}><Icon name="partsReview" /></button>}
               <button type="button" class="ex-icon-btn" aria-label={lib ? 'Publish Again' : 'Publish to the World Library'} disabled={!mayPublish}
-                title={!mayPublish ? (lib!.status !== 'unverified' ? `In the world library as ${STATUS_NAMES[lib!.status]}: no longer changed by publishing again` : `In the world library, published by ${byOf(lib!)}: theirs to change`) : lib ? 'Publish this copy to the world library again, as its next revision…' : 'Publish to the world library, for everyone…'}
+                title={lib?.org ? `Publish this copy again, to ${lib.org}'s library or to the world's…` : !mayPublish ? (lib!.status !== 'unverified' ? `In the world library as ${STATUS_NAMES[lib!.status]}: no longer changed by publishing again` : `In the world library, published by ${byOf(lib!)}: theirs to change`) : lib ? 'Publish this copy to the world library again, as its next revision…' : 'Publish to the world library, for everyone…'}
                 onClick={() => showDialog(PublishPartDialog, { part: sel })}><Icon name="partsPublish" /></button>
               <button type="button" class="ex-icon-btn" aria-label="Save as Integrated Library" title="Save as an integrated library, as the desktop software opens it…" onClick={() => void exportIntLib()}><Icon name="partsIntLib" /></button>
               <button type="button" class="ex-icon-btn" aria-label="Save as Part File" title="Save as a part file, for another Konium Designer to take in…" onClick={() => void exportFile()}><Icon name="partsFileOut" /></button>
@@ -289,9 +297,9 @@ export function PartsPanel() {
               {(r.datasheet.pinPages.length > 0 || r.datasheet.packagePages.length > 0) && <span class="parts-sub">{[r.datasheet.pinPages.length ? `pins on ${pages(r.datasheet.pinPages)}` : '', r.datasheet.packagePages.length ? `package on ${pages(r.datasheet.packagePages)}` : ''].filter(Boolean).join(' · ')}</span>}</dd>
             <dt>Made</dt><dd>{r.made.at.slice(0, 10)}<span class="parts-sub">by {r.made.by || 'hand'}{r.made.app ? `, Konium Designer ${r.made.app}` : ''}</span></dd>
             <dt>Library</dt>
-            <dd>{lib ? <span class="parts-inline">In the world library<StatusChip entry={lib} /></span> : 'On your shelf only'}
-              <span class="parts-sub">{lib ? `${noteOf(lib)} · ${standingText(lib)}` : 'not published'}</span>
-              {lib && <span class="parts-sub">given to the public domain ({LICENCE_NAME})</span>}</dd>
+            <dd>{lib ? <span class="parts-inline">{whereOf(lib)}<StatusChip entry={lib} /></span> : 'On your shelf only'}
+              <span class="parts-sub">{lib ? `${noteOf(lib)}${lib.org ? '' : ` · ${standingText(lib)}`}` : 'not published'}</span>
+              {lib && <span class="parts-sub">{lib.org ? 'its members\' only: given to nobody else' : `given to the public domain (${LICENCE_NAME})`}</span>}</dd>
           </dl>
           <ul class="parts-checks">
             {(checksOf.get(sel) ?? []).map((c, i) => <li key={i} class={`pm-${c.level}`}><Icon name={c.level === 'note' ? 'partsOk' : 'warn'} size={14} /><span>{c.text}</span></li>)}

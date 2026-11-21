@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error: the website's generator is plain JavaScript (website/site.mjs)
-import { CONNECTIONS, FAQ, KOFI, OG_IMAGE, PAGES, REDIRECT, TOOLS, TOPICS, notFound, renderSite, sitemap, webpSize } from '../website/site.mjs';
+import { AI_TOKENS, CONNECTIONS, FAQ, KOFI, OG_IMAGE, PAGES, REDIRECT, TOOLS, TOPICS, notFound, renderSite, sitemap, webpSize } from '../website/site.mjs';
 // @ts-expect-error: the guides' text is plain JavaScript too (website/guides.mjs)
 import { GUIDES } from '../website/guides.mjs';
 import { GUIDE_CHAPTERS } from '../src/help/guide';
@@ -340,3 +340,27 @@ describe('the app at app/ (26.169)', () => {
 });
 
 const readdir = (dir: string): string[] => readdirSync(dir);
+
+describe('free, said first and said exactly (26.205)', () => {
+  const home = page('index.html');
+  it('the home page says it is free beside its name, and what that covers in the section right under the first', () => {
+    const hero = home.slice(home.indexOf('<section class="hero">'), home.indexOf('</section>'));
+    expect(text(hero)).toMatch(/Konium Designer\s+Free\s+The whole program, for any use, work included\. No account, no licence key, no adverts\./);
+    expect(hero).toContain('<a href="#free">');
+    const sections = [...home.matchAll(/<section[^>]*>[\s\S]*?<h[12][^>]*>([^<]*)<\/h[12]>/g)].map((m) => m[1]);
+    expect(sections.slice(0, 3)).toEqual(['Konium Designer', 'Free', 'It runs on your computer']);
+    expect(home).toContain('<section class="band" id="free">');
+  });
+  it('what free does not cover is said: the AI service\'s allowance, as the service is set, and what is ordered from others', () => {
+    const free = text(home.slice(home.indexOf('id="free"'), home.indexOf('It runs on your computer')));
+    const set = Number(/^JOBS_PER_DAY\s*=\s*"(\d+)"/m.exec(readFileSync('cloudflare/ai/wrangler.toml', 'utf8'))![1]);
+    expect(AI_TOKENS).toBe(set);
+    expect(free).toContain(`free within an allowance: ${set} job tokens a day for each user`);
+    for (const said of ['no account, no licence key, no trial period and no advert', 'nothing in it is held back for payment', 'What "free" does not cover', 'off until you switch them on',
+      'a daily budget for the whole service, which its author pays', 'nothing is charged', 'With your own key, your provider charges you', 'A model on your own computer costs nothing',
+      'Konium Designer sells nothing and is paid nothing by them']) expect(free, said).toContain(said);
+    const faq = FAQ.find((f: { id: string }) => f.id === 'cost') as { a: string[] };
+    expect(faq.a.join(' ')).toMatch(new RegExp(`Two things "free" does not cover.*${set} job tokens for each user.*Konium Designer sells nothing`));
+  });
+});
+

@@ -24,6 +24,7 @@ const WORD = new RegExp(`(^|[^A-Za-z0-9_.:&/-]|[A-Z][a-z]*-)(${CASES})(?=$|[^A-Z
 /** Values that files keep in AD's spelling (written into or read from documents, never shown as they are). */
 const ALLOWED: [file: RegExp, text: RegExp][] = [
   [/./, /General Public License/],                                // the licence's own name, as it spells itself
+  [/help\/guide\/tools\.ts$/, /spells its parts' names the American way/],   // Live Simulation's American set, quoted as it spells them
   [/model\/dimensions\.ts$/, /^'Millimeters'$/],                  // TEXTDIMENSIONUNIT
   [/model\/bagDefaults\.ts$|app\/pcbGridCommands\.ts$/, /^'Millimeters'$/], // a coordinate's UNITSTYLE
   [/dialogs\/Dimension\.tsx$/, /^'Center'$/],                     // TEXTPOSITION

@@ -12,9 +12,17 @@ routes = [{ pattern = "konium.app/api/library/*", zone_name = "konium.app" }]
 name = "STORE"
 class_name = "Store"
 
+[[durable_objects.bindings]]
+name = "ORGS"
+class_name = "Org"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Store"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Org"]
 
 # The sign-in mail by Cloudflare's own Email Service (Workers Paid; the domain set up for sending
 # first). Without it the mail goes by Resend, with the secret RESEND_KEY.
@@ -35,3 +43,7 @@ FETCH_PER_DAY = "500"
 SIGNIN_PER_HOUR = "5"
 PUBLISH_PER_DAY = "20"
 CHECK_PER_DAY = "40"
+# Company libraries: the domains that may have one ("*" for any; "" for none), how many parts each holds, how old a sign-in may be
+ORG_DOMAINS = ""
+ORG_PARTS = "200"
+ORG_SESSION_DAYS = "30"

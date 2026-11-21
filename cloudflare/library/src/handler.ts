@@ -29,9 +29,11 @@
 import { partKey } from '../../../src/model/partKey';
 import {
   ENTRY_FILE, FOOTPRINT_FILE, KEY_FORMAT, LIBRARY_FILES, LIBRARY_LICENCE, MAX_FOOTPRINT, MAX_NOTE, MAX_RECORD, MAX_SYMBOL, MIN_NOTE, RECORD_FILE, STATUS_NAMES, SYMBOL_FILE, VERDICTS, WORDS_OF,
-  cleanRecord, forMessage, mailAddress, oneLine, partFolder, readEntry, recordProblems, shownName, standing, standingText, type LibraryEntry, type LibraryFile,
+  ORG_RECORD_PREFIX, PRIVATE_LICENCE, atDomain, cleanRecord, forMessage, mailAddress, oneLine, orgDomain, orgRecordName, partFolder, readEntry, recordProblems, shownName, standing, standingText,
+  type LibraryEntry, type LibraryFile, type OrgPart, type OrgRole,
 } from '../../../src/model/worldLibrary';
 import type { Contributor, Indexed, SignIn, Taken } from './store';
+import type { OrgStoreApi } from './org';
 import { limitKey } from '../../limitKey';
 import { bodyUpTo, jsonUpTo } from '../../body';
 
@@ -58,6 +60,10 @@ export interface LibraryEnv {
   PUBLISH_PER_DAY?: string;
   /** How many words about parts (checks, builds, problems) one contributor may send in a day. */
   CHECK_PER_DAY?: string;
+  /** Company libraries (step 4): the domains that may have one ('*' for any; unset for none), how many parts each may hold, and how old a sign-in may be. */
+  ORG_DOMAINS?: string;
+  ORG_PARTS?: string;
+  ORG_SESSION_DAYS?: string;
 }
 
 /** The Durable Object's methods (LibraryStoreLogic's), called over RPC. */
@@ -129,11 +135,11 @@ export async function sessionFor(env: LibraryEnv, uid: string, now: number): Pro
   const until = now + SESSION_MS;
   return { token: `${uid}.${until}.${await hmac(env.LIBRARY_SECRET ?? '', `session|${uid}|${until}`)}`, until };
 }
-/** Whose session a request carries; null when none, or it is over, or it isn't this service's. */
-async function signedIn(req: Request, env: LibraryEnv, now: number): Promise<string | null> {
+/** Whose session a request carries, and until when it is good; null when none, or it is over, or it isn't this service's. */
+async function sessionOf(req: Request, env: LibraryEnv, now: number): Promise<{ uid: string; until: number } | null> {
   const m = /^Bearer ([0-9a-f]{16})\.(\d{1,16})\.([0-9a-f]{64})$/.exec(req.headers.get('Authorization') ?? '');
   if (!m || !env.LIBRARY_SECRET || !(Number(m[2]) > now)) return null;
-  return same(await hmac(env.LIBRARY_SECRET, `session|${m[1]}|${m[2]}`), m[3]!) ? m[1]! : null;
+  return same(await hmac(env.LIBRARY_SECRET, `session|${m[1]}|${m[2]}`), m[3]!) ? { uid: m[1]!, until: Number(m[2]) } : null;
 }
 
 type BlobKind = 'symbol' | 'footprint';
@@ -202,6 +208,157 @@ async function commitPart(env: LibraryEnv, fetchFn: typeof fetch, o: { folder: s
   throw new Error('the repository was busy');
 }
 
+/* ─── A company's own library (step 4) ─────────────────────────────────────────────────── */
+
+/** The company's store, by its domain (a Durable Object each). */
+export type OrgAccess = (domain: string) => OrgStoreApi;
+/** Which domains may have a library: none ('' or unset), any ('*'), or those listed. A company's library is opened by the service's owner. */
+export function orgOpen(env: LibraryEnv, domain: string): boolean {
+  const list = (env.ORG_DOMAINS ?? '').split(',').map((d) => d.trim().toLowerCase()).filter(Boolean);
+  return list.includes('*') || list.includes(domain);
+}
+/** The text a domain's DNS record must carry: the service's own for that domain, the same for whoever asks (so the domain's keeper can always take its library back). */
+export const orgCode = async (env: LibraryEnv, domain: string): Promise<string> => `${ORG_RECORD_PREFIX}${(await hmac(env.LIBRARY_SECRET ?? '', `org|${domain}`)).slice(0, 32)}`;
+/** A company's library asks for a sign-in no older than this: whoever has lost the mailbox loses the library with it. */
+export const orgSessionMs = (env: LibraryEnv): number => int(env.ORG_SESSION_DAYS, 30) * 86_400_000;
+const ORG_INVITES_PER_DAY = 40, ORG_PUBLISH_PER_DAY = 200, ORG_CLAIMS_PER_HOUR = 10;
+
+/** Whether a domain's DNS carries the record: asked of a public resolver over HTTPS (the name is the service's own make, the domain a checked one). */
+async function recordThere(fetchFn: typeof fetch, domain: string, code: string): Promise<boolean> {
+  try {
+    const res = await fetchFn(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(orgRecordName(domain))}&type=TXT`, { headers: { Accept: 'application/dns-json' }, redirect: 'error' });
+    if (!res.ok) return false;
+    const a = (await jsonOf(res, 64 * 1024)) as { Answer?: unknown };
+    // (a TXT record's text comes in quotes, a long one in several pieces)
+    return (Array.isArray(a.Answer) ? a.Answer : []).some((r) => typeof (r as { data?: unknown })?.data === 'string' && ((r as { data: string }).data.replace(/"\s*"/g, '').replace(/^"|"$/g, '')) === code);
+  } catch { return false; }
+}
+async function jsonOf(res: Response, most: number): Promise<unknown> {
+  const text = await res.text();
+  return text.length <= most ? JSON.parse(text) as unknown : {};
+}
+
+interface OrgCall { req: Request; url: URL; path: string; env: LibraryEnv; store: LibraryStoreApi; orgs?: OrgAccess; fetchFn: typeof fetch; now: number; stamp: string; day: string; uid: string; issued: number }
+async function orgRoutes(c: OrgCall): Promise<Response> {
+  const { req, url, path, env, store, fetchFn, now, stamp, day, uid } = c;
+  if (!c.orgs) return reply({ error: 'Company libraries aren\'t set up on the Konium service yet' }, 503);
+  const email = (await store.contributor(uid))?.email ?? '';
+  if (!email) return reply({ error: 'Sign in to the parts library first' }, 401);
+  const big = req.method === 'POST' && path === '/publish';
+  const body = req.method === 'POST' ? await jsonUpTo<Record<string, unknown>>(req, big ? Math.ceil((MAX_SYMBOL + MAX_FOOTPRINT) * 4 / 3) + MAX_RECORD + 8192 : SMALL) : null;
+  if (body === 'long') return reply({ error: 'That is too large for a part' }, 413);
+  if (body === 'bad' || (req.method === 'POST' && (!body || typeof body !== 'object'))) return reply({ error: 'Not a request to a company\'s library' }, 400);
+  const domain = orgDomain(req.method === 'POST' ? body!.domain : url.searchParams.get('domain'));
+  if (!domain) return reply({ error: 'Name the company\'s domain (example.com)' }, 400);
+  const open = orgOpen(env, domain), mayRun = atDomain(email, domain);
+  const org = c.orgs(domain);
+  const role = open ? await org.member(email, now) : null;
+  const record = async () => ({ name: orgRecordName(domain), value: await orgCode(env, domain) });
+
+  if (req.method === 'GET' && path === '') {
+    // (to anyone who is neither a member nor at the domain, a library that exists looks like one that doesn't)
+    if (!open || (!role && !mayRun)) return reply({ domain, open, exists: false, role: null });
+    const info = await org.info();
+    if (!role) return reply({ domain, open, exists: info.exists, role: null, record: await record() });
+    return reply({ domain, open, exists: true, role, parts: info.parts, allowance: int(env.ORG_PARTS, 200), ...(role === 'admin' ? { members: await org.members(), record: await record() } : {}) });
+  }
+  if (!open) return reply({ error: `Company libraries aren't open for ${domain}: ask Konium Designer's author` }, 403);
+
+  if (req.method === 'POST' && path === '/claim') {
+    if (!mayRun) return reply({ error: `A library for ${domain} is opened by somebody with an address at ${domain}` }, 403);
+    if (!(await store.take(stamp.slice(0, 13), uid, 'claim', ORG_CLAIMS_PER_HOUR)).ok) return reply({ error: 'Too many tries: try again in an hour' }, 429);
+    if (!(await recordThere(fetchFn, domain, await orgCode(env, domain)))) {
+      return reply({ error: `The record isn't in ${domain}'s DNS yet (a new record can take some minutes to be seen)`, record: await record() }, 409);
+    }
+    const how = await org.claim(email, now);
+    return reply({ ok: true, domain, role: 'admin', how });
+  }
+
+  // From here on: members only, and with a sign-in fresh enough
+  if (!role) return reply({ error: `You are not a member of ${domain}'s library` }, 403);
+  if (now - c.issued > orgSessionMs(env)) return reply({ error: `${domain}'s library asks for a new sign-in every ${int(env.ORG_SESSION_DAYS, 30)} days: sign in again`, again: true }, 401);
+  const admin = role === 'admin';
+
+  if (req.method === 'POST' && path === '/member') {
+    if (!admin) return reply({ error: 'Members are let in and put out by the library\'s administrators' }, 403);
+    const who = mailAddress(body!.email);
+    if (!who) return reply({ error: 'That is not an email address' }, 400);
+    if (body!.remove === true) {
+      const r = await org.remove(who, email, now);
+      if (r === 'last-admin') return reply({ error: 'A library keeps one administrator at least: make somebody else one first' }, 409);
+      return reply({ ok: true, removed: r === 'removed', members: await org.members() });
+    }
+    const as: OrgRole = body!.role === 'admin' ? 'admin' : 'member';
+    const r = await org.invite(who, as, email, now);
+    if (r === 'last-admin') return reply({ error: 'A library keeps one administrator at least: make somebody else one first' }, 409);
+    let mailed = false;
+    if (r === 'added' && canSignIn(env) && (await org.take(day, 'invite', ORG_INVITES_PER_DAY)).ok) {
+      try {
+        await sendMail(env, fetchFn, {
+          to: who, subject: `You have been let in to ${domain}'s parts library`,
+          text: `${email} has let you in to ${domain}'s parts library in Konium Designer.\n\nIn Konium Designer, open Tools > Parts > Company Library, sign in with this address (${who}) and give the domain ${domain}.\n\n${siteOf(env)}\n`,
+          html: `<p>${esc(email)} has let you in to <b>${esc(domain)}</b>'s parts library in Konium Designer.</p><p>In Konium Designer, open Tools &rsaquo; Parts &rsaquo; Company Library, sign in with this address (${esc(who)}) and give the domain ${esc(domain)}.</p>`,
+        });
+        mailed = true;
+      } catch (e) { console.log(`library: org invite: ${(e as Error).message}`); }
+    }
+    return reply({ ok: true, added: r === 'added', mailed, members: await org.members() });
+  }
+
+  if (req.method === 'GET' && path === '/parts') return reply({ parts: await org.parts() });
+  if (req.method === 'GET' && path === '/audit') {
+    if (!admin) return reply({ error: 'The library\'s log is its administrators\' to read' }, 403);
+    return reply({ events: await org.audit(200) });
+  }
+
+  const entryOfOrg = (p: OrgPart & { app: string }): LibraryEntry => ({ key: p.key, mpn: p.mpn, status: 'unverified', by: p.by, name: p.name, published: p.published, revision: p.revision, licence: PRIVATE_LICENCE, app: p.app, org: domain });
+  const part = /^\/part\/([^/]+)(?:\/([^/]+))?$/.exec(path);
+  if (req.method === 'GET' && part) {
+    const key = part[1]!;
+    if (!KEY_FORMAT.test(key)) return reply({ error: 'Not a part\'s key' }, 400);
+    if (part[2] === undefined) { const p = await org.part(key); return reply(p ? { found: true, entry: entryOfOrg(p) } : { found: false }); }
+    const file = part[2] as LibraryFile;
+    if (!LIBRARY_FILES.includes(file)) return reply({ error: 'Not a part\'s file' }, 404);
+    const kept = await org.partFile(key, file === RECORD_FILE ? 'record' : file === SYMBOL_FILE ? 'symbol' : 'footprint', email, now);
+    if (kept === null) return reply({ error: 'That part isn\'t in the library' }, 404);
+    // (a company's own: kept by nobody on the way)
+    const head = { ...CORS, 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Disposition': 'attachment' };
+    if (file === RECORD_FILE) return new Response(kept, { headers: { ...head, 'Content-Type': 'application/json' } });
+    return new Response(Uint8Array.from(atob(kept), (ch) => ch.charCodeAt(0)), { headers: { ...head, 'Content-Type': 'application/octet-stream' } });
+  }
+
+  if (req.method === 'POST' && path === '/publish') {
+    const problems = recordProblems(body!.record);
+    if (problems.length) return reply({ error: 'This part can\'t be published as it is', problems }, 400);
+    // A library file as base64: a compound file by its first bytes, nothing but base64's letters, and no larger than it may be
+    const lib = (v: unknown, most: number): string | null => (typeof v === 'string' && v.startsWith('0M8R4KGxGuE') && v.length <= Math.ceil(most / 3) * 4 && /^[A-Za-z0-9+/]+={0,2}$/.test(v) ? v : null);
+    const symbol = lib(body!.symbol, MAX_SYMBOL), footprint = lib(body!.footprint, MAX_FOOTPRINT);
+    if (!symbol || !footprint) return reply({ error: 'The symbol and the footprint must each be a library, and no larger than a part\'s may be' }, 400);
+    const rec = cleanRecord(body!.record), key = partKey(rec.mpn);
+    const had = await org.part(key), info = await org.info(), allowance = int(env.ORG_PARTS, 200);
+    if (!had && info.parts >= allowance) return reply({ error: `${domain}'s library is full (${allowance} parts): take one out, or ask for more room` }, 409);
+    if (!(await org.take(day, 'publish', ORG_PUBLISH_PER_DAY)).ok) return reply({ error: 'Too many parts published to this library today: try again tomorrow (UTC)' }, 429);
+    const who = await store.contributor(uid);
+    const name = body!.name === undefined ? (who?.name ?? '') : shownName(body!.name);
+    const kept = await org.putPart({
+      key, mpn: rec.mpn, maker: rec.maker, package: rec.package.name, pins: rec.package.pins, by: byOf(uid), name, published: stamp,
+      app: typeof body!.app === 'string' && /^[\w.]{1,20}$/.test(body!.app) ? body!.app : '', record: `${JSON.stringify(rec, null, 1)}\n`, symbol, footprint,
+    }, email, now);
+    await store.keepContributor(uid, email, name, now);
+    return reply({ ok: true, entry: entryOfOrg(kept) });
+  }
+
+  if (req.method === 'POST' && path === '/drop') {
+    const key = typeof body!.key === 'string' && KEY_FORMAT.test(body!.key) ? body!.key : '';
+    const p = key ? await org.part(key) : null;
+    if (!p) return reply({ error: 'That part isn\'t in the library' }, 404);
+    if (!admin && p.by !== byOf(uid)) return reply({ error: 'A part is taken out by whoever published it, or by an administrator' }, 403);
+    await org.dropPart(key, email, now);
+    return reply({ ok: true });
+  }
+  return reply({ error: 'Not here' }, 404);
+}
+
 /* ─── Mail and pages ──────────────────────────────────────────────────────────────────── */
 
 async function sendMail(env: LibraryEnv, fetchFn: typeof fetch, m: { to: string; subject: string; text: string; html: string }): Promise<void> {
@@ -230,7 +387,7 @@ const STALE = () => page('The parts library: link no longer good', '<h1>This lin
 
 /* ─── The requests ────────────────────────────────────────────────────────────────────── */
 
-export async function handle(req: Request, env: LibraryEnv, store: LibraryStoreApi, fetchFn: typeof fetch = fetch, now = Date.now()): Promise<Response> {
+export async function handle(req: Request, env: LibraryEnv, store: LibraryStoreApi, fetchFn: typeof fetch = fetch, now = Date.now(), orgs?: OrgAccess): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   const url = new URL(req.url);
   const path = url.pathname.replace(/\/+$/, '').replace(/^.*?\/api\/library/, '');
@@ -335,10 +492,16 @@ export async function handle(req: Request, env: LibraryEnv, store: LibraryStoreA
   }
 
   /* Signed in from here on */
-  const mine = path === '/me' || path === '/blob' || path === '/publish' || path === '/check';
+  const mine = path === '/me' || path === '/blob' || path === '/publish' || path === '/check' || path === '/org' || path.startsWith('/org/');
   if (!mine) return reply({ error: 'Not here' }, 404);
-  const uid = await signedIn(req, env, now);
-  if (!uid) return reply({ error: 'Sign in to the parts library first' }, 401);
+  const session = await sessionOf(req, env, now);
+  if (!session) return reply({ error: 'Sign in to the parts library first' }, 401);
+  const uid = session.uid;
+
+  /* A company's own library (step 4) */
+  if (path === '/org' || path.startsWith('/org/')) {
+    return orgRoutes({ req, url, path: path.slice(4), env, store, orgs, fetchFn, now, stamp, day, uid, issued: session.until - SESSION_MS });
+  }
 
   if (req.method === 'GET' && path === '/me') {
     const c = await store.contributor(uid);

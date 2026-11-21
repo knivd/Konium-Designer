@@ -11,7 +11,7 @@ import { SymbolPreview } from '../dialogs/PlacePart';
 import { isSpiceNumber, spiceNumber } from '../../sim/num';
 import { commands } from '../../core/commands';
 import { RATING_PARAMS } from '../../sim/liveStress';
-import type { SymbolStyle } from '../../formats/synthetic/simLib';
+import { inStyle, type SymbolStyle } from '../../formats/synthetic/simLib';
 import { Tool } from './kv';
 
 /**
@@ -129,7 +129,7 @@ const WIRING: { label: string; command: string; hint: string; key?: string; art:
 const keyHint = (k?: string) => (k ? ` (key: ${k === k.toUpperCase() && k !== k.toLowerCase() ? `Shift+${k}` : k.toUpperCase()})` : '');
 
 /** The palette: the parts a sketch is made of as their own symbols, by kind; a click puts one on the cursor. */
-function Palette({ enabled, keys }: { enabled: boolean; keys: boolean }) {
+function Palette({ enabled, keys, style }: { enabled: boolean; keys: boolean; style: SymbolStyle }) {
   const tile = (id: string, label: string, caption: string, hint: string, key: string | undefined, art: preact.ComponentChildren, go: () => void) => (
     <button key={id} class="live-tile" disabled={!enabled} title={`${hint}${keys ? keyHint(key) : ''}`} aria-label={label} onClick={go}>
       <span class="live-art">{art}{keys && key && <kbd class="live-key">{key}</kbd>}</span>
@@ -142,7 +142,7 @@ function Palette({ enabled, keys }: { enabled: boolean; keys: boolean }) {
         <div key={g} class="live-group" role="group" aria-label={g}>
           <h5>{g}</h5>
           <div class="live-tiles">
-            {LIVE_PARTS.filter((p) => p.group === g).map((p) => { const sym = livePartSymbol(p); return tile(p.id, p.label, p.caption ?? p.label, p.hint, p.key, sym && <SymbolPreview bags={sym.bags} part={1} />, () => placeLivePart(p.id)); })}
+            {LIVE_PARTS.filter((p) => p.group === g).map((p) => { const sym = livePartSymbol(p); return tile(p.id, inStyle(p.label, style), inStyle(p.caption ?? p.label, style), inStyle(p.hint, style), p.key, sym && <SymbolPreview bags={sym.bags} part={1} />, () => placeLivePart(p.id)); })}
           </div>
         </div>
       ))}
@@ -164,7 +164,7 @@ export function LivePanel() {
   const part = sheet ? liveFields() : null;
   const keys = sketchKeys.value;
   const style = liveSymbols.value;
-  const palette = useMemo(() => <Palette enabled={sheet} keys={keys} />, [sheet, keys, style]);
+  const palette = useMemo(() => <Palette enabled={sheet} keys={keys} style={style} />, [sheet, keys, style]);
   const go = (command: string) => () => void commands.run(command, activeScope.value);
   const name = sheet ? active.value!.name : st?.sheet ?? '';
   const watched = scope.value.kept.length;

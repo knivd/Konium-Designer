@@ -101,6 +101,9 @@ const P: Record<string, preact.ComponentChildren> = {
   /* Review a part: a tick on a clipboard. Ask the library again: an arrow round */
   partsReview: <><rect x="3" y="2.6" width="10" height="11.4" rx="1.2" /><path d="M6 2.6V1.6h4v1" /><path d="M5.6 8.6l1.8 1.8 3.2-3.6" /></>,
   partsRefresh: <><path d="M13 8a5 5 0 1 1-1.6-3.7" /><path d="M13.2 2.2v2.6h-2.6" /></>,
+  /* A company's own library: its building. A text copied: two sheets */
+  partsCompany: <><path d="M3 14V3.2a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1V14" /><path d="M10 7h2.2a1 1 0 0 1 1 1v6" /><path d="M1.8 14h12.4" /><path d="M5.4 5h2.2M5.4 7.6h2.2M5.4 10.2h2.2" stroke-width="1.1" /></>,
+  partsCopy: <><rect x="5.5" y="5.5" width="8" height="8.5" rx="1.2" /><path d="M10.5 3.2V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7.5a1 1 0 0 0 1 1h.4" /></>,
   /* The world library: a globe */
   partsWorld: <><circle cx="8" cy="8" r="6" /><path d="M2 8h12" /><path d="M8 2c2.3 2.2 2.3 9.8 0 12M8 2c-2.3 2.2-2.3 9.8 0 12" stroke-width="1.1" /></>,
   /* Publish: up and out of the tray */

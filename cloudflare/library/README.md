@@ -65,6 +65,28 @@ What this does not stop: one person with three addresses confirming their own pa
 costs little, so Confirmed means "three sign-ins agree", no more; the repository's history shows
 who said what, and a part can be put right or taken out there by its keeper.
 
+## Company libraries (26.204)
+
+A company's own parts, its members' only. They are kept by this Worker (a Durable Object for each
+company, named by its domain) and are in no repository. Every route is under `/api/library/org`,
+needs a sign-in, and names the company's domain.
+
+| What | How |
+|---|---|
+| Which companies may have one | `ORG_DOMAINS` in `wrangler.toml`: empty for none (as shipped), a list of domains, or `*` for any. A company's library is opened by the service's owner; nothing here takes payment |
+| Opening one | Somebody signed in with an address at the domain asks for the record (`GET /org?domain=`): a TXT record named `_konium.<domain>` with the text `konium-library=<code>`. With it in the domain's DNS, `POST /org/claim` makes them its administrator. The record is looked for through a public resolver (cloudflare-dns.com) |
+| Taking one back | The code is the same for the domain whoever asks, so whoever holds the DNS can pass the check again and become an administrator: a library can't be lost with the person who opened it |
+| Members | Let in and put out by an administrator, by address (`POST /org/member`); an address outside the domain may be let in (a contractor). Somebody put out has nothing from that moment. A library keeps one administrator at least |
+| A mailbox that is closed | A company's library takes a sign-in no older than `ORG_SESSION_DAYS` (30): a new one needs the link mailed to the address |
+| Parts | `POST /org/publish` (the record and the two libraries, as base64 in one request), `GET /org/parts`, `GET /org/part/<key>` and its three files, `POST /org/drop` (its publisher, or an administrator). `ORG_PARTS` (200) is how many a library holds |
+| The log | Who opened or took over the library, who was let in and put out, who published and who fetched what: the latest 2,000, read by administrators (`GET /org/audit`) |
+
+Stated limit: a part fetched and placed in a design stays in that design. Putting a member out
+ends what they can fetch, not what they have fetched.
+
+To somebody who is neither a member nor at the domain, a library that exists answers as one that
+does not.
+
 ## Set-up (once, when the library opens)
 
 1. **The repository.** A public repository at GitHub with a first commit holding a README and the
@@ -99,3 +121,7 @@ In the Worker's store (a Durable Object's SQLite): the day's and the hour's coun
 under way (a quarter of an hour each), each contributor's address, shown name and the stand-in for
 where they last signed in, and the index of the parts (key, status, contributor number, commit).
 Nothing of anyone's design. The addresses are used for the sign-in link and nothing else.
+
+For each company that has a library (a Durable Object of its own): its members' addresses and
+their parts in it, its parts (the record and the two libraries), and its log (addresses, what was
+done, to which part or member, when).

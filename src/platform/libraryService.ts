@@ -48,13 +48,13 @@ async function ask(f: typeof fetch, path: string, init?: RequestInit): Promise<R
   return res;
 }
 const one = (s: unknown): string => (typeof s === 'string' ? oneLine(s).slice(0, 300) : '');
-async function answer<T>(res: Response): Promise<T> {
+export async function answer<T>(res: Response): Promise<T> {
   const body = await res.json().catch(() => ({})) as T & { error?: unknown; problems?: unknown; entry?: unknown };
   if (res.ok) return body;
   const problems = Array.isArray(body.problems) ? body.problems.map(one).filter(Boolean).slice(0, 30) : [];
   throw new LibraryError(one(body.error) || `The world parts library: HTTP ${res.status}`, res.status, problems, readEntry(body.entry));
 }
-const JSON_HEAD = { 'Content-Type': 'application/json', Accept: 'application/json' };
+export const JSON_HEAD = { 'Content-Type': 'application/json', Accept: 'application/json' };
 
 let config: Promise<LibraryConfig | null> | null = null;
 /** What the service says of itself (null: it can't be reached, or isn't there yet). Asked once. */
@@ -79,7 +79,7 @@ export function resetLibraryConfig(): void { config = null; }
 /* ---- fetching ---- */
 
 /** A file's bytes, read only as far as its limit: more than that is not a part's file. */
-async function bytesUpTo(res: Response, most: number, what: string): Promise<Uint8Array> {
+export async function bytesUpTo(res: Response, most: number, what: string): Promise<Uint8Array> {
   if (Number(res.headers.get('Content-Length') ?? 0) > most) throw new LibraryError(`The library's ${what} is too large to be one`);
   const reader = res.body?.getReader();
   if (!reader) {
@@ -185,12 +185,16 @@ export async function sessionFor(ticket: string, f: typeof fetch = fetch, now = 
 
 const signed = (s: LibrarySession) => ({ Authorization: `Bearer ${s.token}` });
 /** A request as the one signed in. A pass the service no longer takes is forgotten here. */
-async function mine<T>(f: typeof fetch, path: string, init: RequestInit, now: number): Promise<T> {
+export async function mine<T>(f: typeof fetch, path: string, init: RequestInit, now: number): Promise<T> {
+  return answer<T>(await mineRaw(f, path, init, now));
+}
+/** The same, its answer as it comes (a part's file). */
+export async function mineRaw(f: typeof fetch, path: string, init: RequestInit, now: number): Promise<Response> {
   const s = keptSession(now);
   if (!s) throw new LibraryError('Sign in to the world parts library first', 401);
   const res = await ask(f, path, { ...init, headers: { ...(init.headers as Record<string, string> | undefined), ...signed(s) } });
   if (res.status === 401) signOut();
-  return answer<T>(res);
+  return res;
 }
 
 /** Who the service says is signed in here (null: nobody; a pass it no longer takes is forgotten). */
@@ -209,7 +213,7 @@ export async function whoAmI(f: typeof fetch = fetch, now = Date.now()): Promise
 
 /* ---- publishing ---- */
 
-function base64(bytes: Uint8Array): string {
+export function base64(bytes: Uint8Array): string {
   let s = '';
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(s);

@@ -19,7 +19,8 @@ import { OFFLINE_NOTE, mayConnect } from '../../platform/network';
 import { LibraryError, libraryConfig, publishProblems, whoAmI, type LibraryConfig, type Published } from '../../platform/libraryService';
 import { LICENCE_NAME, LICENCE_URL, STATUS_NAMES, cleanRecord, shownName } from '../../model/worldLibrary';
 import type { PartPackage } from '../../model/partPackage';
-import { librarySession, publishFromShelf, syncSession } from '../worldLibrary';
+import { companyDomain, companyRole, librarySession, publishFromShelf, publishToCompany, syncSession, useCompany } from '../worldLibrary';
+import { orgStatus } from '../../platform/orgService';
 
 const size = (n: number) => (n < 1024 ? `${n} bytes` : `${(n / 1024).toFixed(n < 10 * 1024 ? 1 : 0)} KB`);
 
@@ -29,6 +30,10 @@ export function PublishPartDialog({ part }: { part: PartPackage }) {
   const [config, setConfig] = useState<LibraryConfig | null | 'asking'>('asking');
   const [name, setName] = useState(session?.user.name ?? '');
   const [agreed, setAgreed] = useState(false);
+  const company = companyDomain.value, member = !!company && !!session && !!companyRole.value;
+  // (a part that is the company's already goes there again unless told otherwise)
+  const [where, setWhere] = useState<'world' | 'company'>(r.library?.org ? 'company' : 'world');
+  const toCompany = member && where === 'company';
   const [busy, setBusy] = useState<'' | 'publish'>('');
   const [error, setError] = useState<{ text: string; list: string[] } | null>(null);
   const [done, setDone] = useState<Published | null>(null);
@@ -46,30 +51,33 @@ export function PublishPartDialog({ part }: { part: PartPackage }) {
     askConfig();
     // (a pass kept from an earlier day: the service says whether it still takes it, and under which name)
     if (session) void whoAmI().then((u) => { if (!alive.current) return; syncSession(); if (u?.name) setName((n) => n || u.name); }).catch(() => { /* asked again when publishing */ });
+    // (a company's library chosen in this browser: whether whoever is signed in is still one of its members)
+    if (session && company && !companyRole.value) void orgStatus(company).then((st) => { if (alive.current) useCompany(company, st.role); }).catch(() => { /* offered only once known */ });
     return () => { alive.current = false; };
   }, []);
 
   const publish = async () => {
     setBusy('publish'); setError(null);
     try {
-      const p = await publishFromShelf(part, { agreed, name: shownName(name) });
+      // (a company's own library: its members' only, no agreement to give it away, no repository)
+      const p = toCompany ? { entry: await publishToCompany(part, shownName(name)), commit: '', url: '' } : await publishFromShelf(part, { agreed, name: shownName(name) });
       if (!alive.current) return;
       setDone(p);
-      notify(`${r.mpn} is in the world library`);
+      notify(`${r.mpn} is in ${toCompany ? `${company}'s library` : 'the world library'}`);
     } catch (e) { if (alive.current) fail(e); }
     if (alive.current) setBusy('');
   };
 
   const off = !mayConnect('library');
   const ready = config !== 'asking' && !!config?.ready;
-  const can = ready && !!session && agreed && !problems.length && !busy;
-  const why = !session ? 'Sign in first' : problems.length ? 'The part has something to put right first' : !agreed ? 'Tick the agreement first' : '';
+  const can = ready && !!session && (agreed || toCompany) && !problems.length && !busy;
+  const why = !session ? 'Sign in first' : problems.length ? 'The part has something to put right first' : !agreed && !toCompany ? 'Tick the agreement first' : '';
   const repo = ready ? webLink(config.web) : '';
 
   return (
-    <Dialog title="Publish to the World Library" width={540} onClose={closeDialog} class="pubpart"
+    <Dialog title={toCompany ? `Publish to ${company}'s Library` : 'Publish to the World Library'} width={540} onClose={closeDialog} class="pubpart"
       footer={done ? <><span class="spacer" /><button class="btn default" onClick={closeDialog}>Close</button></> : <>
-        {repo && <a class="parts-link" href={repo} target="_blank" rel="noopener noreferrer">The library's repository<Icon name="partsLink" size={12} /></a>}
+        {repo && !toCompany && <a class="parts-link" href={repo} target="_blank" rel="noopener noreferrer">The library's repository<Icon name="partsLink" size={12} /></a>}
         <span class="spacer" />
         <button class="btn default kv-cta" disabled={!can} title={why} onClick={() => void publish()}><Icon name="partsPublish" />{busy === 'publish' ? 'Publishing...' : 'Publish'}</button>
         <button class="btn" disabled={busy === 'publish'} onClick={closeDialog}>Cancel</button>
@@ -77,14 +85,15 @@ export function PublishPartDialog({ part }: { part: PartPackage }) {
       <div class="pub-part">
         <Icon name="part" size={22} />
         <span class="parts-row-text"><b>{r.mpn}</b><span>{[r.maker, r.package.name, r.package.pins ? `${r.package.pins} pins` : ''].filter(Boolean).join(' · ')}</span></span>
-        {done && <span class="pub-status ps-unverified">{STATUS_NAMES[done.entry.status]}</span>}
+        {done && <span class={`pub-status ${done.entry.org ? 'ps-company' : 'ps-unverified'}`}>{done.entry.org ? 'Company' : STATUS_NAMES[done.entry.status]}</span>}
       </div>
 
       {done ? (
         <div class="pub-done" role="status">
           <span class="parts-mark pm-note"><Icon name="partsOk" size={28} /></span>
-          <b>{r.mpn} is in the world library{done.entry.revision > 1 ? `, revision ${done.entry.revision}` : ''}</b>
-          <span>Anyone who looks its number up gets it from now on. It shows as {STATUS_NAMES[done.entry.status]} until others have checked it; your copy on the shelf carries the library's note.</span>
+          <b>{r.mpn} is in {done.entry.org ? `${done.entry.org}'s library` : 'the world library'}{done.entry.revision > 1 ? `, revision ${done.entry.revision}` : ''}</b>
+          <span>{done.entry.org ? `${done.entry.org}'s members who look its number up get it from now on, and nobody else does. Your copy on the shelf carries the library's note.`
+            : `Anyone who looks its number up gets it from now on. It shows as ${STATUS_NAMES[done.entry.status]} until others have checked it; your copy on the shelf carries the library's note.`}</span>
           {webLink(done.url) && <a class="parts-link" href={webLink(done.url)} target="_blank" rel="noopener noreferrer">See it in the library's repository<Icon name="partsLink" size={12} /></a>}
         </div>
       ) : off ? (
@@ -97,6 +106,19 @@ export function PublishPartDialog({ part }: { part: PartPackage }) {
           {config ? 'The Konium service has not been given its library yet. Your part stays on your shelf, and goes out as a part file meanwhile.' : 'Either there is no connection, or the service is not there. Your part stays on your shelf, and goes out as a part file meanwhile.'}
         </EmptyState>
       ) : (<>
+        {member && (<>
+          <div class="kv-head"><h4>Where it goes</h4></div>
+          <div class="rev-choices" role="radiogroup" aria-label="Where it goes">
+            <label class={`rev-choice${toCompany ? '' : ' on'}`}>
+              <input type="radio" name="pub-where" checked={!toCompany} disabled={!!busy} onChange={() => setWhere('world')} />
+              <span><b>The world library</b><small>For everyone: given to the public domain, in the library's public repository, and checked by others.</small></span>
+            </label>
+            <label class={`rev-choice${toCompany ? ' on' : ''}`}>
+              <input type="radio" name="pub-where" checked={toCompany} disabled={!!busy} onChange={() => setWhere('company')} />
+              <span><b>{company}'s library</b><small>For {company}'s members only: given to nobody else, and in no public repository.</small></span>
+            </label>
+          </div>
+        </>)}
         <div class="kv-head"><h4>What goes</h4></div>
         <ul class="pub-goes">
           <li><Icon name="partsFileOut" /><span>Its record<small>the part number, maker, description, package and {r.pins.length} pins</small></span><em>{size(recordSize)}</em></li>
@@ -123,10 +145,10 @@ export function PublishPartDialog({ part }: { part: PartPackage }) {
           ? 'No password: a link is mailed to you. The address is kept by the library to sign you in and to reach you about your parts, and is never published. Beside your parts stands the name above, or your number alone.'
           : 'The library can\'t mail sign-in links yet: publishing opens when it can.'}</span></p>
 
-        <label class="pub-agree">
+        {!toCompany && <label class="pub-agree">
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed((e.target as HTMLInputElement).checked)} />
           <span>I made this part, or may give it away, and I give it to the public domain under <a class="parts-link" href={LICENCE_URL} target="_blank" rel="noopener noreferrer">{LICENCE_NAME}<Icon name="partsLink" size={12} /></a>: anyone may use it, change it and pass it on, for any purpose, and that can't be taken back.</span>
-        </label>
+        </label>}
         {error && <div class="pub-error" role="alert"><p>{error.text}{/[.:!?]$/.test(error.text) ? '' : '.'}</p>{error.list.length > 0 && <ul>{error.list.map((t, i) => <li key={i}>{t}</li>)}</ul>}</div>}
       </>)}
     </Dialog>

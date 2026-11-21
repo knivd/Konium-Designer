@@ -140,6 +140,8 @@ export function simSourceSymbols(): SimSymbolBuilder[] {
  * both, so a part redrawn in the other stays on its wires.
  */
 export type SymbolStyle = 'european' | 'american';
+/** A part's name as its set writes it: the American set spells the two words that differ its own way. */
+export const inStyle = (text: string, style: SymbolStyle): string => (style === 'american' ? text.replace(/olaris/g, 'olariz').replace(/nalogue/g, 'nalog') : text);
 /** A zigzag between the pins of a part standing up, its fourth point out to the right in the middle (where a wiper's arrow meets it). */
 export const ZIGZAG: XY[] = [[0, 10], [-3, 9], [3, 6], [-3, 3], [3, 0], [-3, -3], [3, -6], [-3, -9], [0, -10]];
 /** A capacitor's curved plate under its straight one: an arc whose middle is nearest the other plate. */

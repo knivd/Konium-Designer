@@ -347,6 +347,15 @@ Step 3 as built (26.203):
 - What an address costs is the limit of it: Confirmed means that three sign-ins agree. The repository's history shows who said what.
 - tests/library203.test.ts (9); smoke section 26.203.
 
+Step 4 as built (26.204): company libraries.
+
+- A company's own parts, its members' only, kept by the service and in no repository: `/api/library/org`, a Durable Object for each company.
+- A library is opened by a TXT record in the company's DNS, by somebody with an address at the domain, and taken back the same way by whoever holds the DNS. Members are let in and put out by administrators; a sign-in no older than 30 days is asked for; a log says who did and fetched what.
+- Which companies may have one is the service owner's setting; nothing takes payment.
+- In the app: Company Library in Tools › Parts; the company's library beside the world's in Publish; looked in first; a Company chip on its parts.
+- Stated limit: a part placed in a design stays in that design.
+- tests/library204.test.ts (7); smoke section 26.204.
+
 ### The open-source release (26.200)
 
 **26.200 is the first build whose source is public.** What was settled for it, and done:
