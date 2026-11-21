@@ -2,7 +2,7 @@
 // every release. Paths are relative to the scope, so the app works from any folder on the server.
 // Its caches are named konium-app-…: the website's worker keeps konium-site-… and moved the app's
 // earlier ones (konium-v…, from before the app moved to app/ in 26.169) out of the way.
-const CACHE = 'konium-app-v26.201';
+const CACHE = 'konium-app-v26.202';
 const scoped = (p) => new URL(p, self.registration.scope).href;
 // The website's folder: above the app's at …/app/, else the scope itself (the manifest and icon are the website's)
 const site = (p) => new URL(p, self.registration.scope.replace(/app\/$/, '')).href;

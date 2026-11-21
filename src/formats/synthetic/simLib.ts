@@ -132,18 +132,40 @@ export function simSourceSymbols(): SimSymbolBuilder[] {
 
 /* ─── Simulation Parts ───────────────────────────────────────────────────────────────── */
 
-export function simPartSymbols(): SimSymbolBuilder[] {
+/**
+ * How the parts that differ between the two drawing traditions are drawn (26.202): the resistor
+ * and the potentiometer (a box, or a zigzag), the capacitors (two plates, or a plate and a curved
+ * one; the electrolytic with a hollow plate for its positive side, or the curved one for its
+ * negative), and the inductor (half circles, or loops). The pins' ends are where they were in
+ * both, so a part redrawn in the other stays on its wires.
+ */
+export type SymbolStyle = 'european' | 'american';
+/** A zigzag between the pins of a part standing up, its fourth point out to the right in the middle (where a wiper's arrow meets it). */
+export const ZIGZAG: XY[] = [[0, 10], [-3, 9], [3, 6], [-3, 3], [3, 0], [-3, -3], [3, -6], [-3, -9], [0, -10]];
+/** A capacitor's curved plate under its straight one: an arc whose middle is nearest the other plate. */
+export function curvedPlate(s: SimSymbolBuilder): SimSymbolBuilder {
+  const i = s.add({ RECORD: SR.ARC, OWNERPARTID: 1, LINEWIDTH: 2, COLOR: C.body, STARTANGLE: 52, ENDANGLE: 128 }, { LOCATION: [0, -15] });
+  setSchCoord(s.bags[i]!, 'RADIUS', 13 * SCH_UNIT);
+  return s;
+}
+
+export function simPartSymbols(style: SymbolStyle = 'european'): SimSymbolBuilder[] {
+  const american = style === 'american';
   const two = (s: SimSymbolBuilder, top: number, bottom: number) => s.pin('1', '1', [0, top], 1, 20 - top, { showName: false, showDesignator: false }).pin('2', '2', [0, bottom], 3, 20 + bottom, { showName: false, showDesignator: false });
-  const res = new SimSymbolBuilder('RES', 'Resistor').rect([-3, -10], [3, 10]);
+  const res = american ? new SimSymbolBuilder('RES', 'Resistor').polyline(ZIGZAG) : new SimSymbolBuilder('RES', 'Resistor').rect([-3, -10], [3, 10]);
   two(res, 10, -10).designator('R?', [8, 4]).param('Comment', '=Value', [8, -6], true).param('Value', '1K', [8, -6])
     .sim({ name: 'RESISTOR', description: 'Resistor', kind: 'General', subKind: 'Resistor', prefix: 'R', netlist: '@DESIGNATOR %1 %2 @VALUE', params: [['Value', '*']] });
-  const cap = new SimSymbolBuilder('CAP', 'Capacitor').line([-8, 2], [8, 2], 1, 2).line([-8, -2], [8, -2], 1, 2);
+  const cap = new SimSymbolBuilder('CAP', 'Capacitor').line([-8, 2], [8, 2], 1, 2);
+  if (american) curvedPlate(cap); else cap.line([-8, -2], [8, -2], 1, 2);
   two(cap, 2, -2).designator('C?', [12, 4]).param('Comment', '=Value', [12, -6], true).param('Value', '100n', [12, -6])
     .sim({ name: 'CAP', description: 'Capacitor', kind: 'General', subKind: 'Capacitor', prefix: 'C', netlist: '@DESIGNATOR %1 %2 @VALUE ?"INITIAL VOLTAGE"¦IC=@"INITIAL VOLTAGE"¦', params: [['Value', '*'], ['Initial Voltage', '']] });
   const ind = new SimSymbolBuilder('IND', 'Inductor');
   for (let k = 0; k < 4; k++) {
-    const i = ind.add({ RECORD: SR.ARC, OWNERPARTID: 1, LINEWIDTH: 1, COLOR: C.body, STARTANGLE: 270, ENDANGLE: 90 }, { LOCATION: [0, 7.5 - k * 5] });
-    setSchCoord(ind.bags[i]!, 'RADIUS', 2.5 * SCH_UNIT);
+    // Half circles one under the other, or loops that overlap (each a whole circle, the first and the last meeting the pins)
+    const i = american
+      ? ind.add({ RECORD: SR.ARC, OWNERPARTID: 1, LINEWIDTH: 1, COLOR: C.body, STARTANGLE: 0, ENDANGLE: 360 }, { LOCATION: [1.5, 7 - k * 4.5 - (k > 1 ? 0.5 : 0)] })
+      : ind.add({ RECORD: SR.ARC, OWNERPARTID: 1, LINEWIDTH: 1, COLOR: C.body, STARTANGLE: 270, ENDANGLE: 90 }, { LOCATION: [0, 7.5 - k * 5] });
+    setSchCoord(ind.bags[i]!, 'RADIUS', (american ? 3.5 : 2.5) * SCH_UNIT);
   }
   two(ind, 10, -10).designator('L?', [8, 4]).param('Comment', '=Value', [8, -6], true).param('Value', '10u', [8, -6])
     .sim({ name: 'INDUCTOR', description: 'Inductor', kind: 'General', subKind: 'Inductor', prefix: 'L', netlist: '@DESIGNATOR %1 %2 @VALUE ?"INITIAL CURRENT"¦IC=@"INITIAL CURRENT"¦', params: [['Value', '*'], ['Initial Current', '']] });
@@ -199,7 +221,7 @@ export function simPartSymbols(): SimSymbolBuilder[] {
   const push = contact('PUSHBUTTON', 'Push button (closed while it is pressed in Live Simulation)', 'Push Button',
     (s, closed) => s.line([closed ? 1.5 : 5, -7], [closed ? 1.5 : 5, 7], 1, 2).line([closed ? 1.5 : 5, 0], [10, 0]).line([10, -3], [10, 3], 1, 2));
   const all = [res, cap, ind, sw, push, diode('DIODE', '1N4148', 'Signal diode'), diode('RECTIFIER', '1N4001', 'Rectifier diode'), diode('LED', 'LED_RED', 'Light-emitting diode (red)', 'led'),
-    bjt('NPN', '2N3904', false), bjt('PNP', '2N3906', true), mos('NMOS', '2N7002', false), mos('PMOS', 'BSS84', true), opamp, ...kitPartSymbols()];
+    bjt('NPN', '2N3904', false), bjt('PNP', '2N3906', true), mos('NMOS', '2N7002', false), mos('PMOS', 'BSS84', true), opamp, ...kitPartSymbols(style)];
   // What each is rated for (Live Simulation flags a part that takes more): a parameter of the part, not shown
   for (const s of all) { const r = RATINGS[s.libRef]; if (r) s.param(RATING_PARAMS[r.kind], r.text, [8, -16]); }
   return all;

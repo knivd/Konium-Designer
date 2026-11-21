@@ -54,7 +54,7 @@ export const KIT: KitPart[] = [
   // Passive
   { id: 'res', label: 'Resistor', group: 'Passive', lib: 'parts', libRef: 'RES', prefix: 'R', key: 'r', hint: 'Resistor', fields: [f('Value', 'Resistance', 'Ω', T)] },
   { id: 'cap', label: 'Capacitor', group: 'Passive', lib: 'parts', libRef: 'CAP', prefix: 'C', key: 'c', hint: 'Capacitor', fields: [f('Value', 'Capacitance', 'F', T), f('Initial Voltage', 'Starts at', 'V')] },
-  { id: 'capPol', label: 'Polarised capacitor', caption: 'Polarised', group: 'Passive', lib: 'parts', libRef: 'CAP_POL', prefix: 'C', key: 'C', hint: 'Polarised capacitor', fields: [f('Value', 'Capacitance', 'F', T), f('Initial Voltage', 'Starts at', 'V')] },
+  { id: 'capPol', label: 'Electrolytic capacitor', caption: 'Electrolytic', group: 'Passive', lib: 'parts', libRef: 'CAP_POL', prefix: 'C', key: 'C', hint: 'Electrolytic capacitor (polarised): its positive side is marked +. A voltage the wrong way round is flagged while the sheet runs', fields: [f('Value', 'Capacitance', 'F', T), f('Initial Voltage', 'Starts at', 'V')] },
   { id: 'ind', label: 'Inductor', group: 'Passive', lib: 'parts', libRef: 'IND', prefix: 'L', key: 'L', hint: 'Inductor', fields: [f('Value', 'Inductance', 'H', T), f('Initial Current', 'Starts at', 'A')] },
   { id: 'pot', label: 'Potentiometer', caption: 'Pot', group: 'Passive', lib: 'parts', libRef: 'POT', prefix: 'RV', hint: 'Potentiometer: its wiper is set by Position in the panel', fields: [f('Resistance', 'Resistance', 'Ω', T), f('Position', 'Position', '%', { range: [0, 100] })] },
   { id: 'switch', label: 'Switch', group: 'Passive', lib: 'parts', libRef: 'SWITCH', prefix: 'SW', key: 's', hint: 'Switch: a click opens or closes it while the sheet runs', fields: CONTACT },

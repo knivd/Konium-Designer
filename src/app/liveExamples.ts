@@ -11,18 +11,21 @@ import { setSimParam } from '../model/simModels';
 import { cfbPut, newEntry, writeCfb } from '../formats/cfb/cfb';
 import { binToBytes } from '../formats/text';
 import { C, SchBuilder } from '../formats/synthetic/schBuilder';
-import { SIM_PARTS_LIB, SIM_SOURCES_LIB, simPartSymbols, simSourceSymbols, type SimSymbolBuilder } from '../formats/synthetic/simLib';
+import { SIM_PARTS_LIB, SIM_SOURCES_LIB, simPartSymbols, simSourceSymbols, type SimSymbolBuilder, type SymbolStyle } from '../formats/synthetic/simLib';
 import { KIT } from './liveKit';
 
 type P = [number, number];
 type Values = Record<string, string>;
 
-let symbols: Map<string, { sym: SimSymbolBuilder; lib: string; prefix: string }> | null = null;
+/** The style the example being built is drawn in (liveExampleBytes sets it). */
+let style: SymbolStyle = 'european';
+const sets = new Map<SymbolStyle, Map<string, { sym: SimSymbolBuilder; lib: string; prefix: string }>>();
 function symbolOf(libRef: string) {
+  let symbols = sets.get(style);
   if (!symbols) {
-    symbols = new Map();
+    sets.set(style, symbols = new Map());
     const prefix = new Map(KIT.map((k) => [k.libRef, k.prefix]));
-    for (const s of simPartSymbols()) symbols.set(s.libRef, { sym: s, lib: SIM_PARTS_LIB, prefix: prefix.get(s.libRef) ?? 'U' });
+    for (const s of simPartSymbols(style)) symbols.set(s.libRef, { sym: s, lib: SIM_PARTS_LIB, prefix: prefix.get(s.libRef) ?? 'U' });
     for (const s of simSourceSymbols()) symbols.set(s.libRef, { sym: s, lib: SIM_SOURCES_LIB.replace('.SchLib', '.IntLib'), prefix: prefix.get(s.libRef) ?? 'V' });
   }
   const got = symbols.get(libRef);
@@ -527,7 +530,8 @@ export const LIVE_EXAMPLES: LiveExample[] = [
 ];
 
 /** An example's sheet as a schematic file. */
-export function liveExampleBytes(ex: LiveExample): Uint8Array {
+export function liveExampleBytes(ex: LiveExample, drawn: SymbolStyle = 'european'): Uint8Array {
+  style = drawn;
   const s = new Sketch(ex.title, ex.about);
   ex.draw(s);
   return s.bytes();

@@ -11,7 +11,7 @@
  */
 import { SR, setSchCoord } from '../../model/sch';
 import { SCH_UNIT } from '../../core/units';
-import { SimSymbolBuilder } from './simLib';
+import { SimSymbolBuilder, ZIGZAG, curvedPlate, type SymbolStyle } from './simLib';
 
 type XY = [number, number];
 const BODY = 128;
@@ -35,16 +35,24 @@ const block = (s: SimSymbolBuilder, entity: string, pins: number, values: [strin
 
 /* ─── Parts ──────────────────────────────────────────────────────────────────────────── */
 
-export function kitPartSymbols(): SimSymbolBuilder[] {
+export function kitPartSymbols(style: SymbolStyle = 'european'): SimSymbolBuilder[] {
+  const american = style === 'american';
   const out: SimSymbolBuilder[] = [];
   const S = (libRef: string, description: string) => { const s = new SimSymbolBuilder(libRef, description); out.push(s); return s; };
 
   // Passive
-  const capPol = S('CAP_POL', 'Polarised capacitor').line([-8, 2], [8, 2], 1, 2).line([-8, -2], [8, -2], 1, 2).line([3, 7], [7, 7]).line([5, 5], [5, 9]);
-  two(capPol, 2, -2).designator('C?', [12, 4]).param('Comment', '=Value', [12, -6], true).param('Value', '100u', [12, -6])
-    .sim({ name: 'CAP_POL', description: 'Polarised capacitor', kind: 'General', subKind: 'Capacitor', prefix: 'C', netlist: '@DESIGNATOR %1 %2 @VALUE ?"INITIAL VOLTAGE"¦IC=@"INITIAL VOLTAGE"¦', params: [['Value', '*'], ['Initial Voltage', '']] });
+  // The electrolytic: its positive plate (pin 1, marked +) a hollow box over a solid one, or a straight plate over the curved one
+  const capPol = S('CAP_POL', 'Electrolytic capacitor (polarised: pin 1 is its positive side)');
+  if (american) curvedPlate(capPol.line([-8, 2], [8, 2], 1, 2));
+  else { capPol.rect([-8, 1], [8, 3]); capPol.add({ RECORD: SR.RECTANGLE, OWNERPARTID: 1, LINEWIDTH: 1, COLOR: BODY, AREACOLOR: BODY, ISSOLID: true }, { LOCATION: [-8, -3], CORNER: [8, -1] }); }
+  capPol.line([3, 7.5], [7, 7.5]).line([5, 5.5], [5, 9.5]);
+  // (a pin's length is whole tenths of an inch: the plates are where their pins can end)
+  two(capPol, american ? 2 : 3, american ? -2 : -3).designator('C?', [12, 4]).param('Comment', '=Value', [12, -6], true).param('Value', '100u', [12, -6])
+    .sim({ name: 'CAP_POL', description: 'Electrolytic capacitor', kind: 'General', subKind: 'Capacitor', prefix: 'C', netlist: '@DESIGNATOR %1 %2 @VALUE ?"INITIAL VOLTAGE"¦IC=@"INITIAL VOLTAGE"¦', params: [['Value', '*'], ['Initial Voltage', '']] });
 
-  const pot = S('POT', 'Potentiometer (its wiper set by Position, 0 to 100 %)').rect([-3, -10], [3, 10]).polygon([[3, 0], [8, 2.5], [8, -2.5]]);
+  const pot = S('POT', 'Potentiometer (its wiper set by Position, 0 to 100 %)');
+  if (american) pot.polyline(ZIGZAG); else pot.rect([-3, -10], [3, 10]);
+  pot.polygon([[3, 0], [8, 2.5], [8, -2.5]]);
   two(pot, 10, -10).pin('3', '3', [8, 0], 0, 12, HIDE).designator('RV?', [8, 8]).param('Comment', '=Resistance', [8, -12], true).param('Resistance', '10k', [8, -12]);
   block(pot, 'POT', 3, [['R', 'Resistance', '*'], ['POS', 'Position', '50']]);
 
