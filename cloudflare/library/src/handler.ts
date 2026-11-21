@@ -25,6 +25,11 @@
  * GET  /me                     (signed in) → { user }
  * POST /blob?kind=symbol|footprint   (signed in) GitHub's blob request, passed on → { sha, pass }
  * POST /publish  { record, symbol: { sha, pass }, footprint: { sha, pass }, licence, name, app }   (signed in)
+ *
+ * Beside the service, the library's public pages (step 5, pages.ts), at the site's own /parts:
+ * GET  /parts                  how many parts there are, and the latest
+ * GET  /parts/<key>            a part's page: what it is, its pins, where it stands, how to get it
+ * GET  /parts/sitemap.xml      the pages' addresses, for search engines
  */
 import { partKey } from '../../../src/model/partKey';
 import {
@@ -32,7 +37,9 @@ import {
   ORG_RECORD_PREFIX, PRIVATE_LICENCE, atDomain, cleanRecord, forMessage, mailAddress, oneLine, orgDomain, orgRecordName, partFolder, readEntry, recordProblems, shownName, standing, standingText,
   type LibraryEntry, type LibraryFile, type OrgPart, type OrgRole,
 } from '../../../src/model/worldLibrary';
-import type { Contributor, Indexed, SignIn, Taken } from './store';
+import { LIST_MOST, type Contributor, type Indexed, type Listed, type SignIn, type Taken } from './store';
+import { PAGE_HEADERS, partMissing, partPage, partsIndex, partsSitemap } from './pages';
+import type { PartRecord } from '../../../src/model/partPackage';
 import type { OrgStoreApi } from './org';
 import { limitKey } from '../../limitKey';
 import { bodyUpTo, jsonUpTo } from '../../body';
@@ -60,6 +67,8 @@ export interface LibraryEnv {
   PUBLISH_PER_DAY?: string;
   /** How many words about parts (checks, builds, problems) one contributor may send in a day. */
   CHECK_PER_DAY?: string;
+  /** How many of the library's public pages are made for one visitor in a day. */
+  PAGE_PER_DAY?: string;
   /** Company libraries (step 4): the domains that may have one ('*' for any; unset for none), how many parts each may hold, and how old a sign-in may be. */
   ORG_DOMAINS?: string;
   ORG_PARTS?: string;
@@ -78,6 +87,7 @@ export interface LibraryStoreApi {
   part(key: string): Indexed | null | Promise<Indexed | null>;
   keepPart(p: Indexed): void | Promise<void>;
   partCount(): number | Promise<number>;
+  latest(limit: number): Listed[] | Promise<Listed[]>;
   prune(beforePeriod: string, now: number): void | Promise<void>;
 }
 
@@ -85,7 +95,7 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods
 const reply = (body: object, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 const int = (v: string | undefined, d: number) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n >= 0 && v !== undefined && v !== '' ? n : d; };
 
-export const limits = (env: LibraryEnv) => ({ fetch: int(env.FETCH_PER_DAY, 500), signin: int(env.SIGNIN_PER_HOUR, 5), publish: int(env.PUBLISH_PER_DAY, 20), check: int(env.CHECK_PER_DAY, 40) });
+export const limits = (env: LibraryEnv) => ({ fetch: int(env.FETCH_PER_DAY, 500), signin: int(env.SIGNIN_PER_HOUR, 5), publish: int(env.PUBLISH_PER_DAY, 20), check: int(env.CHECK_PER_DAY, 40), page: int(env.PAGE_PER_DAY, 2000) });
 /** A sign-in link's life, a session's, and a blob pass's. */
 export const SIGNIN_MS = 15 * 60_000, SESSION_MS = 90 * 86_400_000, PASS_MS = 30 * 60_000;
 /**
@@ -385,6 +395,61 @@ h1{margin:0 0 10px;font-size:20px}p{margin:0 0 12px}.dim{color:#5c6b7a;font-size
 }
 const STALE = () => page('The parts library: link no longer good', '<h1>This link is no longer good</h1><p>It works once, for 15 minutes. Ask for a new one in Konium Designer (Tools › Parts, a part\'s Publish).</p>', 410);
 
+/* ─── The public pages (step 5) ───────────────────────────────────────────────────────── */
+
+/** Is this one of the library's public pages (the site's /parts, never the service's own paths). */
+export const isPagePath = (pathname: string): boolean => /^\/parts(?:\/[^/]*)?\/?$/.test(pathname);
+/** How long a page may be kept by whoever fetched it (seconds); how many parts the list shows; how often in an hour the repository is asked about a part the index doesn't know. */
+export const PAGE_SECONDS = 300, PAGE_LATEST = 60, PAGE_MISSES_PER_HOUR = 300;
+
+async function shownPages(req: Request, env: LibraryEnv, store: LibraryStoreApi, fetchFn: typeof fetch, now: number, pathname: string): Promise<Response> {
+  const site = siteOf(env), head = req.method === 'HEAD', lim = limits(env);
+  const stamp = new Date(now).toISOString(), day = stamp.slice(0, 10), hour = stamp.slice(0, 13);
+  const send = (body: string, status = 200, more: Record<string, string> = {}) =>
+    new Response(head ? null : body, { status, headers: { ...PAGE_HEADERS, 'Cache-Control': status === 200 ? `public, max-age=${PAGE_SECONDS}` : 'no-store', ...more } });
+  const missing = (title: string, text: string, status: number, more: Record<string, string> = {}) => send(partMissing({ title, text, site }), status, more);
+  if (req.method !== 'GET' && !head) return missing('Nothing to send here', 'The parts library\'s pages are for reading.', 405, { Allow: 'GET, HEAD' });
+  if (!ready(env)) return missing('The parts library isn\'t open yet', 'Konium Designer\'s world parts library has not been opened yet.', 503, { 'Retry-After': '86400' });
+  if (!(await store.take(day, await clientOf(req, env), 'page', lim.page)).ok) {
+    return missing('That is today\'s pages from here', `The parts library makes ${lim.page} pages a day for one visitor: the count starts again tomorrow (UTC).`, 429, { 'Retry-After': '3600' });
+  }
+  const seg = pathname.replace(/\/+$/, '').slice('/parts'.length).replace(/^\//, '');
+  if (!seg) return send(partsIndex({ parts: await store.latest(PAGE_LATEST), count: await store.partCount(), site }));
+  if (seg === 'sitemap.xml') {
+    return new Response(head ? null : partsSitemap(await store.latest(LIST_MOST), site), { headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600', 'X-Content-Type-Options': 'nosniff' } });
+  }
+  if (!KEY_FORMAT.test(seg)) {
+    // (a part number typed as it is written, in any case and with its marks: its page is under its key)
+    let typed = seg;
+    try { typed = decodeURIComponent(seg); } catch { /* as it came */ }
+    const key = partKey(typed.slice(0, 200));
+    return KEY_FORMAT.test(key) ? new Response(null, { status: 301, headers: { Location: `${site}/parts/${key}`, 'Cache-Control': 'public, max-age=3600' } })
+      : missing('No such part', 'That is not a part\'s address in the world parts library.', 404);
+  }
+  const none = () => missing('No such part', `There is no part ${seg} in the world parts library yet. Type its number in Konium Designer (Tools \u203a Parts): it is made from its datasheet, and can be published for everyone.`, 404);
+  let known = await store.part(seg);
+  if (!known) {
+    // (the index may have been lost: the repository is the truth, asked no more often than the whole service may)
+    if (!(await store.take(hour, 'everyone', 'page-miss', PAGE_MISSES_PER_HOUR)).ok) return none();
+    const found = await fromRepo(env, fetchFn, seg);
+    // (a company's own part is in no public place: should a note ever say it is one, it has no page and is in no list)
+    if (!found || found.org) return none();
+    known = indexed(found, '', '');
+    await store.keepPart(known);
+  }
+  const entry = entryOf(known);
+  const at = /^[0-9a-f]{40}$/.test(known.commit) ? known.commit : branchOf(env);
+  let record: PartRecord | null = null;
+  try {
+    const res = await fetchFn(rawUrl(env, at, `${partFolder(seg)}/${RECORD_FILE}`));
+    const text = res.ok && !(Number(res.headers.get('Content-Length') ?? 0) > MAX_RECORD) ? await res.text() : '';
+    const read: unknown = text && text.length <= MAX_RECORD ? JSON.parse(text) : null;
+    // (shown only as the library would take it today, and only if it is this part's)
+    if (read && !recordProblems(read).length && partKey((read as { mpn: string }).mpn) === seg) record = cleanRecord(read);
+  } catch { /* the page says what the library's note says */ }
+  return send(partPage({ entry, record, site, files: `https://github.com/${repoOf(env)}/tree/${at}/${partFolder(seg)}` }));
+}
+
 /* ─── The requests ────────────────────────────────────────────────────────────────────── */
 
 export async function handle(req: Request, env: LibraryEnv, store: LibraryStoreApi, fetchFn: typeof fetch = fetch, now = Date.now(), orgs?: OrgAccess): Promise<Response> {
@@ -394,6 +459,9 @@ export async function handle(req: Request, env: LibraryEnv, store: LibraryStoreA
   const stamp = new Date(now).toISOString(), day = stamp.slice(0, 10), hour = stamp.slice(0, 13);
   const lim = limits(env);
   const repo = repoOf(env);
+
+  // (the library's public pages are the site's own /parts: not the service's paths, and answered as pages)
+  if (isPagePath(url.pathname)) return shownPages(req, env, store, fetchFn, now, url.pathname);
 
   if (req.method === 'GET' && path === '/config') {
     return reply({ ready: ready(env), signIn: canSignIn(env), repo, web: repo ? `https://github.com/${repo}` : '', licence: LIBRARY_LICENCE, publishPerDay: lim.publish, parts: ready(env) ? await store.partCount() : 0 });

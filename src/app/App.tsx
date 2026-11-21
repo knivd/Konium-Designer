@@ -47,6 +47,7 @@ import { InfoDialog } from './dialogs/Confirm';
 import { noteError } from './diagnostics';
 import { restoreInstalledLibraries } from './installedStore';
 import { featureOn } from '../core/release';
+import { askedPart, partAsked } from './worldLibrary';
 import { restoreShelf } from './partShelf';
 import { installColumnResize } from './columnResize';
 import { bindWindowInput } from './windowInput';
@@ -119,6 +120,8 @@ export function App() {
     onLaunchFiles(openBatch);
     // The website's Install (konium.app/download): the app opened with ?install shows its install window at once
     if (served && !installed() && /[?&]install\b/.test(location.search)) showDialog(GetKoniumDialog);
+    // A part's public page (konium.app/parts/...) opens the app with ?part=<its number>: Tools › Parts, with the number typed
+    if (featureOn('partsLibrary') && askedPart(location.search)) { partAsked.value = askedPart(location.search); showPanel('parts'); }
     // System › General › Document Path: where file selectors start
     setDefaultStartIn(() => (settings.documentPath === 'last' ? undefined : settings.documentPath));
     // A file downloaded because its place couldn't be written: said in a window

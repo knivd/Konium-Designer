@@ -183,7 +183,7 @@ describe('the world parts library from the app (26.201)', () => {
     s.calls.length = 0;
     settings.offline = true;
     expect(await libraryConfig(s.f, true)).toBeNull();
-    for (const p of [findInLibrary(PART.record.mpn, s.f), askSignIn('ada@example.org', s.f), sessionFor('0'.repeat(32), s.f), publishPart(PART, { agreed: true }, s.f, s.clock.now)]) expect((await refusal(p)).message).toBe(OFFLINE_NOTE);
+    for (const ask of [() => findInLibrary(PART.record.mpn, s.f), () => askSignIn('ada@example.org', s.f), () => sessionFor('0'.repeat(32), s.f), () => publishPart(PART, { agreed: true }, s.f, s.clock.now)]) expect((await refusal(ask())).message).toBe(OFFLINE_NOTE);
     expect(s.calls).toEqual([]);
   });
 

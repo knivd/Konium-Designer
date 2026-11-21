@@ -23,6 +23,10 @@ export interface Indexed {
   /** What has been said of this revision (who checked it, who built it, what was found wrong), as JSON; '' for nothing. */
   more?: string;
 }
+/** A part as a list shows it. */
+export interface Listed { key: string; mpn: string; status: string; by: string; name: string; published: string }
+/** The most one list holds (a sitemap's size; past it the sitemap becomes several). */
+export const LIST_MOST = 20_000;
 
 export class LibraryStoreLogic {
   constructor(private sql: Sql) {
@@ -77,6 +81,11 @@ export class LibraryStoreLogic {
   }
   /** How many parts the index holds. */
   partCount(): number { return Number(this.sql.exec(`SELECT COUNT(*) AS n FROM parts`).toArray()[0]?.n ?? 0); }
+  /** The parts published last, the newest first: what the library's public list and its sitemap show. */
+  latest(limit: number): Listed[] {
+    return this.sql.exec(`SELECT key, mpn, status, by, name, published FROM parts ORDER BY published DESC, key ASC LIMIT ?`, Math.max(1, Math.min(LIST_MOST, Math.round(limit) || 1))).toArray()
+      .map((r) => ({ key: String(r.key), mpn: String(r.mpn), status: String(r.status), by: String(r.by), name: String(r.name ?? ''), published: String(r.published) }));
+  }
 
   /** Periods long past and sign-ins that ran out: forgotten. */
   prune(beforePeriod: string, now: number): void {

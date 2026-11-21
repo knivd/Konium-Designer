@@ -3199,6 +3199,8 @@ h4.dg-lib-head { cursor: default; }
 .parts-sub { font-size: 11px; color: var(--text-dim); }
 .parts-link { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); text-decoration: none; }
 .parts-link:hover { text-decoration: underline; }
+/* (a part's public page, under what the library says of it) */
+.parts-facts dd .parts-page { align-self: flex-start; font-size: 11px; }
 .parts-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
 .parts-checks li { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 6px; align-items: start; font-size: 11px; line-height: 1.35; }
 .parts-checks .icon { margin-top: 1px; }

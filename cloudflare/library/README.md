@@ -87,6 +87,30 @@ ends what they can fetch, not what they have fetched.
 To somebody who is neither a member nor at the domain, a library that exists answers as one that
 does not.
 
+## Public pages (26.206)
+
+Beside the service, the Worker answers at the site's own `/parts` (the two routes in
+`wrangler.toml`): a page for each part of the world library, for people and for search engines.
+
+| Address | What |
+|---|---|
+| `/parts/<key>` | A part's page, made on request from the library's note (the index; the repository when the index does not know the part) and the part's record at the commit that holds it: what it is, its pins, where it stands and who has said what of it, who published it, the CC0 note, a button that opens Konium Designer with the number typed (`/app/?part=`), and a link to its files |
+| `/parts` | How many parts there are, and the latest 60 |
+| `/parts/sitemap.xml` | The pages' addresses (20,000 at most: past that it has to become several sitemaps) |
+| `/parts/<a number as typed>` | Led to the part's key (301), on this site only |
+
+- **Everything on a page is somebody else's words, written as text.** Each value is escaped; a
+  datasheet is a link only where it is a web address; there is no script on a page and its policy
+  lets none run; a page sits in no frame. A record is shown only if the library would still take
+  it; otherwise the page says what the note says.
+- **A company's own part has no page**, is in no list and in no sitemap.
+- **What it costs.** `PAGE_PER_DAY` (2,000) pages are made for one visitor in a day. A page asked
+  for again within five minutes is answered from Cloudflare's cache (kept by its path alone). A
+  part the index does not know is looked for in the repository 300 times an hour at most, for
+  everyone together.
+- **When the library opens:** add `Sitemap: https://konium.app/parts/sitemap.xml` to the site's
+  robots.txt, and check that `https://konium.app/parts` answers.
+
 ## Set-up (once, when the library opens)
 
 1. **The repository.** A public repository at GitHub with a first commit holding a README and the

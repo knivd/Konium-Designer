@@ -4,6 +4,7 @@
  * Tools › Re-Annotate (positional); Design › Netlist › Update Free Primitives From Component
  * Pads; right-click › Applicable Unary / Binary Rules.
  */
+import { count as plural } from '../core/words';
 import type { Command, Scope } from '../core/commands';
 import { active, notify } from './state';
 import { showDialog } from './dialogs';
@@ -33,7 +34,6 @@ import type { Change } from '../core/undo';
 const PCB: Scope[] = ['pcb'];
 const board = () => { const e = active.value?.editor; return e instanceof PcbEditor && !(e instanceof PcbLibEditor) ? e : null; };
 const on = (fn: (e: PcbEditor) => void) => () => { const e = board(); if (e) fn(e); };
-const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const GAP = mil(10);
 
 /** A component's extent without its designator and comment (the scene must be built). */

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { count as plural } from '../../core/words';
 import { signal } from '@preact/signals';
 import { Icon } from '../icons';
 import { AiOff, EmptyState } from './kv';
@@ -89,7 +90,6 @@ export async function routeOnEditor(e: PcbEditor, plan: RoutingPlan, job: RouteJ
 }
 
 const took = (ms: number) => { const t = Math.max(0, Math.round(ms / 1000)); return t < 60 ? `${t} s` : `${Math.floor(t / 60)} min ${String(t % 60).padStart(2, '0')} s`; };
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const VIA_WORDS = { free: 'vias as needed', few: 'few vias', none: 'no vias' } as const;
 /** What a plan's answer usually comes to (tokens, with the model's thinking) [est]. */
 const TYPICAL_OUT = 7000;

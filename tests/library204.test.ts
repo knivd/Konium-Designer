@@ -144,7 +144,8 @@ describe('a company\'s own library, through the service (26.204)', () => {
     await s.as('ada@example.com');
     expect((await orgMember('example.com', 'bob@example.com', { remove: true }, s.f, s.t())).removed).toBe(true);
     await s.as('bob@example.com');
-    for (const p of [orgFind('example.com', PART.record.mpn, s.f, s.t()), orgParts('example.com', s.f, s.t()), orgPublish('example.com', PART, {}, s.f, s.t())]) expect(await refusal(p)).toMatchObject({ status: 403, message: 'You are not a member of example.com\'s library' });
+    // (each asked when its turn comes: a refusal nobody is waiting for yet would be an error of its own)
+    for (const ask of [() => orgFind('example.com', PART.record.mpn, s.f, s.t()), () => orgParts('example.com', s.f, s.t()), () => orgPublish('example.com', PART, {}, s.f, s.t())]) expect(await refusal(ask())).toMatchObject({ status: 403, message: 'You are not a member of example.com\'s library' });
     expect(await orgStatus('example.com', s.f, s.t())).toMatchObject({ exists: true, role: null });
 
     // A library keeps an administrator; a second one can be made, and then the first may go
@@ -233,7 +234,7 @@ describe('a company\'s own library, through the service (26.204)', () => {
     expect(await orgParts('example.com', s.f, s.t())).toEqual([]);
     expect(await orgFind('example.com', PART.record.mpn, s.f, s.t())).toBeNull();
     expect(await orgStatus('acme.test', s.f, s.t())).toEqual({ domain: 'acme.test', open: true, exists: false, role: null });
-    for (const p of [orgParts('acme.test', s.f, s.t()), orgFind('acme.test', PART.record.mpn, s.f, s.t()), orgAudit('acme.test', s.f, s.t()), orgMember('acme.test', 'ada@example.com', {}, s.f, s.t()), orgDrop('acme.test', KEY, s.f, s.t())]) expect((await refusal(p)).status).toBe(403);
+    for (const ask of [() => orgParts('acme.test', s.f, s.t()), () => orgFind('acme.test', PART.record.mpn, s.f, s.t()), () => orgAudit('acme.test', s.f, s.t()), () => orgMember('acme.test', 'ada@example.com', {}, s.f, s.t()), () => orgDrop('acme.test', KEY, s.f, s.t())]) expect((await refusal(ask())).status).toBe(403);
     // (without the store for companies the service says that there are none)
     const none = await handle(new Request('https://konium.app/api/library/org?domain=example.com', { headers: { Authorization: `Bearer ${keptSession(s.t())!.token}` } }), s.env, new LibraryStoreLogic(sqlite()), s.w.fetchFn, s.t());
     expect(none.status).toBe(503);

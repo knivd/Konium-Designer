@@ -235,6 +235,28 @@ Each later release's What's New entry is drafted in docs/RELEASES.md, and adds t
 - What's New 26.123 (and its picture: the demo project's diagram), index.html (featureList and What you can do), llms.txt (fact-checked against the code: waypoints by connector kind, the toolbar's Insert, Print of the current page, PDF through the print dialog); docs/RELEASES.md R4 published. Smoke: Enclosure alone planned; a .drawio opens as Later.DgmDoc.
 - What's New: the log goes from 26.114 straight to 26.123 (the release build). The entries for 26.116 to 26.122 are taken out, and 26.116's one visible change (File › New's Multi-board Schematic and Assembly in the general File menu) is now the last item of 26.123's entry. Builds with nothing visible get no entry from now on. When the newest entry isn't the running build's, the smoke test checks that entry's own published SHA-256.
 
+## 26.206 (not public: a public page for each part of the world library, R21 step 5; whole sentences)
+
+The fifth step of the parts library, and the first step towards translated interfaces (21 Nov).
+
+**The library's public pages (planned with the parts library; the service is still not deployed).**
+
+- A page for each part at `konium.app/parts/<its key>`, written by the library's Worker (`cloudflare/library/src/pages.ts`) from the library's own two files: the note (from the index, or the repository when the index does not know the part) and the record (fetched at the commit that holds it, and shown only if the library would still take it).
+- What a page says: the part number with its standing; maker and description; package, footprint and where its pads came from; symbol; the datasheet's link and the pages read; the pins in a table, their kinds in words; where it stands, with who found it right, who built it and what was found wrong; who published it (the shown name and the number, never an address), when, which revision, from which build; that it is given to the public domain. Two ways on: "Open in Konium Designer" (`/app/?part=<number>`) and its files in the repository.
+- `konium.app/parts`: how many parts, and the latest 60. `konium.app/parts/sitemap.xml`: the addresses, 20,000 at most (a sitemap takes 50,000; past 20,000 it has to become several).
+- Other people's words are text: every value escaped; a datasheet is linked only by a web address without a name and password in it (`webAddress`), with `rel="nofollow noopener noreferrer ugc"`; a page has no script, and its policy (`default-src 'none'; style-src 'unsafe-inline'`) lets none run; no frame. Tested with a part whose every field is written to be read as markup.
+- Addresses: a part number typed in any case and with its marks is led to its key (301, to this site alone); a key that is no part says so (404, `noindex`, not cached); only GET and HEAD; before the library is set up every page is a 503 that says it is not open yet.
+- A company's own part has no page, is in no list and in no sitemap (they are not in the store the pages read; and a note in the repository that calls a part a company's is not shown either).
+- Cost: `PAGE_PER_DAY` (2,000) pages made for one visitor in a day; a page asked for again within five minutes comes from Cloudflare's cache, kept by its path alone (a query added to an address is no way round it); the repository is asked about parts the index does not know 300 times an hour at most, for everyone together.
+- In the app: opened with `?part=<number>`, Tools › Parts is in front with the number typed; the part is opened if the shelf has it; the library is asked nothing until Look in the World Library is pressed (the rule that nothing goes out before a press holds). A part of the library links "Its page in the library" from its card (the found one's too) and from the Publish window's last word. Only with the parts library on.
+- Not in this step: a drawing of the symbol and the footprint on the page (the service reads no library file, by design; a picture would have to be made by the app at publishing and kept beside the part); the parts' sitemap in the site's robots.txt and the row in the guide and on the website (when the library opens).
+- How a page is made: by the Worker on request, not committed to the repository or built with the site, so that a part's standing on its page is the standing of that minute.
+- tests/library206.test.ts (13); smoke section 26.206 (3 checks).
+
+**Whole sentences (the first step towards translated interfaces).** A sentence is one template with its values put in, never glued from pieces, and a word after a number comes from `count` or `noun` (`src/core/words.ts`). The rule is in docs/ARCHITECTURE.md (Interface standards) for new code; the two private copies of the helper (the Smart Router's panel, the PCB component commands) use the shared one. Nothing else was changed: translating is a later job, below the other work. The size of that job, counted on this build by pattern (a rough measure): about 7,000 distinct sentences and labels in the interface (38,000 words) found as labels, tooltips, messages and text in views, 9,800 (80,000 words) if every string that reads as words is taken; the guide is another 90,000 words; and 338 plurals are still glued by hand (an "s" added by a test of the number), which is what `count` replaces as code is touched.
+
+**Logic gates stay shaped** (the distinctive shapes) in both symbol sets of Live Simulation: the form engineers know at sight (decided 21 Nov). Nothing to build.
+
 ## 26.205 (not public: the website says "free" first, and what it does not cover)
 
 The aim (21 Nov): the website says that Konium Designer is free at the top of its first page, where it used to say so only at the bottom, and says exactly what "free" does not cover.

@@ -16,7 +16,7 @@ import { EmptyState } from '../panels/kv';
 import { LibrarySignIn, SignOutTool } from './LibrarySignIn';
 import { webLink } from '../../core/webLink';
 import { OFFLINE_NOTE, mayConnect } from '../../platform/network';
-import { LibraryError, libraryConfig, publishProblems, whoAmI, type LibraryConfig, type Published } from '../../platform/libraryService';
+import { LibraryError, libraryConfig, partPageUrl, publishProblems, whoAmI, type LibraryConfig, type Published } from '../../platform/libraryService';
 import { LICENCE_NAME, LICENCE_URL, STATUS_NAMES, cleanRecord, shownName } from '../../model/worldLibrary';
 import type { PartPackage } from '../../model/partPackage';
 import { companyDomain, companyRole, librarySession, publishFromShelf, publishToCompany, syncSession, useCompany } from '../worldLibrary';
@@ -94,6 +94,7 @@ export function PublishPartDialog({ part }: { part: PartPackage }) {
           <b>{r.mpn} is in {done.entry.org ? `${done.entry.org}'s library` : 'the world library'}{done.entry.revision > 1 ? `, revision ${done.entry.revision}` : ''}</b>
           <span>{done.entry.org ? `${done.entry.org}'s members who look its number up get it from now on, and nobody else does. Your copy on the shelf carries the library's note.`
             : `Anyone who looks its number up gets it from now on. It shows as ${STATUS_NAMES[done.entry.status]} until others have checked it; your copy on the shelf carries the library's note.`}</span>
+          {!done.entry.org && <a class="parts-link" href={partPageUrl(done.entry.key)} target="_blank" rel="noopener noreferrer">Its page in the library<Icon name="partsLink" size={12} /></a>}
           {webLink(done.url) && <a class="parts-link" href={webLink(done.url)} target="_blank" rel="noopener noreferrer">See it in the library's repository<Icon name="partsLink" size={12} /></a>}
         </div>
       ) : off ? (

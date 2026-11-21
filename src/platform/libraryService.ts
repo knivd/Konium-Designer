@@ -25,6 +25,9 @@ export function libraryService(): string {
   return /(^|\.)konium\.app$/.test(host) ? `${globalThis.location.origin}/api/library` : 'https://konium.app/api/library';
 }
 
+/** A part's public page in the library: the site's /parts/<its key>. */
+export const partPageUrl = (key: string): string => libraryService().replace(/\/api\/library$/, `/parts/${key}`);
+
 export interface LibraryConfig { ready: boolean; signIn: boolean; repo: string; web: string; licence: string; publishPerDay: number; parts: number }
 export interface LibraryUser { id: string; name: string; email: string }
 export interface LibrarySession { token: string; until: number; user: LibraryUser }

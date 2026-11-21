@@ -32,12 +32,12 @@ import { EXAMPLE_PART, examplePart } from '../../model/partExample';
 import { keepPart, removePart, shelf, shelfPart } from '../partShelf';
 import { webLink } from '../../core/webLink';
 import { mayConnect } from '../../platform/network';
-import { findInLibrary, type FoundPart } from '../../platform/libraryService';
+import { findInLibrary, partPageUrl, type FoundPart } from '../../platform/libraryService';
 import { CompanyLibraryDialog } from '../dialogs/CompanyLibrary';
 import { ReviewPartDialog } from '../dialogs/ReviewPart';
 import { LICENCE_NAME, STATUS_NAMES, standingText, type LibraryEntry } from '../../model/worldLibrary';
 import { PublishPartDialog } from '../dialogs/PublishPart';
-import { companyDomain, findAnywhere, keepFound, librarySession, refreshNote } from '../worldLibrary';
+import { companyDomain, findAnywhere, keepFound, librarySession, partAsked, refreshNote } from '../worldLibrary';
 
 const FROM: Record<PartPackage['record']['package']['from'], string> = { datasheet: 'the datasheet\'s land pattern', ipc: 'pads by IPC-7351B', drawn: 'drawn by hand' };
 const pages = (n: number[]) => (n.length ? `page${n.length > 1 ? 's' : ''} ${n.join(', ')}` : '');
@@ -86,6 +86,11 @@ export function StatusChip({ entry }: { entry: LibraryEntry }) {
 /** What has been found wrong with a part, as lines of its checks. */
 const Problems = ({ entry }: { entry: LibraryEntry | null }) => <>{(entry?.problems ?? []).map((w) => <li key={`p${w.by}`} class="pm-warn"><Icon name="warn" size={14} /><span>Said to be wrong: {w.note} ({w.name || w.by})</span></li>)}</>;
 
+/** A part's public page in the library: what anyone sees of it, in or out of the program. */
+const PageLink = ({ entry }: { entry: LibraryEntry }) => (
+  <a class="parts-link parts-page" href={partPageUrl(entry.key)} target="_blank" rel="noopener noreferrer" title="Its page in the world library, as anyone sees it: what it is, its pins, where it stands">Its page in the library<Icon name="partsLink" size={12} /></a>
+);
+
 /** A look in the world library for the number typed: under way, nothing there, found, or refused. */
 type Look = { key: string } & ({ state: 'busy' } | { state: 'none' } | { state: 'found'; found: FoundPart } | { state: 'error'; text: string });
 
@@ -105,6 +110,19 @@ export function PartsPanel() {
   const me = librarySession.value?.user.id ?? '';
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
+  // A number the app was opened with (a part's public page): typed here, and the part opened if the
+  // shelf has it (the shelf is read from this browser's store a moment after the panel is up)
+  const asked = partAsked.value;
+  const [wanted, setWanted] = useState('');
+  useEffect(() => {
+    if (!asked) return;
+    setTyped(asked); setOpen(null); setWanted(partKey(asked));
+    partAsked.value = '';
+  }, [asked]);
+  useEffect(() => {
+    const p = wanted ? parts.find((x) => partKey(x.record.mpn) === wanted) : undefined;
+    if (p) { setOpen(p.record.mpn); setWanted(''); }
+  }, [wanted, parts]);
 
   // The shelf as the field narrows it: by part number first, then by maker, package and description
   const key = partKey(typed), words = typed.trim().toLowerCase();
@@ -185,7 +203,7 @@ export function PartsPanel() {
       <div class="parts-search">
         <Icon name="partsSearch" />
         <input ref={field} type="text" aria-label="Part number" placeholder="Exact part number" value={typed} spellcheck={false} autocomplete="off"
-          onInput={(e) => setTyped((e.target as HTMLInputElement).value)}
+          onInput={(e) => { setTyped((e.target as HTMLInputElement).value); setWanted(''); }}
           onKeyDown={(e) => { if (e.key === 'Enter' && shown[0] && words) setOpen(shown[0].record.mpn); if (e.key === 'Escape' && typed) { e.stopPropagation(); setTyped(''); } }} />
         {typed && <button type="button" class="ex-icon-btn" aria-label="Clear" title="Clear" onClick={() => { setTyped(''); field.current?.focus(); }}><Icon name="close" size={12} /></button>}
       </div>
@@ -218,7 +236,8 @@ export function PartsPanel() {
           <dl class="parts-facts">
             <dt>Maker</dt><dd>{found.part.record.maker || 'not said'}</dd>
             <dt>Package</dt><dd>{found.part.record.package.name}<span class="parts-sub">{found.part.record.pins.length} pins · {FROM[found.part.record.package.from]}</span></dd>
-            <dt>Library</dt><dd>{later === found ? `Revision ${found.entry.revision}, later than yours` : whereOf(found.entry)}<span class="parts-sub">{noteOf(found.entry)}{found.entry.org ? '' : ` · ${standingText(found.entry)}`}</span></dd>
+            <dt>Library</dt><dd>{later === found ? `Revision ${found.entry.revision}, later than yours` : whereOf(found.entry)}<span class="parts-sub">{noteOf(found.entry)}{found.entry.org ? '' : ` · ${standingText(found.entry)}`}</span>
+              {!found.entry.org && <PageLink entry={found.entry} />}</dd>
           </dl>
           <ul class="parts-checks">
             {found.checks.map((c, i) => <li key={i} class={`pm-${c.level}`}><Icon name={c.level === 'note' ? 'partsOk' : 'warn'} size={14} /><span>{c.text}</span></li>)}
@@ -299,7 +318,8 @@ export function PartsPanel() {
             <dt>Library</dt>
             <dd>{lib ? <span class="parts-inline">{whereOf(lib)}<StatusChip entry={lib} /></span> : 'On your shelf only'}
               <span class="parts-sub">{lib ? `${noteOf(lib)}${lib.org ? '' : ` · ${standingText(lib)}`}` : 'not published'}</span>
-              {lib && <span class="parts-sub">{lib.org ? 'its members\' only: given to nobody else' : `given to the public domain (${LICENCE_NAME})`}</span>}</dd>
+              {lib && <span class="parts-sub">{lib.org ? 'its members\' only: given to nobody else' : `given to the public domain (${LICENCE_NAME})`}</span>}
+              {lib && !lib.org && <PageLink entry={lib} />}</dd>
           </dl>
           <ul class="parts-checks">
             {(checksOf.get(sel) ?? []).map((c, i) => <li key={i} class={`pm-${c.level}`}><Icon name={c.level === 'note' ? 'partsOk' : 'warn'} size={14} /><span>{c.text}</span></li>)}

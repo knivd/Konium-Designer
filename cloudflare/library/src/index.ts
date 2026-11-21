@@ -4,8 +4,8 @@
  * and one Durable Object for each company that has a library of its own (org.ts).
  */
 import { DurableObject } from 'cloudflare:workers';
-import { handle, type LibraryEnv } from './handler';
-import { LibraryStoreLogic, type Contributor, type Indexed, type SignIn, type Taken } from './store';
+import { handle, isPagePath, type LibraryEnv } from './handler';
+import { LibraryStoreLogic, type Contributor, type Indexed, type Listed, type SignIn, type Taken } from './store';
 import { OrgStoreLogic, type OrgFile, type OrgStored } from './org';
 import type { OrgRole } from '../../../src/model/worldLibrary';
 
@@ -52,14 +52,25 @@ export class Store extends DurableObject {
   part(key: string): Indexed | null { return this.logic.part(key); }
   keepPart(p: Indexed): void { this.logic.keepPart(p); }
   partCount(): number { return this.logic.partCount(); }
+  latest(limit: number): Listed[] { return this.logic.latest(limit); }
   prune(beforePeriod: string, now: number): void { this.logic.prune(beforePeriod, now); }
 }
 
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const store = env.STORE.get(env.STORE.idFromName('library'));
     try {
-      return await handle(req, env, store, fetch, Date.now(), (domain) => env.ORGS.get(env.ORGS.idFromName(domain)));
+      // A public page asked for again within a few minutes is answered from Cloudflare's cache at
+      // that place: no count, no store, no repository. It is kept by its path alone, so that a
+      // query added to an address is no way round the cache.
+      const url = new URL(req.url);
+      const kept = req.method === 'GET' && isPagePath(url.pathname) ? (caches as unknown as { default: Cache }).default : null;
+      const as = kept ? new Request(`${url.origin}${url.pathname}`) : null;
+      const hit = kept && as ? await kept.match(as) : undefined;
+      if (hit) return hit;
+      const res = await handle(req, env, store, fetch, Date.now(), (domain) => env.ORGS.get(env.ORGS.idFromName(domain)));
+      if (kept && as && res.status === 200) ctx.waitUntil(kept.put(as, res.clone()));
+      return res;
     } catch (e) {
       console.log(`library: ${(e as Error)?.stack ?? e}`);
       return new Response(JSON.stringify({ error: 'The parts library had a problem: try again shortly' }), {

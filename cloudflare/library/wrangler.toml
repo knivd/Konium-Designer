@@ -5,7 +5,12 @@ name = "konium-library"
 main = "src/index.ts"
 compatibility_date = "2025-09-01"
 
-routes = [{ pattern = "konium.app/api/library/*", zone_name = "konium.app" }]
+# The service itself, and the library's public pages (one for each part, their list and their sitemap)
+routes = [
+  { pattern = "konium.app/api/library/*", zone_name = "konium.app" },
+  { pattern = "konium.app/parts", zone_name = "konium.app" },
+  { pattern = "konium.app/parts/*", zone_name = "konium.app" },
+]
 
 # One Durable Object (SQLite) for the counts, the sign-ins under way, the contributors and the parts' index
 [[durable_objects.bindings]]
@@ -43,6 +48,8 @@ FETCH_PER_DAY = "500"
 SIGNIN_PER_HOUR = "5"
 PUBLISH_PER_DAY = "20"
 CHECK_PER_DAY = "40"
+# Public pages made a day for one visitor (a page asked for again within five minutes is not made again)
+PAGE_PER_DAY = "2000"
 # Company libraries: the domains that may have one ("*" for any; "" for none), how many parts each holds, how old a sign-in may be
 ORG_DOMAINS = ""
 ORG_PARTS = "200"

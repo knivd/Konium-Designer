@@ -7532,7 +7532,7 @@ with sync_playwright() as p:
     go.click()
     pub.locator(".pub-done").wait_for(timeout=10000)
     done = pub.locator(".pub-done").inner_text()
-    link = pub.locator(".pub-done a").get_attribute("href")
+    link = pub.locator(".pub-done a", has_text="repository").get_attribute("href")
     shot(pg, "201-published.png")
     sent = lib["sent"]
     check(f"…signing in: a link is asked for the address typed ('{lib['mail']}'), the window waits ('{waiting[:60]}…') and carries on once it is confirmed ('{who}'); Publish then waits for the agreement ('{still}'), and with it sends the two libraries and then the record ({lib['calls'][n_before:]}), signed, with the licence ({sent.get('licence')}), the name to show ({sent.get('name')}) and nothing but a record's fields ({sorted(sent.get('record', {}).keys())}); '{done.splitlines()[0]}'",
@@ -7908,6 +7908,63 @@ with sync_playwright() as p:
           len(lrc) == 3 and all(p[2] == "american" for p in lrc) and len(docs3) == 4 and docs3[:2] == docs2 and docs3[3] == "Sheet2.SchDoc"
           and "European style from here on" in toast2 and item is not None and item["red"] == "rgb(163, 22, 26)" and item["other"] != item["red"]
           and item["labels"][:3] == ["Mixed Sim", "Live Simulation", "New Live Simulation Circuit"] and dark == "rgb(255, 138, 128)")
+    c.close()
+
+    # 26.206 (R21, step 5, planned): a part's public page and the app. Opened as a page's "Open in Konium Designer" opens it
+    # (konium.app/app/?part=<its number>), the app has Tools › Parts in front with the number typed and has asked the library nothing;
+    # a part of the library links its page from the Publish window once it is in, and from its card on the shelf
+    c, pg = site_page("26.206-page")
+    lib.update({"parts": {}, "blobs": {}, "calls": [], "auth": [], "sent": {}, "said": {}, "mail": "", "n": 1})
+    LIB_USER.update({"id": "k-0123abcd", "name": "", "email": "ada@example.org"})
+    pg.route("https://konium.app/api/library/**", lib_route)
+    pg.goto(URL + "&part=kd-ex1833-so8"); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(1500)
+    pg.evaluate("window.konium.prefs.set({ openHomePage: false })")
+    pp = pg.locator(".parts-panel")
+    pp.wait_for(timeout=10000)
+    field = pp.locator("input[aria-label='Part number']")
+    typed0 = field.input_value()
+    callout = pp.locator(".parts-callout").inner_text()
+    asked0 = list(lib["calls"])
+    shot(pg, "206-asked.png")
+    check(f"A part's page and the app (26.206): opened with ?part=, Tools › Parts is in front with the number typed ('{typed0}'), the call-out offers the look-up ('{callout.splitlines()[0]}'), and the library has been asked nothing ({asked0})",
+          typed0 == "kd-ex1833-so8" and "is not on your shelf" in callout and "Look in the World Library" in callout and asked0 == [])
+    # The example part published (as in 26.201): the window's last word links its page, and so does its card on the shelf
+    field.fill(""); pg.wait_for_timeout(200)
+    pp.locator(".btn", has_text="Add the Example Part").click(); pg.wait_for_timeout(900)
+    page0 = pp.locator(".parts-card .parts-page").count()
+    pp.get_by_role("button", name="Publish to the World Library").click()
+    pub = pg.locator(".dlg.pubpart")
+    pub.locator("#pub-email").wait_for(timeout=10000)
+    pub.locator("#pub-email").fill("ada@example.org"); pub.locator(".btn", has_text="Send the Link").click()
+    pub.locator(".pub-who").wait_for(timeout=10000)
+    pub.locator("#pub-name").fill("Ada L."); pub.locator(".pub-agree input").check()
+    pub.locator(".dlg-foot .btn", has_text="Publish").click()
+    pub.locator(".pub-done").wait_for(timeout=10000)
+    done_links = pub.locator(".pub-done a").evaluate_all("(els) => els.map((a) => [a.textContent, a.href, a.target, a.rel])")
+    shot(pg, "206-done.png")
+    pub.locator(".dlg-foot .btn", has_text="Close").click(); pg.wait_for_timeout(300)
+    link = pp.locator(".parts-card .parts-page")
+    card_link = [link.inner_text(), link.get_attribute("href"), link.get_attribute("target"), link.get_attribute("rel")]
+    box_l, box_s = link.bounding_box(), pp.locator(".parts-card .parts-facts dd").last.locator(".parts-sub").last.bounding_box()
+    shot(pg, "206-card.png")
+    check(f"…a part that is only on the shelf has no page to link ({page0}); published, the window links its page first and its files second ({[d[0] for d in done_links]}), and its card links the page under what the library says of it ({card_link})",
+          page0 == 0 and [d[:2] for d in done_links][0] == ["Its page in the library", "https://konium.app/parts/KDEX1833SO8"] and done_links[0][2:] == ["_blank", "noopener noreferrer"] and len(done_links) == 2
+          and card_link == ["Its page in the library", "https://konium.app/parts/KDEX1833SO8", "_blank", "noopener noreferrer"] and abs(box_l["x"] - box_s["x"]) < 1.5 and box_l["y"] > box_s["y"])
+    # Opened again from the page, with the part on the shelf by now: it is the one open, and still nothing is asked
+    asked1 = len(lib["calls"])
+    pg.goto(URL + "&part=KD-EX1833-SO8"); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(1500)
+    pp.wait_for(timeout=10000)
+    typed1 = field.input_value()
+    open1 = pp.locator(".parts-card .parts-card-head b").inner_text()
+    rows1 = pp.locator(".parts-row").count()
+    pg.evaluate("window.konium.prefs.set({ theme: 'dark' })"); pg.wait_for_timeout(400)
+    shot(pg, "206-dark.png")
+    pg.evaluate("window.konium.prefs.set({ theme: 'light' })"); pg.wait_for_timeout(200)
+    # (and without the planned features on, the number in the address does nothing)
+    pg.goto(URL.replace("&features=all", "") + "&part=KD-EX1833-SO8"); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(1500)
+    released = pg.locator(".parts-panel input[aria-label='Part number']").count()
+    check(f"…opened from the page again with the part on the shelf, the number is typed ('{typed1}'), the shelf is narrowed to it ({rows1}) and it is the part open ('{open1}'), with nothing asked of the library ({len(lib['calls']) - asked1}); in the release as it stands the number does nothing ({released})",
+          typed1 == "KD-EX1833-SO8" and open1 == "KD-EX1833-SO8" and rows1 == 1 and len(lib["calls"]) == asked1 and released == 0)
     c.close()
     b.close()
 

@@ -18,6 +18,20 @@ import { featureOn } from '../core/release';
 
 /** The sign-in kept in this browser (null: none). */
 export const librarySession = signal<LibrarySession | null>(keptSession());
+
+/**
+ * A part number the app was opened with (konium.app/app/?part=..., where a part's public page
+ * leads): typed into Tools › Parts for whoever opened it. Nothing is asked of the library by
+ * that: the look-up is still a press.
+ */
+export const partAsked = signal('');
+/** The number in an address's query, as a part number may be ('' for none). */
+export function askedPart(search: string): string {
+  let v = '';
+  try { v = new URLSearchParams(search).get('part') ?? ''; } catch { /* none */ }
+  v = v.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, ' ').trim().slice(0, 80);
+  return partKey(v).length >= 3 ? v : '';
+}
 /** After a request: what is kept now (a pass the service refused has been forgotten). */
 export const syncSession = (): LibrarySession | null => (librarySession.value = keptSession());
 export function leaveLibrary(): void { signOut(); librarySession.value = null; companyRole.value = null; }

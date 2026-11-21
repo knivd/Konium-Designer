@@ -315,7 +315,7 @@ What is settled:
 
 Decided on 20 Nov: public contributions are given to the public domain (CC0 1.0); contributing needs a sign-in by a link sent to an email address (fetching needs none); the library lives in a public Git repository, read and written through a Worker.
 
-Open still: a public web page for each part; package families (one footprint for many part numbers); the distributors' terms for showing their data beside a part.
+Not built: package families (one footprint for many part numbers); distributors' data shown beside a part; a drawing of the symbol and the footprint on a part's public page.
 
 The steps:
 
@@ -355,6 +355,15 @@ Step 4 as built (26.204): company libraries.
 - In the app: Company Library in Tools › Parts; the company's library beside the world's in Publish; looked in first; a Company chip on its parts.
 - Stated limit: a part placed in a design stays in that design.
 - tests/library204.test.ts (7); smoke section 26.204.
+
+Step 5 as built (26.206): a public page for each part.
+
+- `konium.app/parts/<key>`, written by the library's Worker on request from the library's own files (so a part's standing on its page is the standing of that minute); `konium.app/parts` lists the latest; `konium.app/parts/sitemap.xml` for search engines.
+- A page says what the part is, its pins, where it stands and who said what, who published it, that it is public domain, and leads to the app (`/app/?part=<number>`) and to the files.
+- Everything on a page is text; no script; a company's part has no page; pages are counted for each visitor, cached five minutes, and the repository is asked about unknown parts within an hourly lot.
+- In the app: `?part=` types the number in Tools › Parts and asks nothing; a part of the library links its page.
+- Left for later: a drawing of the symbol and footprint on the page. To do when the library opens: the parts' sitemap in robots.txt, the guide, the website.
+- tests/library206.test.ts (13); smoke section 26.206.
 
 ### The open-source release (26.200)
 
