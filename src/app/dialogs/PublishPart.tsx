@@ -12,27 +12,24 @@ import { Dialog } from '../Dialog';
 import { closeDialog } from './index';
 import { Icon } from '../icons';
 import { notify } from '../state';
-import { EmptyState, Tool } from '../panels/kv';
+import { EmptyState } from '../panels/kv';
+import { LibrarySignIn, SignOutTool } from './LibrarySignIn';
 import { webLink } from '../../core/webLink';
 import { OFFLINE_NOTE, mayConnect } from '../../platform/network';
-import { LibraryError, askSignIn, libraryConfig, publishProblems, sessionFor, whoAmI, type LibraryConfig, type Published } from '../../platform/libraryService';
-import { LICENCE_NAME, LICENCE_URL, STATUS_NAMES, cleanRecord, mailAddress, shownName } from '../../model/worldLibrary';
+import { LibraryError, libraryConfig, publishProblems, whoAmI, type LibraryConfig, type Published } from '../../platform/libraryService';
+import { LICENCE_NAME, LICENCE_URL, STATUS_NAMES, cleanRecord, shownName } from '../../model/worldLibrary';
 import type { PartPackage } from '../../model/partPackage';
-import { leaveLibrary, librarySession, publishFromShelf, syncSession } from '../worldLibrary';
+import { librarySession, publishFromShelf, syncSession } from '../worldLibrary';
 
 const size = (n: number) => (n < 1024 ? `${n} bytes` : `${(n / 1024).toFixed(n < 10 * 1024 ? 1 : 0)} KB`);
-/** How often the window asks whether the mailed link has been confirmed. */
-export const WAIT_MS = 3000;
 
 export function PublishPartDialog({ part }: { part: PartPackage }) {
   const r = part.record;
   const session = librarySession.value;
   const [config, setConfig] = useState<LibraryConfig | null | 'asking'>('asking');
-  const [email, setEmail] = useState('');
-  const [waiting, setWaiting] = useState<{ ticket: string; to: string; minutes: number } | null>(null);
   const [name, setName] = useState(session?.user.name ?? '');
   const [agreed, setAgreed] = useState(false);
-  const [busy, setBusy] = useState<'' | 'mail' | 'publish'>('');
+  const [busy, setBusy] = useState<'' | 'publish'>('');
   const [error, setError] = useState<{ text: string; list: string[] } | null>(null);
   const [done, setDone] = useState<Published | null>(null);
   const alive = useRef(true);
@@ -52,36 +49,6 @@ export function PublishPartDialog({ part }: { part: PartPackage }) {
     return () => { alive.current = false; };
   }, []);
 
-  // While a link is out: ask every few seconds whether it has been confirmed, until it has, it runs out, or the window closes
-  useEffect(() => {
-    if (!waiting) return undefined;
-    const until = Date.now() + waiting.minutes * 60_000;
-    let timer = 0;
-    const look = async () => {
-      if (!alive.current) return;
-      try {
-        const s = await sessionFor(waiting.ticket);
-        if (!alive.current) return;
-        if (s !== 'pending') { syncSession(); setWaiting(null); setName((n) => n || s.user.name); setError(null); return; }
-        if (Date.now() > until) { setWaiting(null); setError({ text: 'That sign-in link ran out: ask for a new one', list: [] }); return; }
-      } catch (e) {
-        if (!alive.current) return;
-        // (a moment without a connection is waited through; the service's own refusal ends the wait)
-        if (e instanceof LibraryError && e.status >= 400 && e.status < 500) { setWaiting(null); fail(e); return; }
-      }
-      timer = window.setTimeout(() => void look(), WAIT_MS);
-    };
-    timer = window.setTimeout(() => void look(), WAIT_MS);
-    return () => window.clearTimeout(timer);
-  }, [waiting]);
-
-  const sendLink = async () => {
-    const to = mailAddress(email);
-    if (!to) { setError({ text: 'Your email address is needed, to send you the sign-in link.', list: [] }); return; }
-    setBusy('mail'); setError(null);
-    try { const t = await askSignIn(to); if (alive.current) setWaiting({ ticket: t.ticket, to, minutes: t.minutes }); } catch (e) { if (alive.current) fail(e); }
-    if (alive.current) setBusy('');
-  };
   const publish = async () => {
     setBusy('publish'); setError(null);
     try {
@@ -145,28 +112,10 @@ export function PublishPartDialog({ part }: { part: PartPackage }) {
         </>)}
 
         <div class="kv-head"><h4>Who publishes</h4>
-          {session && <span class="kv-tools"><Tool icon="partsSignOut" label="Sign Out" title="Sign out: this browser forgets the sign-in" disabled={!!busy} onClick={() => { leaveLibrary(); setError(null); }} /></span>}
+          <span class="kv-tools"><SignOutTool disabled={!!busy} onOut={() => setError(null)} /></span>
         </div>
         <div class="pub-form">
-          {session ? (<>
-            <label>Signed in</label>
-            <div class="pub-who"><Icon name="partsUser" /><span class="parts-row-text"><b>{session.user.email || session.user.id}</b><span>contributor {session.user.id}</span></span></div>
-          </>) : waiting ? (<>
-            <label>Sign in</label>
-            <div class="pub-wait" role="status">
-              <span class="pub-spin" />
-              <span>A link is on its way to <b>{waiting.to}</b>. Open it and confirm within {waiting.minutes} minutes: this window carries on by itself.</span>
-              <Tool icon="close" label="Use Another Address" onClick={() => setWaiting(null)} />
-            </div>
-          </>) : (<>
-            <label for="pub-email">Your email</label>
-            <div class="pub-mail">
-              <input id="pub-email" type="email" autofocus value={email} maxLength={254} placeholder="for the sign-in link" disabled={!config.signIn || busy === 'mail'}
-                onInput={(e) => { setEmail((e.target as HTMLInputElement).value); if (error) setError(null); }}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); void sendLink(); } }} />
-              <button type="button" class="btn" disabled={!config.signIn || busy === 'mail' || !email.trim()} onClick={() => void sendLink()}><Icon name="partsMail" />{busy === 'mail' ? 'Sending...' : 'Send the Link'}</button>
-            </div>
-          </>)}
+          <LibrarySignIn canMail={config.signIn} onError={(e) => (e ? fail(e) : setError(null))} onSession={(u) => setName((n) => n || u.user.name)} />
           <label for="pub-name">Shown as</label>
           <input id="pub-name" type="text" value={name} maxLength={40} placeholder={session ? `your number, ${session.user.id}` : 'your contributor number'} onInput={(e) => setName((e.target as HTMLInputElement).value)} />
         </div>

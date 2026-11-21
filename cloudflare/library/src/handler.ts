@@ -28,8 +28,8 @@
  */
 import { partKey } from '../../../src/model/partKey';
 import {
-  ENTRY_FILE, FOOTPRINT_FILE, KEY_FORMAT, LIBRARY_FILES, LIBRARY_LICENCE, MAX_FOOTPRINT, MAX_RECORD, MAX_SYMBOL, RECORD_FILE, SYMBOL_FILE,
-  cleanRecord, forMessage, mailAddress, partFolder, readEntry, recordProblems, shownName, type LibraryEntry, type LibraryFile,
+  ENTRY_FILE, FOOTPRINT_FILE, KEY_FORMAT, LIBRARY_FILES, LIBRARY_LICENCE, MAX_FOOTPRINT, MAX_NOTE, MAX_RECORD, MAX_SYMBOL, MIN_NOTE, RECORD_FILE, STATUS_NAMES, SYMBOL_FILE, VERDICTS, WORDS_OF,
+  cleanRecord, forMessage, mailAddress, oneLine, partFolder, readEntry, recordProblems, shownName, standing, standingText, type LibraryEntry, type LibraryFile,
 } from '../../../src/model/worldLibrary';
 import type { Contributor, Indexed, SignIn, Taken } from './store';
 import { limitKey } from '../../limitKey';
@@ -56,6 +56,8 @@ export interface LibraryEnv {
   FETCH_PER_DAY?: string;
   SIGNIN_PER_HOUR?: string;
   PUBLISH_PER_DAY?: string;
+  /** How many words about parts (checks, builds, problems) one contributor may send in a day. */
+  CHECK_PER_DAY?: string;
 }
 
 /** The Durable Object's methods (LibraryStoreLogic's), called over RPC. */
@@ -77,7 +79,7 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods
 const reply = (body: object, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 const int = (v: string | undefined, d: number) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n >= 0 && v !== undefined && v !== '' ? n : d; };
 
-export const limits = (env: LibraryEnv) => ({ fetch: int(env.FETCH_PER_DAY, 500), signin: int(env.SIGNIN_PER_HOUR, 5), publish: int(env.PUBLISH_PER_DAY, 20) });
+export const limits = (env: LibraryEnv) => ({ fetch: int(env.FETCH_PER_DAY, 500), signin: int(env.SIGNIN_PER_HOUR, 5), publish: int(env.PUBLISH_PER_DAY, 20), check: int(env.CHECK_PER_DAY, 40) });
 /** A sign-in link's life, a session's, and a blob pass's. */
 export const SIGNIN_MS = 15 * 60_000, SESSION_MS = 90 * 86_400_000, PASS_MS = 30 * 60_000;
 /**
@@ -169,8 +171,18 @@ async function fromRepo(env: LibraryEnv, fetchFn: typeof fetch, key: string): Pr
   try { const e = readEntry(await res.json()); return e && e.key === key ? e : null; } catch { return null; }
 }
 
-/** A part's four files as one commit on the branch; tried again when another commit came between. */
-async function commitPart(env: LibraryEnv, fetchFn: typeof fetch, o: { folder: string; record: string; entry: string; symbol: string; footprint: string; message: string; author: { name: string; email: string; date: string } }): Promise<string> {
+/** The library's note as the store keeps it, and back: what is said of the part travels as text beside the note's own fields. */
+const said = (e: LibraryEntry): string => (e.checked || e.built || e.problems ? JSON.stringify({ checked: e.checked, built: e.built, problems: e.problems }) : '');
+const indexed = (e: LibraryEntry, commit: string, uid: string): Indexed => ({ key: e.key, mpn: e.mpn, status: e.status, by: e.by, name: e.name, published: e.published, revision: e.revision, licence: e.licence, app: e.app, commit, uid, more: said(e) });
+function entryOf(ix: Indexed): LibraryEntry {
+  let more: object = {};
+  try { more = ix.more ? JSON.parse(ix.more) as object : {}; } catch { /* kept as nothing */ }
+  const { commit: _c, uid: _u, more: _m, ...plain } = ix;
+  return readEntry({ ...plain, ...more }) ?? (plain as unknown as LibraryEntry);
+}
+
+/** A part's files (all four, or its note alone) as one commit on the branch; tried again when another commit came between. */
+async function commitPart(env: LibraryEnv, fetchFn: typeof fetch, o: { folder: string; record?: string; entry: string; symbol?: string; footprint?: string; message: string; author: { name: string; email: string; date: string } }): Promise<string> {
   const branch = branchOf(env);
   for (let attempt = 0; attempt < 3; attempt++) {
     const head = String((((await ghJson(env, fetchFn, 'GET', `/git/ref/heads/${branch}`)).object ?? {}) as { sha?: string }).sha ?? '');
@@ -178,7 +190,8 @@ async function commitPart(env: LibraryEnv, fetchFn: typeof fetch, o: { folder: s
     const file = (name: string, what: { content: string } | { sha: string }) => ({ path: `${o.folder}/${name}`, mode: '100644', type: 'blob', ...what });
     const tree = await ghJson(env, fetchFn, 'POST', '/git/trees', {
       base_tree: base,
-      tree: [file(RECORD_FILE, { content: o.record }), file(ENTRY_FILE, { content: o.entry }), file(SYMBOL_FILE, { sha: o.symbol }), file(FOOTPRINT_FILE, { sha: o.footprint })],
+      tree: [...(o.record === undefined ? [] : [file(RECORD_FILE, { content: o.record })]), file(ENTRY_FILE, { content: o.entry }),
+        ...(o.symbol === undefined ? [] : [file(SYMBOL_FILE, { sha: o.symbol })]), ...(o.footprint === undefined ? [] : [file(FOOTPRINT_FILE, { sha: o.footprint })])],
     });
     const commit = String((await ghJson(env, fetchFn, 'POST', '/git/commits', { message: o.message, tree: tree.sha, parents: [head], author: o.author })).sha ?? '');
     const moved = await gh(env, fetchFn, 'PATCH', `/git/refs/heads/${branch}`, JSON.stringify({ sha: commit, force: false }));
@@ -248,10 +261,10 @@ export async function handle(req: Request, env: LibraryEnv, store: LibraryStoreA
     const client = await clientOf(req, env);
     if (!(await store.take(day, client, 'fetch', lim.fetch)).ok) return reply({ error: `That's today's ${lim.fetch} look-ups in the parts library from here: the count starts again tomorrow (UTC)` }, 429);
     const known = await store.part(key);
-    if (known) { const { commit, uid: _uid, ...entry } = known; return reply({ found: true, entry, commit }); }
+    if (known) return reply({ found: true, entry: entryOf(known), commit: known.commit });
     const entry = await fromRepo(env, fetchFn, key);
     if (!entry) return reply({ found: false });
-    await store.keepPart({ ...entry, commit: '', uid: '' });
+    await store.keepPart(indexed(entry, '', ''));
     return reply({ found: true, entry, commit: '' });
   }
 
@@ -322,7 +335,7 @@ export async function handle(req: Request, env: LibraryEnv, store: LibraryStoreA
   }
 
   /* Signed in from here on */
-  const mine = path === '/me' || path === '/blob' || path === '/publish';
+  const mine = path === '/me' || path === '/blob' || path === '/publish' || path === '/check';
   if (!mine) return reply({ error: 'Not here' }, 404);
   const uid = await signedIn(req, env, now);
   if (!uid) return reply({ error: 'Sign in to the parts library first' }, 401);
@@ -365,10 +378,9 @@ export async function handle(req: Request, env: LibraryEnv, store: LibraryStoreA
     const symbol = await passGood(env, uid, 'symbol', body.symbol, now), footprint = await passGood(env, uid, 'footprint', body.footprint, now);
     if (!symbol || !footprint) return reply({ error: 'The symbol and the footprint must be sent again: their passes ran out' }, 400);
     const record = cleanRecord(body.record), key = partKey(record.mpn);
-    const had = (await store.part(key)) ?? (await fromRepo(env, fetchFn, key).then((e) => (e ? { ...e, commit: '', uid: '' } : null)));
+    const had = (await store.part(key)) ?? (await fromRepo(env, fetchFn, key).then((e) => (e ? indexed(e, '', '') : null)));
     if (had && (had.uid !== uid || had.status !== 'unverified')) {
-      const { commit: _c, uid: _u, ...entry } = had;
-      return reply({ error: `${had.mpn} is in the parts library already${had.by ? `, published by ${had.name || had.by}` : ''}`, entry }, 409);
+      return reply({ error: `${had.mpn} is in the parts library already${had.by ? `, published by ${had.name || had.by}` : ''}`, entry: entryOf(had) }, 409);
     }
     if (!(await store.take(day, uid, 'publish', lim.publish)).ok) return reply({ error: `That's today's ${lim.publish} parts published: the count starts again tomorrow (UTC)` }, 429);
     const who = await store.contributor(uid);
@@ -390,9 +402,59 @@ export async function handle(req: Request, env: LibraryEnv, store: LibraryStoreA
       console.log(`library: publish: ${(e as Error).message}`);
       return reply({ error: 'The repository didn\'t take the part: try again shortly' }, 502);
     }
-    await store.keepPart({ ...entry, commit, uid });
+    await store.keepPart(indexed(entry, commit, uid));
     await store.keepContributor(uid, who?.email ?? '', name, now);
     return reply({ ok: true, entry, commit, url: `https://github.com/${repo}/tree/${branchOf(env)}/${folder}` });
+  }
+
+  /* Approval (step 3): what somebody else says of a part. It is right; a board with it works; something is wrong with it */
+  if (req.method === 'POST' && path === '/check') {
+    const body = await jsonUpTo<{ key?: unknown; revision?: unknown; verdict?: unknown; note?: unknown; name?: unknown }>(req, SMALL);
+    if (body === 'long' || body === 'bad' || !body || typeof body !== 'object') return reply({ error: 'Not a word about a part' }, 400);
+    const key = typeof body.key === 'string' ? body.key : '', verdict = VERDICTS.find((v) => v === body.verdict);
+    if (!KEY_FORMAT.test(key) || !verdict || !Number.isInteger(body.revision)) return reply({ error: 'Not a word about a part' }, 400);
+    const had = (await store.part(key)) ?? (await fromRepo(env, fetchFn, key).then((e) => (e ? indexed(e, '', '') : null)));
+    if (!had) return reply({ error: 'That part isn\'t in the parts library' }, 404);
+    const entry = entryOf(had), me = byOf(uid);
+    if (entry.revision !== body.revision) return reply({ error: `${entry.mpn} is at revision ${entry.revision} in the parts library now: look it up again`, entry }, 409);
+    // A part's own author has made their check already (it is what made the part Unverified), and puts a fault right by publishing again
+    if (verdict !== 'built' && (had.uid === uid || entry.by === me)) {
+      return reply({ error: verdict === 'confirm' ? 'A confirmation is somebody else\'s check: this part is your own' : 'This part is your own: publish it again with the fault put right', entry }, 403);
+    }
+    const note = verdict === 'problem' && typeof body.note === 'string' ? oneLine(body.note).slice(0, MAX_NOTE) : '';
+    if (verdict === 'problem' && note.length < MIN_NOTE) return reply({ error: 'Say what is wrong with it, in a line' }, 400);
+    const list = WORDS_OF[verdict], before = entry[list] ?? [];
+    // (said already, and nothing new to add: the note stays as it is and nothing is committed)
+    if (verdict !== 'problem' && before.some((w) => w.by === me)) return reply({ ok: true, entry, commit: had.commit });
+    if (!(await store.take(day, uid, 'check', lim.check)).ok) return reply({ error: `That's today's ${lim.check} checks sent: the count starts again tomorrow (UTC)` }, 429);
+    const who = await store.contributor(uid);
+    // (the name to show: as given with this word, else the one chosen before)
+    const shown = body.name === undefined ? (who?.name ?? '') : shownName(body.name);
+    const word = { by: me, name: shown, at: stamp, ...(note ? { note } : {}) };
+    const others = (l: 'checked' | 'built' | 'problems') => (entry[l] ?? []).filter((w) => w.by !== me);
+    // One word of each kind from each contributor; whoever finds it right no longer finds it wrong, and the other way round
+    const next = readEntry({
+      ...entry, built: list === 'built' ? [...others('built'), word] : entry.built,
+      checked: list === 'checked' ? [...others('checked'), word] : list === 'problems' ? others('checked') : entry.checked,
+      problems: list === 'problems' ? [...others('problems'), word] : list === 'checked' ? others('problems') : entry.problems,
+    })!;
+    next.status = standing(next);
+    const folder = partFolder(key), name = STATUS_NAMES[next.status];
+    const what = verdict === 'confirm' ? `Checked: ${forMessage(entry.mpn)} (${standingText(next)}; ${name})` : verdict === 'built' ? `Built: ${forMessage(entry.mpn)} (${standingText(next)}; ${name})` : `Problem with ${forMessage(entry.mpn)} (${standingText(next)}; ${name})`;
+    let commit: string;
+    try {
+      commit = await commitPart(env, fetchFn, {
+        folder, entry: `${JSON.stringify(next, null, 1)}\n`,
+        message: `${what}\n\n${note ? `${forMessage(note)}\n\n` : ''}Revision ${entry.revision}, as said by ${forMessage(word.name) || me} in Konium Designer.\n`,
+        author: { name: forMessage(word.name) || me, email: `${me}@parts.konium.app`, date: stamp },
+      });
+    } catch (e) {
+      console.log(`library: check: ${(e as Error).message}`);
+      return reply({ error: 'The repository didn\'t take it: try again shortly' }, 502);
+    }
+    await store.keepPart(indexed(next, commit, had.uid));
+    await store.keepContributor(uid, who?.email ?? '', shown, now);
+    return reply({ ok: true, entry: next, commit });
   }
   return reply({ error: 'Not here' }, 404);
 }

@@ -10,7 +10,7 @@ import { sheetHierarchy, type HierNode } from '../model/schHierarchy';
 import { active, activeId, docs, notify, projects, replaceMessages, tick, type Project } from './state';
 import { showPanel } from './dock/store';
 import { openDocument } from './actions';
-import { compiled, type CompileResult } from './compiled';
+import { compileChecks, compiled, type CompileResult } from './compiled';
 import type { Editor } from '../editors/Editor';
 
 /**
@@ -123,7 +123,10 @@ export function cmdCompile(p: Project | null = activeProject(), only?: SheetInpu
       message: fatal ? `Compile halted: ${fatal} fatal error${fatal > 1 ? 's' : ''}`
         : `Compile successful, ${result.components.length} components, ${result.nets.length} nets, ${count((m) => m.level === 'error')} errors, ${count((m) => m.level === 'warn')} warnings` },
   ]);
-  if (result.messages.some((m) => m.level !== 'info')) showPanel('messages');
+  // What other parts of the program have to say of a design at a compile, each under its own name (see compileChecks)
+  let more = 0;
+  for (const [source, check] of compileChecks) { const rows = check(sheets); replaceMessages(source, rows); more += rows.length; }
+  if (result.messages.some((m) => m.level !== 'info') || more) showPanel('messages');
   // Errors & Warnings markers on the sheets
   for (const d of docs.value) d.editor?.invalidate();
   notify(`Compiled ${res.name}: ${result.messages.length ? `${result.messages.length} message${result.messages.length > 1 ? 's' : ''}` : 'no errors'}`);

@@ -16,7 +16,7 @@ import { readLocal, writeLocal } from '../core/storage';
 import { partChecks, partKey, readPartPieces, type PartCheck, type PartPackage } from '../model/partPackage';
 import {
   FOOTPRINT_FILE, KEY_FORMAT, LIBRARY_LICENCE, MAX_FOOTPRINT, MAX_RECORD, MAX_SYMBOL, RECORD_FILE, SYMBOL_FILE,
-  cleanRecord, mailAddress, oneLine, readEntry, recordProblems, shownName, type LibraryEntry, type LibraryFile,
+  MAX_NOTE, MIN_NOTE, cleanRecord, mailAddress, oneLine, readEntry, recordProblems, shownName, type LibraryEntry, type LibraryFile, type Verdict,
 } from '../model/worldLibrary';
 
 /** The service: this site's when Konium is served from konium.app, else konium.app's. */
@@ -107,13 +107,10 @@ async function bytesUpTo(res: Response, most: number, what: string): Promise<Uin
  * what its checks say here, or null when the library has none of that number.
  */
 export async function findInLibrary(mpn: string, f: typeof fetch = fetch): Promise<FoundPart | null> {
-  const key = partKey(mpn);
-  if (!KEY_FORMAT.test(key)) throw new LibraryError('A part number has three letters or digits at least');
-  const found = await answer<{ found?: unknown; entry?: unknown; commit?: unknown }>(await ask(f, `/part/${key}`, { headers: { Accept: 'application/json' } }));
-  if (found.found !== true) return null;
-  const entry = readEntry(found.entry);
-  if (!entry || entry.key !== key) throw new LibraryError('The library\'s note about that part can\'t be read');
-  const at = typeof found.commit === 'string' && /^[0-9a-f]{40}$/.test(found.commit) ? `?c=${found.commit}` : '';
+  const noted = await libraryNote(mpn, f);
+  if (!noted) return null;
+  const { entry, commit } = noted, key = entry.key;
+  const at = commit ? `?c=${commit}` : '';
   const file = async (name: LibraryFile, most: number, what: string) => {
     const res = await ask(f, `/part/${key}/${name}${at}`);
     if (!res.ok) throw new LibraryError(`The library's ${what} for ${entry.mpn} couldn't be fetched`, res.status);
@@ -126,6 +123,21 @@ export async function findInLibrary(mpn: string, f: typeof fetch = fetch): Promi
   // (the note is the library's to give: whatever the record itself said of one is replaced)
   part.record.library = entry;
   return { part, entry, checks: partChecks(part) };
+}
+
+/**
+ * The library's note about a part number, without the part: its standing, its revision, who has
+ * checked it and what has been found wrong. Null when the library has none of that number. The
+ * number is all that is sent.
+ */
+export async function libraryNote(mpn: string, f: typeof fetch = fetch): Promise<{ entry: LibraryEntry; commit: string } | null> {
+  const key = partKey(mpn);
+  if (!KEY_FORMAT.test(key)) throw new LibraryError('A part number has three letters or digits at least');
+  const found = await answer<{ found?: unknown; entry?: unknown; commit?: unknown }>(await ask(f, `/part/${key}`, { headers: { Accept: 'application/json' } }));
+  if (found.found !== true) return null;
+  const entry = readEntry(found.entry);
+  if (!entry || entry.key !== key) throw new LibraryError('The library\'s note about that part can\'t be read');
+  return { entry, commit: typeof found.commit === 'string' && /^[0-9a-f]{40}$/.test(found.commit) ? found.commit : '' };
 }
 
 /* ---- the session ---- */
@@ -240,4 +252,25 @@ export async function publishPart(p: PartPackage, o: { agreed: boolean; name?: s
   const s = keptSession(now);
   if (s && o.name !== undefined) keepSession({ ...s, user: { ...s.user, name: entry.name } });
   return { entry, commit: one(a.commit), url: /^https:\/\/github\.com\/[^\s"'<>]+$/.test(url) ? url : '' };
+}
+
+/* ---- approval ---- */
+
+/**
+ * A word about a part of the library, from whoever is signed in (step 3): it is right (compared
+ * with its datasheet), a board built with it works, or something is wrong with it (`note`, a
+ * line). It is said of the revision named: the library refuses a word about a revision it has
+ * moved on from, and gives its note as it is now. The answer is the note with the word in it.
+ */
+export async function sayOfPart(entry: Pick<LibraryEntry, 'key' | 'revision'>, verdict: Verdict, o: { note?: string; name?: string } = {}, f: typeof fetch = fetch, now = Date.now()): Promise<{ entry: LibraryEntry; commit: string }> {
+  const line = oneLine(o.note ?? '').slice(0, MAX_NOTE);
+  if (verdict === 'problem' && line.length < MIN_NOTE) throw new LibraryError('Say what is wrong with it, in a line');
+  const a = await mine<{ entry?: unknown; commit?: unknown }>(f, '/check', {
+    method: 'POST', headers: JSON_HEAD, body: JSON.stringify({ key: entry.key, revision: entry.revision, verdict, ...(verdict === 'problem' ? { note: line } : {}), ...(o.name === undefined ? {} : { name: shownName(o.name) }) }),
+  }, now);
+  const said = readEntry(a.entry);
+  if (!said || said.key !== entry.key) throw new LibraryError('The world parts library took it but its answer can\'t be read: look the part up to see it');
+  const s = keptSession(now);
+  if (s && o.name !== undefined) keepSession({ ...s, user: { ...s.user, name: shownName(o.name) } });
+  return { entry: said, commit: one(a.commit) };
 }

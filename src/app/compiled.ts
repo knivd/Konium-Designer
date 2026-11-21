@@ -26,3 +26,10 @@ export function sheetViolations(sheet: string, editedAt: number): Map<number, 'f
   return out.size ? out : null;
 }
 
+/**
+ * Checks that other parts of the program add to a compile's messages, each under its own source
+ * in Messages. They put themselves here when they load: a compile knows nothing of them (the
+ * world parts library's warning of unverified parts is one).
+ */
+export const compileChecks = new Map<string, (sheets: SheetInput[]) => { doc: string; level: 'warn' | 'error' | 'info'; message: string }[]>();
+

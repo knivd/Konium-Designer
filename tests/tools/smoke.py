@@ -7426,7 +7426,28 @@ with sync_playwright() as p:
             commit = f"{lib['n']:040x}"; lib["n"] += 1
             lib["parts"][key] = {"entry": entry, "commit": commit, "files": {"part.json": json.dumps(body["record"]).encode(), "symbol.SchLib": lib["blobs"][body["symbol"]["sha"]], "footprint.PcbLib": lib["blobs"][body["footprint"]["sha"]]}}
             return J({"ok": True, "entry": entry, "commit": commit, "url": f"https://github.com/o/parts/tree/main/parts/{key[:2]}/{key}"})
+        if path == "/check":   # (26.203: what somebody says of a part; the standing follows from the lists as the service works it out)
+            body = json.loads(rq.post_data); lib["said"] = body
+            part = lib["parts"].get(body.get("key")); me = LIB_USER["id"]
+            if not part: return J({"error": "That part isn't in the parts library"}, 404)
+            e = part["entry"]
+            if e["revision"] != body.get("revision"): return J({"error": f"{e['mpn']} is at revision {e['revision']} in the parts library now: look it up again", "entry": e}, 409)
+            if body["verdict"] != "built" and e["by"] == me: return J({"error": "A confirmation is somebody else's check: this part is your own", "entry": e}, 403)
+            if "name" in body: LIB_USER["name"] = body["name"]
+            word = {"by": me, "name": LIB_USER["name"], "at": "2026-11-21T10:00:00.000Z"}
+            if body["verdict"] == "problem": word["note"] = body.get("note", "")
+            lists = {k: [w for w in e.get(k, []) if w["by"] != me] if k != "built" else list(e.get(k, [])) for k in ("checked", "built", "problems")}
+            which = {"confirm": "checked", "built": "built", "problem": "problems"}[body["verdict"]]
+            lists[which] = [w for w in lists[which] if w["by"] != me] + [word]
+            lib_stand(e, lists)
+            part["commit"] = f"{lib['n']:040x}"; lib["n"] += 1
+            return J({"ok": True, "entry": e, "commit": part["commit"]})
         return J({"error": "Not here"}, 404)
+    def lib_stand(e, lists):
+        for k in ("checked", "built", "problems"):
+            if lists.get(k): e[k] = lists[k]
+            else: e.pop(k, None)
+        e["status"] = "unverified" if len(e.get("problems", [])) >= 2 or len(e.get("checked", [])) < 2 else ("proven" if e.get("built") else "confirmed")
     pg.route("https://konium.app/api/library/**", lib_route)
     pg.goto(URL); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(1200)
     pg.evaluate("window.konium.prefs.set({ openHomePage: false })")
@@ -7544,6 +7565,132 @@ with sync_playwright() as p:
     lib_row = next((r for r in rows_all if r.startswith("World parts library")), "")
     check(f"…About's list of connections: with every feature on, {len(rows_all)} rows, the world library's among them ('{lib_row[:70]}…'); in the release itself {len(rows_rel)}, without it",
           len(rows_all) == 17 and "github.com" in lib_row and "never published" in lib_row and "Nothing of your designs" in lib_row and len(rows_rel) == 16 and not any(r.startswith("World parts library") for r in rows_rel))
+    c.close()
+
+    # 26.203 (R21, step 3, planned): approval. A part of the library reviewed from the shelf (it is right; a board with it works; something is
+    # wrong with it), its standing asked for again, and a later revision taken. The same stand-in service, begun again
+    c, pg = site_page("26.203-approval")
+    lib.update({"parts": {}, "blobs": {}, "calls": [], "auth": [], "sent": {}, "said": {}, "mail": "", "n": 1})
+    LIB_USER.update({"id": "k-0123abcd", "name": "", "email": "ada@example.org"})
+    pg.route("https://konium.app/api/library/**", lib_route)
+    pg.goto(URL); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(1200)
+    pg.evaluate("window.konium.prefs.set({ openHomePage: false })")
+    pg.evaluate("window.konium.run('file.openDemo')"); pg.wait_for_timeout(2500)
+    pg.evaluate("(() => { const d = window.konium.state.docs.value.find((x) => x.doc.kind === 'SchDoc'); window.konium.state.activeId.value = d.id; })()"); pg.wait_for_timeout(600)
+    pg.evaluate("window.konium.run('parts.panel')"); pg.wait_for_timeout(700)
+    pin = pg.locator("button[aria-label='Pin Parts']")
+    if pin.count(): pin.first.click(); pg.wait_for_timeout(500)
+    pp = pg.locator(".parts-panel")
+    pp.locator(".btn", has_text="Add the Example Part").click(); pg.wait_for_timeout(900)
+    tools0 = pp.locator(".parts-card .parts-tools .ex-icon-btn").evaluate_all("(els) => els.map((e) => e.getAttribute('aria-label'))")
+    # Ada publishes it (as in 26.201)
+    pp.get_by_role("button", name="Publish to the World Library").click()
+    pub = pg.locator(".dlg.pubpart")
+    pub.locator("#pub-email").wait_for(timeout=10000)
+    pub.locator("#pub-email").fill("ada@example.org"); pub.locator(".btn", has_text="Send the Link").click()
+    pub.locator(".pub-who").wait_for(timeout=10000)
+    pub.locator("#pub-name").fill("Ada L."); pub.locator(".pub-agree input").check()
+    pub.locator(".dlg-foot .btn", has_text="Publish").click()
+    pub.locator(".pub-done").wait_for(timeout=10000)
+    pub.locator(".dlg-foot .btn", has_text="Close").click(); pg.wait_for_timeout(300)
+    tools1 = pp.locator(".parts-card .parts-tools .ex-icon-btn").evaluate_all("(els) => els.map((e) => e.getAttribute('aria-label'))")
+    card1 = pp.locator(".parts-card").inner_text()
+    # Its author's own review: only a board that works is theirs to say
+    pp.get_by_role("button", name="Review").click()
+    rev = pg.locator(".dlg.reviewpart")
+    rev.locator(".rev-choices").wait_for(timeout=10000); pg.wait_for_timeout(200)
+    own = rev.locator(".rev-choice").evaluate_all("(els) => els.map((e) => [e.querySelector('b').textContent, e.querySelector('input').disabled, e.querySelector('small').textContent])")
+    pins = rev.locator(".rev-pin").all_inner_texts()
+    said0 = rev.inner_text()
+    shot(pg, "203-review-own.png")
+    # Somebody else: signed out, signed in as another, and their check sent with the name they choose to show
+    rev.get_by_role("button", name="Sign Out").click(); pg.wait_for_timeout(300)
+    LIB_USER.update({"id": "k-0000aaaa", "name": "", "email": "grace@example.org"})
+    rev.locator("#pub-email").fill("grace@example.org"); rev.locator(".btn", has_text="Send the Link").click()
+    rev.locator(".pub-who").wait_for(timeout=10000); pg.wait_for_timeout(200)
+    other = rev.locator(".rev-choice input").evaluate_all("(els) => els.map((e) => e.disabled)")
+    send = rev.locator(".dlg-foot .btn", has_text="Send")
+    why0 = send.get_attribute("title")
+    rev.locator(".rev-choice", has_text="It is right").click()
+    rev.locator("#rev-name").fill("Grace H."); pg.wait_for_timeout(150)
+    shot(pg, "203-review.png")
+    n_before = len(lib["calls"])
+    send.click()
+    rev.locator(".pub-done").wait_for(timeout=10000)
+    done1 = rev.locator(".pub-done").inner_text()
+    said1 = dict(lib["said"])
+    shot(pg, "203-review-done.png")
+    rev.locator(".dlg-foot .btn", has_text="Close").click(); pg.wait_for_timeout(300)
+    card2 = pp.locator(".parts-card").inner_text()
+    check(f"Approval (26.203): a published part's card has {tools1} (before: {tools0}). Review lays out its {len(pins) - 1} pins to compare and offers three words; to its author only a board that works ({[(o[0], o[1]) for o in own]}). Somebody else, signed in, may say all three ({other}); Send waits for a choice ('{why0}'), then sends the word for that revision with the name to show ({said1}); '{done1.splitlines()[0]}' and the shelf's card says '{[l for l in card2.splitlines() if 'checks' in l]}'",
+          tools0 == ["Publish to the World Library", "Save as Integrated Library", "Save as Part File", "Remove"] and tools1 == ["Check the World Library", "Review", "Publish Again", "Save as Integrated Library", "Save as Part File", "Remove"]
+          and "0 of 2 checks" in card1 and len(pins) == 9 and pins[0].split() == ["Pin", "Name", "Kind"] and "what to compare with the datasheet" in said0.lower() and "never your address" in said0
+          and [(o[0], o[1]) for o in own] == [("It is right", True), ("A board with it works", False), ("Something is wrong with it", True)] and "somebody else's check" in own[0][2] and "publish it again" in own[2][2]
+          and other == [False, False, False] and why0 == "Choose what you have to say" and lib["calls"][n_before:] == ["POST /check"]
+          and said1 == {"key": "KDEX1833SO8", "revision": 1, "verdict": "confirm", "name": "Grace H."} and "The library has your word: KD-EX1833-SO8 is Unverified" in done1 and "1 of 2 checks" in done1
+          and "published by Ada L." in card2 and "1 of 2 checks" in card2)
+    # Elsewhere a second person finds it right: asked again, the shelf's copy is Confirmed. Then its problems: said in a line, shown on the card
+    part = lib["parts"]["KDEX1833SO8"]
+    lib_stand(part["entry"], {"checked": part["entry"]["checked"] + [{"by": "k-0000bbbb", "name": "", "at": "2026-11-21T11:00:00.000Z"}], "built": [], "problems": []})
+    n_before = len(lib["calls"])
+    pp.get_by_role("button", name="Check the World Library").click(); pg.wait_for_timeout(1200)
+    toast1 = pg.locator(".toast").last.inner_text() if pg.locator(".toast").count() else ""
+    asked = lib["calls"][n_before:]
+    chip1 = pp.locator(".parts-card .pub-status").inner_text()
+    shot(pg, "203-confirmed.png")
+    LIB_USER.update({"id": "k-0000cccc", "name": "Alan", "email": "alan@example.org"})
+    pp.get_by_role("button", name="Review").click()
+    rev.locator(".rev-choices").wait_for(timeout=10000)
+    said_list = rev.locator(".rev-said li").all_inner_texts()
+    rev.locator(".rev-choice", has_text="Something is wrong with it").click(); pg.wait_for_timeout(150)
+    why1 = send.get_attribute("title")
+    rev.locator("#rev-note").fill("Pin 3 is VOUT in the datasheet, not GND"); rev.locator("#rev-name").fill("Alan"); pg.wait_for_timeout(150)   # (the stand-in takes this for a third person's)
+    pg.evaluate("window.konium.prefs.set({ theme: 'dark' })"); pg.wait_for_timeout(400)
+    shot(pg, "203-review-dark.png")
+    pg.evaluate("window.konium.prefs.set({ theme: 'light' })"); pg.wait_for_timeout(300)
+    send.click()
+    rev.locator(".pub-done").wait_for(timeout=10000)
+    done2 = rev.locator(".pub-done").inner_text()
+    rev.locator(".dlg-foot .btn", has_text="Close").click(); pg.wait_for_timeout(300)
+    card3 = pp.locator(".parts-card").inner_text()
+    kept3 = pg.evaluate("window.konium.parts()[0].library")
+    shot(pg, "203-problem.png")
+    check(f"…a second check made elsewhere: Check the World Library asks about the number alone ({asked}) and says '{toast1}'; the card's chip is {chip1}. A review then lists what has been said ({said_list}); a problem needs its line ('{why1}'), is sent, and stands on the card ('{[l for l in card3.splitlines() if 'wrong' in l]}'); the standing is still {kept3 and kept3['status']} ({done2.splitlines()[1] if len(done2.splitlines()) > 1 else ''})",
+          asked == ["GET /part/KDEX1833SO8"] and toast1 == "KD-EX1833-SO8: now Confirmed in the world library (checked by 2)" and chip1 == "Confirmed" and len(said_list) == 2 and "Found right by Grace H." in said_list[0] and "Found right by k-0000bbbb" in said_list[1]
+          and why1 == "Say what is wrong, in a line" and lib["said"] == {"key": "KDEX1833SO8", "revision": 1, "verdict": "problem", "note": "Pin 3 is VOUT in the datasheet, not GND", "name": "Alan"}
+          and "Said to be wrong: Pin 3 is VOUT in the datasheet, not GND (Alan)" in card3 and kept3["status"] == "confirmed" and len(kept3["problems"]) == 1 and "checked by 2, 1 problem reported" in done2)
+    # Its author publishes revision 2 elsewhere: asked again, the later revision is fetched and offered, and taken at a press
+    e2 = {**{k: v for k, v in part["entry"].items() if k not in ("checked", "built", "problems")}, "revision": 2, "status": "unverified", "published": "2026-11-22T09:00:00.000Z"}
+    part["entry"] = e2; part["commit"] = f"{lib['n']:040x}"; lib["n"] += 1
+    n_before = len(lib["calls"])
+    pp.get_by_role("button", name="Check the World Library").click()
+    pp.locator(".parts-found").wait_for(timeout=10000); pg.wait_for_timeout(300)
+    toast2 = pg.locator(".toast").last.inner_text() if pg.locator(".toast").count() else ""
+    later = pp.locator(".parts-found").inner_text()
+    fetched = [l.split("?")[0] for l in lib["calls"][n_before:]]
+    shot(pg, "203-later.png")
+    pp.locator(".btn", has_text="Take Revision 2").click(); pg.wait_for_timeout(600)
+    kept4 = pg.evaluate("window.konium.parts().map((p) => [p.mpn, p.library.revision, p.library.status, Object.keys(p.library).includes('problems')])")
+    gone = pp.locator(".parts-found").count()
+    check(f"…revision 2 published elsewhere: Check the World Library says '{toast2}', fetches it ({fetched}) and offers it ('{[l for l in later.splitlines() if 'Revision' in l]}'); Take Revision 2 puts it on the shelf in place of the first ({kept4}), and the offer goes ({gone})",
+          toast2 == "The world library has revision 2 of KD-EX1833-SO8" and fetched == ["GET /part/KDEX1833SO8", "GET /part/KDEX1833SO8", "GET /part/KDEX1833SO8/part.json", "GET /part/KDEX1833SO8/symbol.SchLib", "GET /part/KDEX1833SO8/footprint.PcbLib"]
+          and "Revision 2, later than yours" in later and "0 of 2 checks" in later and "Take Revision 2" in later and kept4 == [["KD-EX1833-SO8", 2, "unverified", False]] and gone == 0)
+    # Placed in the design and compiled: the design is told that the part is Unverified; once the shelf's note says Confirmed, it is not
+    pp.locator(".btn", has_text="Place").first.click(); pg.wait_for_timeout(400)
+    box = pg.locator("canvas").first.bounding_box()
+    pg.mouse.move(box["x"] + box["width"] * 0.5, box["y"] + box["height"] * 0.8); pg.wait_for_timeout(150)
+    pg.mouse.click(box["x"] + box["width"] * 0.5, box["y"] + box["height"] * 0.8); pg.wait_for_timeout(300)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+    warned = "window.konium.state.messages.value.filter((m) => m.source === 'World Library').map((m) => [m.level, m.message])"
+    pg.evaluate("window.konium.run('tools.erc')"); pg.wait_for_timeout(1500)
+    w1 = pg.evaluate(warned)
+    shot(pg, "203-compile.png")
+    lib_stand(part["entry"], {"checked": [{"by": "k-0000aaaa", "name": "Grace H.", "at": "2026-11-22T10:00:00.000Z"}, {"by": "k-0000bbbb", "name": "", "at": "2026-11-22T11:00:00.000Z"}], "built": [], "problems": []})
+    pp.get_by_role("button", name="Check the World Library").click(); pg.wait_for_timeout(1200)
+    pg.evaluate("window.konium.run('tools.erc')"); pg.wait_for_timeout(1500)
+    w2 = pg.evaluate(warned)
+    check(f"…placed in the design and compiled: Messages has {w1}; with the shelf's copy Confirmed after asking again, a compile has {w2}",
+          len(w1) == 1 and w1[0][0] == "warn" and re.fullmatch(r"U\S+ \(KD-EX1833-SO8\) is an Unverified part of the world library \(0 of 2 checks\): check it against its datasheet", w1[0][1]) is not None and w2 == [])
     c.close()
 
     # 26.202: Live Simulation from anywhere (the red button of the menu bar), a new circuit that leaves what is open alone, the two drawings

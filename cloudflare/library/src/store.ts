@@ -18,14 +18,20 @@ export interface SignIn { id: string; uid: string; email: string; code: string; 
 /** `client`: where this contributor last signed in from (the hash the limits use), so that strangers asking for links in their name cannot keep them out. */
 export interface Contributor { uid: string; email: string; name: string; since: number; client: string }
 /** A part in the index: the library's note about it, the commit that holds this revision, and whose it is. */
-export interface Indexed { key: string; mpn: string; status: string; by: string; name: string; published: string; revision: number; licence: string; app: string; commit: string; uid: string }
+export interface Indexed {
+  key: string; mpn: string; status: string; by: string; name: string; published: string; revision: number; licence: string; app: string; commit: string; uid: string;
+  /** What has been said of this revision (who checked it, who built it, what was found wrong), as JSON; '' for nothing. */
+  more?: string;
+}
 
 export class LibraryStoreLogic {
   constructor(private sql: Sql) {
     sql.exec(`CREATE TABLE IF NOT EXISTS counts (period TEXT, who TEXT, kind TEXT, n INTEGER, PRIMARY KEY (period, who, kind))`);
     sql.exec(`CREATE TABLE IF NOT EXISTS signins (id TEXT PRIMARY KEY, uid TEXT, email TEXT, code TEXT, until INTEGER, confirmed INTEGER)`);
     sql.exec(`CREATE TABLE IF NOT EXISTS contributors (uid TEXT PRIMARY KEY, email TEXT, name TEXT, since INTEGER, last INTEGER, client TEXT)`);
-    sql.exec(`CREATE TABLE IF NOT EXISTS parts (key TEXT PRIMARY KEY, mpn TEXT, status TEXT, by TEXT, name TEXT, published TEXT, revision INTEGER, licence TEXT, app TEXT, commit_sha TEXT, uid TEXT)`);
+    sql.exec(`CREATE TABLE IF NOT EXISTS parts (key TEXT PRIMARY KEY, mpn TEXT, status TEXT, by TEXT, name TEXT, published TEXT, revision INTEGER, licence TEXT, app TEXT, commit_sha TEXT, uid TEXT, more TEXT)`);
+    // (a table made before the approval step has no column for what is said of a part)
+    try { sql.exec(`ALTER TABLE parts ADD COLUMN more TEXT`); } catch { /* it has one */ }
   }
 
   /** One more of a kind in a period (an hour, a day) for someone, if the limit allows. */
@@ -60,14 +66,14 @@ export class LibraryStoreLogic {
     const r = this.sql.exec(`SELECT * FROM parts WHERE key = ?`, key).toArray()[0];
     return r ? {
       key: String(r.key), mpn: String(r.mpn), status: String(r.status), by: String(r.by), name: String(r.name ?? ''), published: String(r.published),
-      revision: Number(r.revision), licence: String(r.licence), app: String(r.app ?? ''), commit: String(r.commit_sha ?? ''), uid: String(r.uid ?? ''),
+      revision: Number(r.revision), licence: String(r.licence), app: String(r.app ?? ''), commit: String(r.commit_sha ?? ''), uid: String(r.uid ?? ''), more: String(r.more ?? ''),
     } : null;
   }
   keepPart(p: Indexed): void {
-    this.sql.exec(`INSERT INTO parts (key, mpn, status, by, name, published, revision, licence, app, commit_sha, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    this.sql.exec(`INSERT INTO parts (key, mpn, status, by, name, published, revision, licence, app, commit_sha, uid, more) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (key) DO UPDATE SET mpn = excluded.mpn, status = excluded.status, by = excluded.by, name = excluded.name, published = excluded.published,
-      revision = excluded.revision, licence = excluded.licence, app = excluded.app, commit_sha = excluded.commit_sha, uid = excluded.uid`,
-    p.key, p.mpn, p.status, p.by, p.name, p.published, p.revision, p.licence, p.app, p.commit, p.uid);
+      revision = excluded.revision, licence = excluded.licence, app = excluded.app, commit_sha = excluded.commit_sha, uid = excluded.uid, more = excluded.more`,
+    p.key, p.mpn, p.status, p.by, p.name, p.published, p.revision, p.licence, p.app, p.commit, p.uid, p.more ?? '');
   }
   /** How many parts the index holds. */
   partCount(): number { return Number(this.sql.exec(`SELECT COUNT(*) AS n FROM parts`).toArray()[0]?.n ?? 0); }

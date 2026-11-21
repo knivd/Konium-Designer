@@ -339,6 +339,14 @@ Step 2 as built (the service in 26.200, the app in 26.201):
 - Before the release: the service deployed, the mail provider named in the list of connections, the row added to the guide and the website.
 - tests/library200.test.ts (11), tests/library201.test.ts (13); smoke section 26.201.
 
+Step 3 as built (26.203):
+
+- A contributor's word about one revision of a part: it is right (compared with its datasheet), a board built with it works, or something is wrong with it (a line). `POST /api/library/check`; kept in the part's `library.json` (`checked`, `built`, `problems`), each a commit of that file alone.
+- Standing: Unverified as published; Confirmed with two checks by others than its author; Proven when confirmed and built once (its author's board counts); Unverified again when two people have found it wrong, for its author to publish the next revision, which starts the lists again.
+- In the app: Review and Check the World Library on a library part's card, the standing and the problems shown, a later revision offered, and a warning at compile for the design's parts that are Unverified or found wrong.
+- What an address costs is the limit of it: Confirmed means that three sign-ins agree. The repository's history shows who said what.
+- tests/library203.test.ts (9); smoke section 26.203.
+
 ### The open-source release (26.200)
 
 **26.200 is the first build whose source is public.** What was settled for it, and done:
