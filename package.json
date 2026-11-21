@@ -1,6 +1,6 @@
 {
   "name": "konium-designer",
-  "version": "26.202.0",
+  "version": "26.203.0",
   "private": true,
   "description": "Offline PCB design PWA with Altium Designer file compatibility",
   "type": "module",

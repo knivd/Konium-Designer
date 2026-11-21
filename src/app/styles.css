@@ -3109,7 +3109,7 @@ h4.dg-lib-head { cursor: default; }
 .pub-status { flex-shrink: 0; padding: 0 7px; border: 1px solid var(--line-strong); border-radius: 9px; font-size: 10px; font-weight: 700; line-height: 16px; letter-spacing: 0.02em; color: var(--text-dim); white-space: nowrap; cursor: default; }
 .pub-status.ps-confirmed { border-color: color-mix(in srgb, var(--accent) 60%, transparent); color: var(--accent); }
 .pub-status.ps-proven { border-color: color-mix(in srgb, var(--ok) 60%, transparent); background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
-.pubpart .dlg-body { display: flex; flex-direction: column; gap: 10px; }
+.pubpart .dlg-body { display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 140px); overflow-y: auto; }
 .pubpart .kv-head { margin: 4px 0 -4px; }
 .pubpart .kv-head h4 { font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
 .pub-part { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--field); color: var(--text-dim); }
@@ -3140,6 +3140,23 @@ h4.dg-lib-head { cursor: default; }
 .pub-done { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 22px 24px; text-align: center; color: var(--text-dim); line-height: 1.4; }
 .pub-done b { color: var(--text); font-size: 13px; }
 @media (prefers-reduced-motion: reduce) { .pub-spin { animation: none; } }
+.rev-pins { flex-shrink: 0; max-height: 142px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--field); font-variant-numeric: tabular-nums; }
+.rev-pin { display: grid; grid-template-columns: 56px minmax(0, 1fr) 120px; gap: 10px; padding: 3px 10px; line-height: 1.4; }
+.rev-pin + .rev-pin { border-top: 1px solid var(--line); }
+.rev-pin > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rev-pin > span:last-child { color: var(--text-dim); }
+.rev-pin-head { position: sticky; top: 0; background: var(--panel); font-size: 11px; font-weight: 600; color: var(--text-dim); }
+.rev-said li > span { display: flex; flex-wrap: wrap; gap: 0 8px; }
+.rev-said small { color: var(--text-dim); font-size: 11px; }
+.rev-choices { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 6px; background: var(--field); }
+.rev-choice { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; align-items: start; padding: 7px 10px; line-height: 1.35; cursor: pointer; }
+.rev-choice + .rev-choice { border-top: 1px solid var(--line); }
+.rev-choice input { margin: 2px 0 0; }
+.rev-choice > span { display: flex; flex-direction: column; }
+.rev-choice small { font-size: 11px; color: var(--text-dim); }
+.rev-choice.on { background: var(--hover); }
+.rev-choice.closed { cursor: default; }
+.rev-choice.closed b { color: var(--text-dim); font-weight: 400; }
 .pm-note .icon, .parts-mark.pm-note { color: var(--ok); }
 .pm-warning .icon, .parts-mark.pm-warning { color: var(--warn); }
 .pm-error .icon, .parts-mark.pm-error { color: var(--err); }
@@ -3151,8 +3168,9 @@ h4.dg-lib-head { cursor: default; }
 .parts-empty-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 26px; border-radius: 4px; background: var(--field); }
 .parts-empty-actions .btn:hover:not(:disabled) { background: var(--hover); }
 .parts-card { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--field); }
-.parts-card-head { display: flex; align-items: center; gap: 6px; min-height: 22px; }
-.parts-card-head b { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* (a part's number is shown whole: where its tools leave it less than its share of the row, they go under it) */
+.parts-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-height: 22px; }
+.parts-card-head b { flex: 1 1 150px; min-width: 0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .parts-del:hover:not(:disabled) { color: var(--err); }
 .parts-desc { margin: 0; color: var(--text-dim); line-height: 1.35; }
 .parts-facts { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 5px 10px; margin: 0; padding: 8px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }

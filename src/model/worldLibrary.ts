@@ -16,9 +16,11 @@ export const LICENCE_NAME = 'CC0 1.0 Universal';
 export const LICENCE_URL = 'https://creativecommons.org/publicdomain/zero/1.0/';
 
 /**
- * A part's standing in the library. Unverified: published, and looked at by nobody but its
- * author. Confirmed and proven come with the approval step (others have checked it against the
- * datasheet; it has been built on a board).
+ * A part's standing in the library. Unverified: published, and checked by nobody but its author.
+ * Confirmed: two others have compared it with its datasheet and found it right. Proven:
+ * confirmed, and somebody has built a board with it that works. A part two people have found
+ * something wrong with is Unverified again, whatever it was, until its author publishes the next
+ * revision (step 3, 26.203).
  */
 export type PartStatus = 'unverified' | 'confirmed' | 'proven';
 export const STATUS_NAMES: Record<PartStatus, string> = { unverified: 'Unverified', confirmed: 'Confirmed', proven: 'Proven' };
@@ -38,6 +40,34 @@ export interface LibraryEntry {
   licence: string;
   /** The build that published it. */
   app: string;
+  /** Who else has compared this revision with its datasheet and found it right (absent: nobody yet). */
+  checked?: LibraryWord[];
+  /** Who has built a board with this revision that works. */
+  built?: LibraryWord[];
+  /** What has been found wrong with this revision, a line each. */
+  problems?: LibraryWord[];
+}
+/** Somebody's word about a part: who (a contributor's number and the name they show), when, and for a problem what. */
+export interface LibraryWord { by: string; name: string; at: string; note?: string }
+/** What a contributor may say of a part: it is right; a board with it works; something is wrong with it. */
+export type Verdict = 'confirm' | 'built' | 'problem';
+export const VERDICTS: readonly Verdict[] = ['confirm', 'built', 'problem'];
+/** The list each verdict is kept in. */
+export const WORDS_OF: Record<Verdict, 'checked' | 'built' | 'problems'> = { confirm: 'checked', built: 'built', problem: 'problems' };
+/** How many others' checks confirm a part, how many people's problems send it back, and the most of each kind kept. */
+export const CHECKS_TO_CONFIRM = 2, PROBLEMS_TO_DISPUTE = 2, MAX_WORDS = 10;
+/** A problem said in a line: this long at most, and this long at least (a word or two says nothing). */
+export const MAX_NOTE = 200, MIN_NOTE = 10;
+
+/** A part's standing by what has been said of it. */
+export function standing(e: Pick<LibraryEntry, 'checked' | 'built' | 'problems'>): PartStatus {
+  if ((e.problems?.length ?? 0) >= PROBLEMS_TO_DISPUTE || (e.checked?.length ?? 0) < CHECKS_TO_CONFIRM) return 'unverified';
+  return e.built?.length ? 'proven' : 'confirmed';
+}
+/** Where a part stands, in a few words: "1 of 2 checks", "checked by 2", "checked by 2, built by 1"; and how many have found it wrong. */
+export function standingText(e: Pick<LibraryEntry, 'checked' | 'built' | 'problems'>): string {
+  const c = e.checked?.length ?? 0, b = e.built?.length ?? 0, p = e.problems?.length ?? 0;
+  return [c < CHECKS_TO_CONFIRM ? `${c} of ${CHECKS_TO_CONFIRM} checks` : `checked by ${c}`, b ? `built by ${b}` : '', p ? `${p} ${p === 1 ? 'problem' : 'problems'} reported` : ''].filter(Boolean).join(', ');
 }
 
 export const RECORD_FILE = 'part.json', ENTRY_FILE = 'library.json', SYMBOL_FILE = 'symbol.SchLib', FOOTPRINT_FILE = 'footprint.PcbLib';
@@ -63,16 +93,31 @@ export function mailAddress(s: unknown): string {
 
 const text = (v: unknown, max: number): v is string => typeof v === 'string' && v.length <= max;
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {});
+/** A list of words put in order: each from a contributor, one from each at most, the latest kept. */
+function words(v: unknown, noted: boolean): LibraryWord[] {
+  const out = new Map<string, LibraryWord>();
+  for (const x of Array.isArray(v) ? v.slice(-4 * MAX_WORDS) : []) {
+    const w = obj(x);
+    if (!text(w.by, 10) || !CONTRIBUTOR.test(w.by)) continue;
+    const note = noted && typeof w.note === 'string' ? oneLine(w.note).slice(0, MAX_NOTE) : '';
+    out.delete(w.by);
+    out.set(w.by, { by: w.by, name: shownName(w.name), at: text(w.at, 40) ? oneLine(w.at) : '', ...(note ? { note } : {}) });
+  }
+  return [...out.values()].slice(-MAX_WORDS);
+}
 
 /** The library's note about a part, put in order; null when it isn't one. */
 export function readEntry(v: unknown): LibraryEntry | null {
   const e = obj(v);
   if (!text(e.key, 80) || !KEY_FORMAT.test(e.key) || !text(e.mpn, 80) || partKey(e.mpn) !== e.key) return null;
   const status: PartStatus = e.status === 'confirmed' || e.status === 'proven' ? e.status : 'unverified';
+  const checked = words(e.checked, false), built = words(e.built, false), problems = words(e.problems, true);
   return {
     key: e.key, mpn: e.mpn, status, by: text(e.by, 10) && CONTRIBUTOR.test(e.by) ? e.by : '', name: shownName(e.name),
     published: text(e.published, 40) ? e.published : '', revision: Number.isInteger(e.revision) && (e.revision as number) > 0 ? e.revision as number : 1,
     licence: text(e.licence, 40) ? e.licence : LIBRARY_LICENCE, app: text(e.app, 20) ? e.app : '',
+    // (a list nobody is in is left out: a part nobody has spoken of is as it was before there were any)
+    ...(checked.length ? { checked } : {}), ...(built.length ? { built } : {}), ...(problems.length ? { problems } : {}),
   };
 }
 

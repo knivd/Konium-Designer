@@ -38,7 +38,32 @@ library is a public Git repository at GitHub; this Worker stands between it and 
 | Fill someone's inbox, or the mail allowance | Three links an hour to one address (and three more for whoever asks from where that address last signed in, so strangers cannot keep a contributor out); 60 an hour and 400 a day for the whole service |
 
 Per user (a salted stand-in for the IP address; an IPv6 address by its /64): `FETCH_PER_DAY` 500,
-`SIGNIN_PER_HOUR` 5, `PUBLISH_PER_DAY` 20 (`wrangler.toml`).
+`SIGNIN_PER_HOUR` 5, `PUBLISH_PER_DAY` 20; per contributor, `CHECK_PER_DAY` 40 (`wrangler.toml`).
+
+## Approval (26.203)
+
+`POST /api/library/check` (signed in) takes a contributor's word about one revision of a part:
+`{ key, revision, verdict, note? }`, the verdict one of `confirm` (compared with the datasheet and
+found right), `built` (a board made with it works) and `problem` (something is wrong, said in a
+line of 10 to 200 characters). The word goes into the part's `library.json` (`checked`, `built`,
+`problems`: who, the name they show, when, the line) as a commit of that one file, and the part's
+standing follows from the lists:
+
+| Standing | When |
+|---|---|
+| Unverified | As published; or two contributors have found something wrong with it, whatever it was before |
+| Confirmed | Two contributors other than its author have found it right |
+| Proven | Confirmed, and somebody (its author too) has built a board with it that works |
+
+A part's author can neither confirm it nor report a problem with it: a fault is put right by
+publishing the next revision, which is possible while the part is Unverified and starts the lists
+again. One word of each kind from each contributor; whoever finds a part right no longer finds it
+wrong, and the other way round. A word about a revision the library has moved on from is refused
+with the note as it is now.
+
+What this does not stop: one person with three addresses confirming their own part. An address
+costs little, so Confirmed means "three sign-ins agree", no more; the repository's history shows
+who said what, and a part can be put right or taken out there by its keeper.
 
 ## Set-up (once, when the library opens)
 

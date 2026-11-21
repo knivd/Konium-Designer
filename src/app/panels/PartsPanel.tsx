@@ -33,9 +33,10 @@ import { keepPart, removePart, shelf, shelfPart } from '../partShelf';
 import { webLink } from '../../core/webLink';
 import { mayConnect } from '../../platform/network';
 import { findInLibrary, type FoundPart } from '../../platform/libraryService';
-import { LICENCE_NAME, STATUS_NAMES, type LibraryEntry } from '../../model/worldLibrary';
+import { ReviewPartDialog } from '../dialogs/ReviewPart';
+import { LICENCE_NAME, STATUS_NAMES, standingText, type LibraryEntry } from '../../model/worldLibrary';
 import { PublishPartDialog } from '../dialogs/PublishPart';
-import { keepFound, librarySession } from '../worldLibrary';
+import { keepFound, librarySession, refreshNote } from '../worldLibrary';
 
 const FROM: Record<PartPackage['record']['package']['from'], string> = { datasheet: 'the datasheet\'s land pattern', ipc: 'pads by IPC-7351B', drawn: 'drawn by hand' };
 const pages = (n: number[]) => (n.length ? `page${n.length > 1 ? 's' : ''} ${n.join(', ')}` : '');
@@ -69,13 +70,16 @@ const byOf = (e: LibraryEntry) => e.name || e.by || 'someone unnamed';
 const noteOf = (e: LibraryEntry) => [`published by ${byOf(e)}`, e.revision > 1 ? `revision ${e.revision}` : '', e.published.slice(0, 10)].filter(Boolean).join(' · ');
 /** What the three states mean, for the chip's tooltip. */
 const STATUS_HINT: Record<LibraryEntry['status'], string> = {
-  unverified: 'Unverified: as its author published it. Nobody else has checked it yet, so check it against the datasheet yourself',
-  confirmed: 'Confirmed: others have checked it against its datasheet',
-  proven: 'Proven: it has been built on boards that work',
+  unverified: 'Unverified: as its author published it. Two others have yet to find it right, so check it against the datasheet yourself',
+  confirmed: 'Confirmed: two others have compared it with its datasheet and found it right',
+  proven: 'Proven: found right by two others, and built on a board that works',
 };
 export function StatusChip({ entry }: { entry: LibraryEntry }) {
-  return <span class={`pub-status ps-${entry.status}`} title={STATUS_HINT[entry.status]}>{STATUS_NAMES[entry.status]}</span>;
+  const disputed = entry.status === 'unverified' && (entry.problems?.length ?? 0) > 1;
+  return <span class={`pub-status ps-${entry.status}`} title={disputed ? 'Unverified: people have found it wrong. It is for its author to publish it again, put right' : STATUS_HINT[entry.status]}>{STATUS_NAMES[entry.status]}</span>;
 }
+/** What has been found wrong with a part, as lines of its checks. */
+const Problems = ({ entry }: { entry: LibraryEntry | null }) => <>{(entry?.problems ?? []).map((w) => <li key={`p${w.by}`} class="pm-warn"><Icon name="warn" size={14} /><span>Said to be wrong: {w.note} ({w.name || w.by})</span></li>)}</>;
 
 /** A look in the world library for the number typed: under way, nothing there, found, or refused. */
 type Look = { key: string } & ({ state: 'busy' } | { state: 'none' } | { state: 'found'; found: FoundPart } | { state: 'error'; text: string });
@@ -90,6 +94,9 @@ export function PartsPanel() {
   const picked = (open && shelfPart(open)) || null;
   const sch = active.value?.editor instanceof SchEditor;
   const [look, setLook] = useState<Look | null>(null);
+  /** A later revision the library has of a part of the shelf, fetched and offered. */
+  const [later, setLater] = useState<FoundPart | null>(null);
+  const [asking, setAsking] = useState(false);
   const me = librarySession.value?.user.id ?? '';
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
@@ -114,10 +121,10 @@ export function PartsPanel() {
     if (alive.current) setLook((now) => (now && now.key === asked ? next : now));
   };
   const keep = () => {
-    if (seen?.state !== 'found') return;
-    const p = seen.found.part;
-    const had = keepFound(seen.found);
-    setLook(null); setTyped(''); setOpen(p.record.mpn);
+    if (!found) return;
+    const p = found.part;
+    const had = keepFound(found);
+    setLook(null); setLater(null); setTyped(''); setOpen(p.record.mpn);
     notify(had ? `${p.record.mpn} was on your shelf: replaced by the world library's` : `${p.record.mpn} added to your shelf from the world library`);
   };
   const build = () => showDialog(AiBuilderDialog, { part: missing });
@@ -151,7 +158,19 @@ export function PartsPanel() {
   const lib = r?.library ?? null;
   /** A part of one's own may be published, and published again while nobody has confirmed it; another's is theirs to change. */
   const mayPublish = !lib || (lib.status === 'unverified' && (!me || !lib.by || lib.by === me));
-  const found = seen?.state === 'found' ? seen.found : null;
+  const found = seen?.state === 'found' ? seen.found : !missing && later && later.entry.key === lib?.key ? later : null;
+  /** Where the part selected stands in the library now; a later revision there is fetched and offered. */
+  const refresh = async () => {
+    if (!sel) return;
+    const mpn = sel.record.mpn;
+    setAsking(true);
+    try {
+      const got = await refreshNote(sel);
+      if (got.newer) { const f = await findInLibrary(mpn); if (alive.current && f) setLater(f); }
+      notify(!got.entry ? `${mpn} is not in the world library any more` : got.newer ? `The world library has revision ${got.entry.revision} of ${mpn}` : `${mpn}: ${got.changed ? 'now ' : 'still '}${STATUS_NAMES[got.entry.status]} in the world library (${standingText(got.entry)})`);
+    } catch (e) { notify((e as Error).message, 'error'); }
+    if (alive.current) setAsking(false);
+  };
   const faulty = !!found && found.checks.some((c) => c.level === 'error');
 
   return (
@@ -192,12 +211,13 @@ export function PartsPanel() {
           <dl class="parts-facts">
             <dt>Maker</dt><dd>{found.part.record.maker || 'not said'}</dd>
             <dt>Package</dt><dd>{found.part.record.package.name}<span class="parts-sub">{found.part.record.pins.length} pins · {FROM[found.part.record.package.from]}</span></dd>
-            <dt>Library</dt><dd>In the world library<span class="parts-sub">{noteOf(found.entry)}</span></dd>
+            <dt>Library</dt><dd>{later === found ? `Revision ${found.entry.revision}, later than yours` : 'In the world library'}<span class="parts-sub">{noteOf(found.entry)} · {standingText(found.entry)}</span></dd>
           </dl>
           <ul class="parts-checks">
             {found.checks.map((c, i) => <li key={i} class={`pm-${c.level}`}><Icon name={c.level === 'note' ? 'partsOk' : 'warn'} size={14} /><span>{c.text}</span></li>)}
+            <Problems entry={found.entry} />
           </ul>
-          <button type="button" class="btn default parts-cta parts-place" disabled={faulty} title={faulty ? 'Its checks find a fault: not a part to keep as it is' : 'Its symbol and footprint join My Parts, to place like any other'} onClick={keep}><Icon name="partsKeep" />Keep on My Shelf</button>
+          <button type="button" class="btn default parts-cta parts-place" disabled={faulty} title={faulty ? 'Its checks find a fault: not a part to keep as it is' : 'Its symbol and footprint join My Parts, to place like any other'} onClick={keep}><Icon name="partsKeep" />{later === found ? `Take Revision ${found.entry.revision}` : 'Keep on My Shelf'}</button>
         </div>
       )}
 
@@ -247,6 +267,10 @@ export function PartsPanel() {
           <div class="parts-card-head">
             <b title={r.mpn}>{r.mpn}</b>
             <span class="parts-tools">
+              {lib && <button type="button" class="ex-icon-btn" aria-label="Check the World Library" disabled={!canLook || asking} title="Ask the world library where this part stands now: its standing, who has checked it, a later revision. Its number is all that goes"
+                onClick={() => void refresh()}><Icon name="partsRefresh" /></button>}
+              {lib && <button type="button" class="ex-icon-btn" aria-label="Review" title="Review it: say that it is right, that a board with it works, or what is wrong with it…"
+                onClick={() => showDialog(ReviewPartDialog, { part: sel })}><Icon name="partsReview" /></button>}
               <button type="button" class="ex-icon-btn" aria-label={lib ? 'Publish Again' : 'Publish to the World Library'} disabled={!mayPublish}
                 title={!mayPublish ? (lib!.status !== 'unverified' ? `In the world library as ${STATUS_NAMES[lib!.status]}: no longer changed by publishing again` : `In the world library, published by ${byOf(lib!)}: theirs to change`) : lib ? 'Publish this copy to the world library again, as its next revision…' : 'Publish to the world library, for everyone…'}
                 onClick={() => showDialog(PublishPartDialog, { part: sel })}><Icon name="partsPublish" /></button>
@@ -266,11 +290,12 @@ export function PartsPanel() {
             <dt>Made</dt><dd>{r.made.at.slice(0, 10)}<span class="parts-sub">by {r.made.by || 'hand'}{r.made.app ? `, Konium Designer ${r.made.app}` : ''}</span></dd>
             <dt>Library</dt>
             <dd>{lib ? <span class="parts-inline">In the world library<StatusChip entry={lib} /></span> : 'On your shelf only'}
-              <span class="parts-sub">{lib ? noteOf(lib) : 'not published'}</span>
+              <span class="parts-sub">{lib ? `${noteOf(lib)} · ${standingText(lib)}` : 'not published'}</span>
               {lib && <span class="parts-sub">given to the public domain ({LICENCE_NAME})</span>}</dd>
           </dl>
           <ul class="parts-checks">
             {(checksOf.get(sel) ?? []).map((c, i) => <li key={i} class={`pm-${c.level}`}><Icon name={c.level === 'note' ? 'partsOk' : 'warn'} size={14} /><span>{c.text}</span></li>)}
+            <Problems entry={lib} />
           </ul>
           <button type="button" class="btn default parts-cta parts-place" disabled={!sch} title={sch ? 'The part follows the cursor in the schematic in front' : 'Bring a schematic in front to place it'} onClick={place}><Icon name="partsPlace" />Place</button>
         </div>
