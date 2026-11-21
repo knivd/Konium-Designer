@@ -3772,6 +3772,7 @@ with sync_playwright() as p:
     b.close()
 
     # 26.098: trust — About says how Konium is made, lists every connection; Contact the Author; Offline has the browser refuse connections, kept from load to load
+    # (26.201: the run has every feature on, so the planned world library's row is in the list: 17 rows. The release itself has 16: checked in the 26.201 section)
     b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
     page = b.new_page(viewport={"width": 1440, "height": 880})
     page.on("pageerror", lambda e: errors.append(f"pageerror (connections): {e}"))
@@ -3787,7 +3788,7 @@ with sync_playwright() as p:
     pr = page.locator(".dlg.prefs")
     prt = pr.inner_text() if pr.count() else ""
     check("Preferences › System › Network Activity: Allow network activity, Check konium.app for updates, the connections listed",
-          "Allow Konium Designer to use network activity" in prt and "Check konium.app for updates and What's New" in prt and pr.locator(".about-net tbody tr").count() == 16)
+          "Allow Konium Designer to use network activity" in prt and "Check konium.app for updates and What's New" in prt and pr.locator(".about-net tbody tr").count() == 17)
     shot(page, "99-network-activity.png")
     pr.locator(".btn", has_text="Cancel").click(); page.wait_for_timeout(200)
     net.locator(".link", has_text="What Konium Designer connects to").click(); page.wait_for_timeout(400)
@@ -3799,7 +3800,7 @@ with sync_playwright() as p:
           and "Copyright (C) 2026" in ab.inner_text() and ab.locator(".btn", has_text="Contact the Author").count() == 1
           and src_link.count() == 1 and src_link.get_attribute("href") == "https://github.com/knivd/konium-designer" and "noopener" in (src_link.get_attribute("rel") or "")
           and ab.locator(".btn", has_text="Licence...").count() == 1 and ab.locator(".btn", has_text="Third-Party Software...").count() == 1
-          and ab.locator(".btn", has_text="Audit").count() == 0 and "github.com (the source code)" in rows[-1] and len(rows) == 16 and all(r.rstrip().endswith("Allowed") for r in rows[:-1]) and rows[-1].rstrip().endswith("Your click")
+          and ab.locator(".btn", has_text="Audit").count() == 0 and "github.com (the source code)" in rows[-1] and len(rows) == 17 and all(r.rstrip().endswith("Allowed") for r in rows[:-1]) and rows[-1].rstrip().endswith("Your click")
           and any("konium.app, then OpenRouter (openrouter.ai)" in r for r in rows) and any("konium.app, then Digi-Key (api.digikey.com) or Mouser (api.mouser.com)" in r for r in rows) and "ko-fi.com" in rows[-1]
           and ab.evaluate("e => e.scrollTop") > 100)
     shot(page, "98-about-connections.png")
@@ -3840,7 +3841,7 @@ with sync_playwright() as p:
     rows = page.locator(".about-net tbody tr").all_inner_texts()
     page.keyboard.press("Escape")
     check(f"Offline: the page's policy refuses outside connections ({tried}, {len(viol)} refused), What's New not asked for, About says each is stopped, the service worker told",
-          "connect-src data: blob:" in meta and tried == "refused" and len(viol) >= 1 and "Network activity is off: What's New" in wn and len(rows) == 16 and all(r.rstrip().endswith("Stopped") for r in rows[:-1]) and rows[-1].rstrip().endswith("Your click") and flag
+          "connect-src data: blob:" in meta and tried == "refused" and len(viol) >= 1 and "Network activity is off: What's New" in wn and len(rows) == 17 and all(r.rstrip().endswith("Stopped") for r in rows[:-1]) and rows[-1].rstrip().endswith("Your click") and flag
           and net.locator("input").nth(1).is_disabled() and page.locator(".menubar-chip.offline").count() == 1)
     shot(page, "98-offline.png")
     # Loaded again with Offline on: sealed before the app could connect; the demo, its board and 3D work with nothing refused
@@ -7093,10 +7094,10 @@ with sync_playwright() as p:
     shelf = pg.evaluate("window.konium.parts()")
     shot(pg, "197-parts.png")
     check(f"Tools › Parts (26.197): an empty shelf says what a part is ({'Your shelf is empty' in empty}); Add the Example Part puts it there ({rows}), with its facts and checks; its tools are icons, each named ({tools})",
-          "Your shelf is empty" in empty and "Kept in this browser only" in empty and len(rows) == 1 and "KD-EX1833-SO8" in rows[0] and "Konium (example) · SO-8 · 8 pins" in rows[0]
+          "Your shelf is empty" in empty and "kept in this browser only" in empty and len(rows) == 1 and "KD-EX1833-SO8" in rows[0] and "Konium (example) · SO-8 · 8 pins" in rows[0]
           and len(shelf) == 1 and shelf[0]["package"]["footprint"] == "SOIC127P600X175-8N" and "SOIC127P600X175-8N" in detail and "pads by IPC-7351B" in detail and "Every one of its 8 pins has its pad, and every pad its pin" in detail
           and "It doesn't say which datasheet it was read from" in detail and count.inner_text() == "1" and "My Parts.SchLib" in (count.get_attribute("title") or "")
-          and tools == ["Add a Part File", "Add the Example Part", "Save as Integrated Library", "Save as Part File", "Remove"] and pp.locator(".parts-row .parts-mark.pm-warning").count() == 1)
+          and tools == ["Add a Part File", "Add the Example Part", "Publish to the World Library", "Save as Integrated Library", "Save as Part File", "Remove"] and pp.locator(".parts-row .parts-mark.pm-warning").count() == 1)
     # Placed in the schematic in front from the shelf's library, with what a bill of materials reads from it
     comps = "window.konium.state.active.value.doc.records.filter((r) => r.bag.get('RECORD') === '1').length"
     n0 = pg.evaluate(comps)
@@ -7156,7 +7157,7 @@ with sync_playwright() as p:
                       "usage": {"in": 300, "out": 50, "cost": 0.0001}, "model": "m/vision", "allowance": {"jobs": 20, "left": 19}}))
     pg.route("https://konium.app/api/ai/**", parts_ai)
     pg.evaluate("window.konium.prefs.set({ aiMode: 'konium' })"); pg.wait_for_timeout(300)
-    pp.locator(".btn", has_text="Build It").click(); pg.wait_for_timeout(900)
+    pp.get_by_role("button", name="Build It").click(); pg.wait_for_timeout(900)   # (26.201: an icon beside Look in the World Library while the library can be asked)
     aib = pg.locator(".dlg.ai-builder")
     typed = aib.locator("#ai-part").input_value() if aib.count() else ""
     aib.locator(".btn", has_text="Find Its Datasheet").click()
@@ -7384,6 +7385,165 @@ with sync_playwright() as p:
     check(f"The website (26.200): the FAQ opens with its three blunt answers ({first3}), what they say of other products beside their own documentation ({blunt}); the source's answer names the licence and links the repository ({src_a}); a security problem can be reported privately ({topics})",
           first3 == ["ai-slop", "kicad", "free-eda"] and len(blunt) == 3 and "docs.kicad.org" in dict(blunt).get("kicad", "") and "prodocs.easyeda.com" in dict(blunt).get("free-eda", "")
           and src_a == [True, True] and topics == ["A question or a comment", "A security problem, reported privately", "Something else"])
+    c.close()
+
+    # 26.201 (R21, step 2, planned: on here with features=all): the world parts library from Tools › Parts. The library's service is a stand-in
+    # here (the real one is not set up, and nothing outside can be reached from the run): it keeps what is published and gives it back
+    c, pg = site_page("26.201-library")
+    import base64 as _b64l, time as _timel
+    lib = {"parts": {}, "blobs": {}, "calls": [], "auth": [], "sent": {}, "mail": "", "n": 1}
+    LIB_USER = {"id": "k-0123abcd", "name": "", "email": "ada@example.org"}
+    LIB_TOKEN = "0123456789abcdef." + str(int(_timel.time() * 1000) + 90 * 86400000) + "." + "a" * 64
+    def lib_route(route):
+        rq = route.request
+        path = rq.url.split("/api/library", 1)[1]
+        lib["calls"].append(f"{rq.method} {path}")
+        lib["auth"].append(rq.headers.get("authorization", ""))
+        J = lambda body, status=200: route.fulfill(status=status, content_type="application/json", body=json.dumps(body))
+        if path == "/config": return J({"ready": True, "signIn": True, "repo": "o/parts", "web": "https://github.com/o/parts", "licence": "CC0-1.0", "publishPerDay": 20, "parts": len(lib["parts"])})
+        m = re.fullmatch(r"/part/([A-Z0-9]+)(?:/([\w.]+)\?c=([0-9a-f]{40}))?", path)
+        if rq.method == "GET" and m:
+            part = lib["parts"].get(m.group(1))
+            if not m.group(2): return J({"found": True, "entry": part["entry"], "commit": part["commit"]} if part else {"found": False})
+            if not part or m.group(3) != part["commit"]: return J({"error": "That file isn't in the library"}, 404)
+            return route.fulfill(status=200, content_type="application/json" if m.group(2) == "part.json" else "application/octet-stream", body=part["files"][m.group(2)])
+        if path == "/signin": lib["mail"] = json.loads(rq.post_data)["email"]; return J({"ticket": "ab" * 16, "minutes": 15})
+        if path == "/session": return J({"token": LIB_TOKEN, "until": int(LIB_TOKEN.split(".")[1]), "user": LIB_USER})
+        if rq.headers.get("authorization") != "Bearer " + LIB_TOKEN: return J({"error": "Sign in to the parts library first"}, 401)
+        if path == "/me": return J({"user": LIB_USER})
+        if path.startswith("/blob?kind="):
+            body = rq.post_data
+            if not (body.startswith('{"content":"0M8R4KGxGuE') and body.endswith('","encoding":"base64"}')): return J({"error": "That is not a library"}, 400)
+            sha = f"{lib['n']:040x}"; lib["n"] += 1
+            lib["blobs"][sha] = _b64l.b64decode(json.loads(body)["content"])
+            return J({"sha": sha, "pass": "pass-" + sha})
+        if path == "/publish":
+            body = json.loads(rq.post_data); lib["sent"] = body
+            key = re.sub(r"[^A-Z0-9]", "", body["record"]["mpn"].upper())
+            had = lib["parts"].get(key)
+            LIB_USER["name"] = body.get("name", LIB_USER["name"])
+            entry = {"key": key, "mpn": body["record"]["mpn"], "status": "unverified", "by": LIB_USER["id"], "name": LIB_USER["name"], "published": "2026-11-20T12:00:00.000Z", "revision": (had["entry"]["revision"] + 1 if had else 1), "licence": "CC0-1.0", "app": body.get("app", "")}
+            commit = f"{lib['n']:040x}"; lib["n"] += 1
+            lib["parts"][key] = {"entry": entry, "commit": commit, "files": {"part.json": json.dumps(body["record"]).encode(), "symbol.SchLib": lib["blobs"][body["symbol"]["sha"]], "footprint.PcbLib": lib["blobs"][body["footprint"]["sha"]]}}
+            return J({"ok": True, "entry": entry, "commit": commit, "url": f"https://github.com/o/parts/tree/main/parts/{key[:2]}/{key}"})
+        return J({"error": "Not here"}, 404)
+    pg.route("https://konium.app/api/library/**", lib_route)
+    pg.goto(URL); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(1200)
+    pg.evaluate("window.konium.prefs.set({ openHomePage: false })")
+    pg.evaluate("window.konium.run('file.openDemo')"); pg.wait_for_timeout(2500)
+    pg.evaluate("window.konium.run('parts.panel')"); pg.wait_for_timeout(700)
+    pin = pg.locator("button[aria-label='Pin Parts']")
+    if pin.count(): pin.first.click(); pg.wait_for_timeout(500)
+    pp = pg.locator(".parts-panel")
+    pp.locator(".btn", has_text="Add the Example Part").click(); pg.wait_for_timeout(900)
+    card0 = pp.locator(".parts-card").inner_text()
+    note = pp.locator(".parts-note").inner_text()
+    asked0 = list(lib["calls"])
+    # The window: what goes and what does not, and nothing but the service's own word asked for by opening it
+    pp.get_by_role("button", name="Publish to the World Library").click()
+    pub = pg.locator(".dlg.pubpart")
+    pub.locator(".pub-goes").wait_for(timeout=10000); pg.wait_for_timeout(200)
+    goes = pub.locator(".pub-goes li").all_inner_texts()
+    said = pub.inner_text()
+    go = pub.locator(".dlg-foot .btn", has_text="Publish")
+    shot(pg, "201-publish.png")
+    check(f"World library (26.201): a part of the shelf says 'On your shelf only'; nothing is asked of the library before a press ({asked0}); Publish to the World Library opens a window that asks only whether the library is there ({lib['calls']}) and says what goes ({[g.splitlines()[0] for g in goes]}), that nothing of the designs does, and where the address is kept; Publish waits for a sign-in ('{go.get_attribute('title')}')",
+          "On your shelf only" in card0 and "not published" in card0 and "goes to the world library when you publish it" in note and asked0 == [] and lib["calls"] == ["GET /config"]
+          and [g.splitlines()[0] for g in goes] == ["Its record", "Its symbol", "Its footprint, with its 3D body", "Its datasheet's link and fingerprint"] and all(re.search(r"\d (KB|bytes)$", g) for g in goes[:3])
+          and "Nothing of your designs goes" in said and "never published" in said and "CC0 1.0 Universal" in said and go.is_disabled() and go.get_attribute("title") == "Sign in first"
+          and pub.locator(".dlg-foot a", has_text="The library's repository").get_attribute("href") == "https://github.com/o/parts")
+    # Signing in: the link is asked for, the window waits and carries on by itself once it is confirmed
+    pub.locator("#pub-email").fill("Ada@Example.org")
+    pub.locator(".btn", has_text="Send the Link").click()
+    pub.locator(".pub-wait").wait_for(timeout=5000)
+    waiting = pub.locator(".pub-wait").inner_text()
+    shot(pg, "201-waiting.png")
+    pub.locator(".pub-who").wait_for(timeout=10000)
+    who = pub.locator(".pub-who").inner_text()
+    still = go.get_attribute("title")
+    pub.locator("#pub-name").fill("Ada L.")
+    pub.locator(".pub-agree input").check(); pg.wait_for_timeout(150)
+    shot(pg, "201-signed.png")
+    ready = go.is_enabled()
+    n_before = len(lib["calls"])
+    go.click()
+    pub.locator(".pub-done").wait_for(timeout=10000)
+    done = pub.locator(".pub-done").inner_text()
+    link = pub.locator(".pub-done a").get_attribute("href")
+    shot(pg, "201-published.png")
+    sent = lib["sent"]
+    check(f"…signing in: a link is asked for the address typed ('{lib['mail']}'), the window waits ('{waiting[:60]}…') and carries on once it is confirmed ('{who}'); Publish then waits for the agreement ('{still}'), and with it sends the two libraries and then the record ({lib['calls'][n_before:]}), signed, with the licence ({sent.get('licence')}), the name to show ({sent.get('name')}) and nothing but a record's fields ({sorted(sent.get('record', {}).keys())}); '{done.splitlines()[0]}'",
+          lib["mail"] == "ada@example.org" and "A link is on its way to ada@example.org" in waiting and "within 15 minutes" in waiting and "ada@example.org" in who and "contributor k-0123abcd" in who
+          and still == "Tick the agreement first" and ready and lib["calls"][n_before:] == ["POST /blob?kind=symbol", "POST /blob?kind=footprint", "POST /publish"] and all(a == "Bearer " + LIB_TOKEN for a in lib["auth"][n_before:])
+          and sent.get("licence") == "CC0-1.0" and sent.get("name") == "Ada L." and re.fullmatch(r"26\.\d+", sent.get("app", "")) is not None
+          and sorted(sent["record"].keys()) == ["datasheet", "description", "device", "format", "made", "maker", "mpn", "package", "pins", "symbol"]
+          and "KD-EX1833-SO8 is in the world library" in done and "Unverified" in done and link == "https://github.com/o/parts/tree/main/parts/KD/KDEX1833SO8")
+    pub.locator(".dlg-foot .btn", has_text="Close").click(); pg.wait_for_timeout(300)
+    card1 = pp.locator(".parts-card").inner_text()
+    again = pp.get_by_role("button", name="Publish Again").count()
+    mark = pp.locator(".parts-row .pm-world").get_attribute("title") if pp.locator(".parts-row .pm-world").count() else ""
+    kept_note = pg.evaluate("window.konium.parts()[0].library")
+    shot(pg, "201-shelf.png")
+    # Somebody else's shelf: the number looked up, the part shown with the library's note and its checks, and kept
+    pp.get_by_role("button", name="Remove").click(); pg.wait_for_timeout(300)
+    pp.get_by_label("Part number").fill("kd-ex1833 so8"); pg.wait_for_timeout(300)
+    callout = pp.locator(".parts-callout").inner_text()
+    n_before = len(lib["calls"])
+    shot(pg, "201-look.png")
+    pp.locator(".btn", has_text="Look in the World Library").click()
+    pp.locator(".parts-found").wait_for(timeout=10000); pg.wait_for_timeout(200)
+    found = pp.locator(".parts-found").inner_text()
+    chip = pp.locator(".parts-found .pub-status").get_attribute("title")
+    looked = lib["calls"][n_before:]
+    shot(pg, "201-found.png")
+    pp.locator(".btn", has_text="Keep on My Shelf").click(); pg.wait_for_timeout(600)
+    back = pg.evaluate("window.konium.parts()")
+    card2 = pp.locator(".parts-card").inner_text() if pp.locator(".parts-card").count() else ""
+    commit = lib["parts"]["KDEX1833SO8"]["commit"]
+    check(f"…the shelf's copy carries the library's note ({kept_note and kept_note['status']}, by {kept_note and kept_note['name']}; its row's mark: '{mark}'; Publish Again: {again}). Off the shelf and looked up ('{callout.splitlines()[0]}'): the number alone is asked about, then its three files at the library's commit ({[l.split('?')[0] for l in looked]}); the part is shown as {chip.split(':')[0] if chip else ''} with who published it and its checks, and Keep on My Shelf puts it back ({[p['mpn'] for p in back]})",
+          kept_note is not None and kept_note["status"] == "unverified" and kept_note["name"] == "Ada L." and kept_note["by"] == "k-0123abcd" and "In the world library" in card1 and "published by Ada L." in card1 and "CC0 1.0 Universal" in card1
+          and mark == "In the world library: Unverified" and again == 1 and "kd-ex1833 so8 is not on your shelf." in callout and "sends this part number" in callout and pp.get_by_role("button", name="Build It").count() == 0
+          and looked == ["GET /part/KDEX1833SO8"] + [f"GET /part/KDEX1833SO8/{n}?c={commit}" for n in ("part.json", "symbol.SchLib", "footprint.PcbLib")] and all(a == "" for a in lib["auth"][n_before:n_before + 4])
+          and "Unverified" in found and "published by Ada L." in found and "Konium (example)" in found and "Every one of its 8 pins has its pad, and every pad its pin" in found and (chip or "").startswith("Unverified: as its author published it")
+          and [p["mpn"] for p in back] == ["KD-EX1833-SO8"] and back[0]["library"] == kept_note and back[0]["pins"] == sent["record"]["pins"] and "In the world library" in card2)
+    # A number the library has not: built instead. The sign-in is kept in this browser until Sign Out. With network activity off the library is not offered at all
+    pp.get_by_label("Part number").fill("AB123D"); pg.wait_for_timeout(300)
+    pp.locator(".btn", has_text="Look in the World Library").click()
+    pp.locator(".parts-callout .btn", has_text="Build It").wait_for(timeout=10000)
+    none = pp.locator(".parts-callout").inner_text()
+    shot(pg, "201-none.png")
+    pp.get_by_label("Part number").fill(""); pg.wait_for_timeout(200)
+    pp.locator(".parts-row").first.click(); pg.wait_for_timeout(200)
+    kept_session = pg.evaluate("JSON.parse(localStorage.getItem('konium.library.session') || 'null')")
+    pp.get_by_role("button", name="Publish Again").click()
+    pub.locator(".pub-who").wait_for(timeout=10000); pg.wait_for_timeout(300)
+    name_again = pub.locator("#pub-name").input_value()
+    pg.evaluate("window.konium.prefs.set({ theme: 'dark' })"); pg.wait_for_timeout(400)
+    shot(pg, "201-publish-dark.png")
+    pub.get_by_role("button", name="Sign Out").click(); pg.wait_for_timeout(300)
+    out_field = pub.locator("#pub-email").count()
+    out_kept = pg.evaluate("localStorage.getItem('konium.library.session')")
+    pub.locator(".dlg-foot .btn", has_text="Cancel").click(); pg.wait_for_timeout(200)
+    shot(pg, "201-shelf-dark.png")
+    pg.evaluate("window.konium.prefs.set({ theme: 'light' })"); pg.wait_for_timeout(300)
+    n_before = len(lib["calls"])
+    pg.evaluate("window.konium.prefs.set({ offline: true })"); pg.wait_for_timeout(300)
+    pp.get_by_label("Part number").fill("ZZ9999"); pg.wait_for_timeout(300)
+    off = pp.locator(".parts-callout").inner_text()
+    check(f"…a number the library has not ('{none.splitlines()[0]}') is offered to the Component Builder. The sign-in is kept in this browser ({kept_session and kept_session['user']['id']}; the window opens signed in, the name there: '{name_again}') until Sign Out (the address is asked for again: {out_field}; kept: '{out_kept}'). With network activity off the library is not offered ('{off.splitlines()[-1]}') and nothing is asked ({lib['calls'][n_before:]})",
+          "AB123D is not in the world library yet." in none and "Publish it afterwards" in none and kept_session is not None and kept_session["token"] == LIB_TOKEN and kept_session["user"]["id"] == "k-0123abcd" and name_again == "Ada L."
+          and out_field == 1 and out_kept == "" and "ZZ9999 is not on your shelf." in off and "Look in the World Library" not in off and off.rstrip().endswith("Build It") and lib["calls"][n_before:] == [])
+    # In the release itself the connection is not in the list (the feature is planned); with every feature on it is
+    pg.evaluate("window.konium.prefs.set({ offline: false })")
+    pg.goto(URL); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(1000)
+    pg.evaluate("window.konium.run('help.about')"); pg.wait_for_timeout(600)
+    rows_all = pg.locator(".about-net tbody tr").all_inner_texts()
+    pg.goto(URL.replace("&features=all", "")); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(1000)
+    pg.evaluate("window.konium.run('help.about')"); pg.wait_for_timeout(600)
+    rows_rel = pg.locator(".about-net tbody tr").all_inner_texts()
+    lib_row = next((r for r in rows_all if r.startswith("World parts library")), "")
+    check(f"…About's list of connections: with every feature on, {len(rows_all)} rows, the world library's among them ('{lib_row[:70]}…'); in the release itself {len(rows_rel)}, without it",
+          len(rows_all) == 17 and "github.com" in lib_row and "never published" in lib_row and "Nothing of your designs" in lib_row and len(rows_rel) == 16 and not any(r.startswith("World parts library") for r in rows_rel))
     c.close()
     b.close()
 

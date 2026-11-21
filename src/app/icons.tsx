@@ -94,6 +94,22 @@ const P: Record<string, preact.ComponentChildren> = {
   partsLink: <><path d="M9.2 2.8h4v4M13.2 2.8L7.6 8.4" /><path d="M11 9.6V13H3V5h3.4" /></>,
   /* Kept on this computer */
   partsLocal: <><rect x="3" y="7" width="10" height="7" rx="1.2" /><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" /></>,
+  /* The world library: a globe */
+  partsWorld: <><circle cx="8" cy="8" r="6" /><path d="M2 8h12" /><path d="M8 2c2.3 2.2 2.3 9.8 0 12M8 2c-2.3 2.2-2.3 9.8 0 12" stroke-width="1.1" /></>,
+  /* Publish: up and out of the tray */
+  partsPublish: <><path d="M8 10.4V2.6M5.2 5.4L8 2.6l2.8 2.8" /><path d="M2.6 10v2.6a1 1 0 0 0 1 1h8.8a1 1 0 0 0 1-1V10" /></>,
+  /* Keep on the shelf: down onto it */
+  partsKeep: <><path d="M8 2.2v7.4M5.2 6.8L8 9.6l2.8-2.8" /><path d="M2.5 13.2h11" /></>,
+  /* A sign-in link by mail: an envelope */
+  partsMail: <><rect x="2" y="3.5" width="12" height="9" rx="1.2" /><path d="M2.6 4.6L8 9l5.4-4.4" /></>,
+  /* Sign out: the way out of a door */
+  partsSignOut: <><path d="M6.5 2.5h-3v11h3" /><path d="M7 8h6.5M11 5.5L13.5 8 11 10.5" /></>,
+  /* A part's symbol: a gate with its pins */
+  partsSymbol: <><path d="M5 3v10l7-5z" /><path d="M2 5.6h3M2 10.4h3M12 8h2.4" /></>,
+  /* A part's footprint: its pads around the body's outline */
+  partsFootprint: <><rect x="5.2" y="3.4" width="5.6" height="9.2" rx="0.6" stroke-width="1" /><path d="M2 5h2.4M2 8h2.4M2 11h2.4M11.6 5H14M11.6 8H14M11.6 11H14" stroke-width="1.8" stroke-linecap="butt" /></>,
+  /* The one signed in */
+  partsUser: <><circle cx="8" cy="5.4" r="2.6" /><path d="M2.8 13.6c.6-2.6 2.6-4 5.2-4s4.6 1.4 5.2 4" /></>,
   /* The planning panels (Layout Planner, Smart Router, Plan, Place and Route): each action its own glyph */
   kpBoard: <><rect x="2" y="3" width="12" height="10" rx="1.5" /><path d="M5 6.2h3.2l2.6 3.6" stroke-width="1.1" /><circle cx="5" cy="6.2" r="1" fill="currentColor" stroke="none" /><circle cx="10.8" cy="9.8" r="1" fill="currentColor" stroke="none" /></>,
   /* What goes out to the model: a paper dart */

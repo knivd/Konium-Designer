@@ -5,13 +5,17 @@
  * The field at the top searches the shelf as it is typed in (Enter opens the first match). A
  * number that isn't on the shelf is offered to the Component Builder, which finds its datasheet
  * from the number and keeps the part from there. A part is placed in the schematic in front, goes
- * out as an integrated library or as a part file, and comes in as a part file. Everything stays
- * on this computer: sharing through the world library is the next step, and the panel says so.
+ * out as an integrated library or as a part file, and comes in as a part file.
+ *
+ * The world library (step 2): a number that isn't on the shelf is looked up there at a press (the
+ * number is all that goes); a part found is shown with the library's note about it (its state,
+ * who published it) and what its checks say here, and is kept on the shelf at a second press. A
+ * part of the shelf is published from its card. Nothing is asked of the library before a press.
  *
  * Made in the manner of the enclosure view's side panel: a head with its tools as icons, rows
  * with their state at the end, facts in one aligned column, checks with their marks.
  */
-import { useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { active, notify } from '../state';
 import { Icon } from '../icons';
 import { showDialog } from '../dialogs';
@@ -27,6 +31,11 @@ import { PART_EXT, SHELF_SCH, partChecks, partFile, partIntLib, partKey, partNam
 import { EXAMPLE_PART, examplePart } from '../../model/partExample';
 import { keepPart, removePart, shelf, shelfPart } from '../partShelf';
 import { webLink } from '../../core/webLink';
+import { mayConnect } from '../../platform/network';
+import { findInLibrary, type FoundPart } from '../../platform/libraryService';
+import { LICENCE_NAME, STATUS_NAMES, type LibraryEntry } from '../../model/worldLibrary';
+import { PublishPartDialog } from '../dialogs/PublishPart';
+import { keepFound, librarySession } from '../worldLibrary';
 
 const FROM: Record<PartPackage['record']['package']['from'], string> = { datasheet: 'the datasheet\'s land pattern', ipc: 'pads by IPC-7351B', drawn: 'drawn by hand' };
 const pages = (n: number[]) => (n.length ? `page${n.length > 1 ? 's' : ''} ${n.join(', ')}` : '');
@@ -54,6 +63,23 @@ export function addExamplePart(): void {
 const worst = (c: PartCheck[]): PartCheck['level'] => (c.some((x) => x.level === 'error') ? 'error' : c.some((x) => x.level === 'warning') ? 'warning' : 'note');
 const MARK: Record<PartCheck['level'], { icon: string; label: string }> = { note: { icon: 'partsOk', label: 'Its checks pass' }, warning: { icon: 'warn', label: 'Its checks have something to say' }, error: { icon: 'warn', label: 'Its checks find a fault' } };
 
+/** Who published a part, as the library shows it: the name chosen, or the contributor's number. */
+const byOf = (e: LibraryEntry) => e.name || e.by || 'someone unnamed';
+/** The library's note in a line: by whom, which revision, when. */
+const noteOf = (e: LibraryEntry) => [`published by ${byOf(e)}`, e.revision > 1 ? `revision ${e.revision}` : '', e.published.slice(0, 10)].filter(Boolean).join(' · ');
+/** What the three states mean, for the chip's tooltip. */
+const STATUS_HINT: Record<LibraryEntry['status'], string> = {
+  unverified: 'Unverified: as its author published it. Nobody else has checked it yet, so check it against the datasheet yourself',
+  confirmed: 'Confirmed: others have checked it against its datasheet',
+  proven: 'Proven: it has been built on boards that work',
+};
+export function StatusChip({ entry }: { entry: LibraryEntry }) {
+  return <span class={`pub-status ps-${entry.status}`} title={STATUS_HINT[entry.status]}>{STATUS_NAMES[entry.status]}</span>;
+}
+
+/** A look in the world library for the number typed: under way, nothing there, found, or refused. */
+type Look = { key: string } & ({ state: 'busy' } | { state: 'none' } | { state: 'found'; found: FoundPart } | { state: 'error'; text: string });
+
 export function PartsPanel() {
   const parts = shelf.value;
   const [typed, setTyped] = useState('');
@@ -63,6 +89,10 @@ export function PartsPanel() {
   const checksOf = useMemo(() => new Map(parts.map((p) => [p, partChecks(p)])), [parts]);
   const picked = (open && shelfPart(open)) || null;
   const sch = active.value?.editor instanceof SchEditor;
+  const [look, setLook] = useState<Look | null>(null);
+  const me = librarySession.value?.user.id ?? '';
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
 
   // The shelf as the field narrows it: by part number first, then by maker, package and description
   const key = partKey(typed), words = typed.trim().toLowerCase();
@@ -72,6 +102,24 @@ export function PartsPanel() {
   /** The part open below the list: not one the field has narrowed away. */
   const sel = picked && shown.includes(picked) ? picked : null;
 
+  /** What the world library said of the number typed (nothing yet when another number was asked about). */
+  const seen = missing && look && look.key === key ? look : null;
+  const canLook = mayConnect('library');
+  const lookUp = async () => {
+    if (!missing) return;
+    const asked = key;
+    setLook({ key: asked, state: 'busy' });
+    let next: Look;
+    try { const found = await findInLibrary(missing); next = found ? { key: asked, state: 'found', found } : { key: asked, state: 'none' }; } catch (e) { next = { key: asked, state: 'error', text: (e as Error).message }; }
+    if (alive.current) setLook((now) => (now && now.key === asked ? next : now));
+  };
+  const keep = () => {
+    if (seen?.state !== 'found') return;
+    const p = seen.found.part;
+    const had = keepFound(seen.found);
+    setLook(null); setTyped(''); setOpen(p.record.mpn);
+    notify(had ? `${p.record.mpn} was on your shelf: replaced by the world library's` : `${p.record.mpn} added to your shelf from the world library`);
+  };
   const build = () => showDialog(AiBuilderDialog, { part: missing });
   const place = () => {
     if (!sel) return;
@@ -100,6 +148,11 @@ export function PartsPanel() {
   const example = () => { addExamplePart(); setTyped(''); setOpen(EXAMPLE_PART.mpn); };
   const addFile = () => picker.current?.click();
   const r = sel?.record;
+  const lib = r?.library ?? null;
+  /** A part of one's own may be published, and published again while nobody has confirmed it; another's is theirs to change. */
+  const mayPublish = !lib || (lib.status === 'unverified' && (!me || !lib.by || lib.by === me));
+  const found = seen?.state === 'found' ? seen.found : null;
+  const faulty = !!found && found.checks.some((c) => c.level === 'error');
 
   return (
     <section class="panel docked parts-panel" aria-label="Parts">
@@ -111,13 +164,40 @@ export function PartsPanel() {
         {typed && <button type="button" class="ex-icon-btn" aria-label="Clear" title="Clear" onClick={() => { setTyped(''); field.current?.focus(); }}><Icon name="close" size={12} /></button>}
       </div>
 
-      {missing && (
+      {missing && !found && (
         <div class="parts-callout" role="status">
-          <div class="parts-callout-text">
-            <p><b>{missing}</b> is not on your shelf.</p>
-            <span>The Component Builder finds its datasheet from the number, reads it, and makes its footprint and symbol for you to check.</span>
+          <div class="parts-callout-head">
+            <p><b>{missing}</b> {seen?.state === 'none' ? 'is not in the world library yet.' : 'is not on your shelf.'}</p>
+            {canLook && seen?.state !== 'none' && <button type="button" class="ex-icon-btn" aria-label="Build It" title="Build it yourself: the Component Builder finds its datasheet from the number, reads it, and makes its footprint and symbol for you to check" onClick={build}><Icon name="partsBuild" /></button>}
           </div>
-          <button type="button" class="btn default parts-cta" onClick={build}><Icon name="partsBuild" />Build It</button>
+          {seen?.state === 'error' && <p class="parts-callout-error" role="alert">{seen.text}{/[.:!?]$/.test(seen.text) ? '' : '.'}</p>}
+          {canLook && seen?.state !== 'none' ? (<>
+            <span class="parts-callout-sub">Somebody may have made it already. Looking sends this part number to the world library at konium.app, and nothing else.</span>
+            <button type="button" class="btn default parts-cta" disabled={seen?.state === 'busy'} onClick={() => void lookUp()}><Icon name="partsWorld" />{seen?.state === 'busy' ? 'Looking...' : seen?.state === 'error' ? 'Look Again' : 'Look in the World Library'}</button>
+          </>) : (<>
+            <span class="parts-callout-sub">The Component Builder finds its datasheet from the number, reads it, and makes its footprint and symbol for you to check.{seen?.state === 'none' ? ' Publish it afterwards, and it is there for everyone.' : ''}</span>
+            <button type="button" class="btn default parts-cta" onClick={build}><Icon name="partsBuild" />Build It</button>
+          </>)}
+        </div>
+      )}
+
+      {found && (
+        <div class="parts-card parts-found" role="status">
+          <div class="parts-card-head">
+            <Icon name="partsWorld" />
+            <b title={found.part.record.mpn}>{found.part.record.mpn}</b>
+            <StatusChip entry={found.entry} />
+          </div>
+          {(found.part.record.description || found.part.record.device) && <p class="parts-desc">{found.part.record.description || found.part.record.device}</p>}
+          <dl class="parts-facts">
+            <dt>Maker</dt><dd>{found.part.record.maker || 'not said'}</dd>
+            <dt>Package</dt><dd>{found.part.record.package.name}<span class="parts-sub">{found.part.record.pins.length} pins · {FROM[found.part.record.package.from]}</span></dd>
+            <dt>Library</dt><dd>In the world library<span class="parts-sub">{noteOf(found.entry)}</span></dd>
+          </dl>
+          <ul class="parts-checks">
+            {found.checks.map((c, i) => <li key={i} class={`pm-${c.level}`}><Icon name={c.level === 'note' ? 'partsOk' : 'warn'} size={14} /><span>{c.text}</span></li>)}
+          </ul>
+          <button type="button" class="btn default parts-cta parts-place" disabled={faulty} title={faulty ? 'Its checks find a fault: not a part to keep as it is' : 'Its symbol and footprint join My Parts, to place like any other'} onClick={keep}><Icon name="partsKeep" />Keep on My Shelf</button>
         </div>
       )}
 
@@ -151,7 +231,10 @@ export function PartsPanel() {
               <li key={p.record.mpn} role="option" aria-selected={sel === p} class={`parts-row${sel === p ? ' sel' : ''}`} onClick={() => setOpen(p.record.mpn)} onDblClick={() => { setOpen(p.record.mpn); if (sch) queueMicrotask(place); }}>
                 <Icon name="part" />
                 <span class="parts-row-text"><b>{p.record.mpn}</b><span>{[p.record.maker, p.record.package.name, p.record.package.pins ? `${p.record.package.pins} pins` : ''].filter(Boolean).join(' · ')}</span></span>
-                <span class={`parts-mark pm-${level}`} title={MARK[level].label} aria-label={MARK[level].label}><Icon name={MARK[level].icon} size={14} /></span>
+                <span class="parts-marks">
+                  {p.record.library && <span class="parts-mark pm-world" title={`In the world library: ${STATUS_NAMES[p.record.library.status]}`} aria-label={`In the world library: ${STATUS_NAMES[p.record.library.status]}`}><Icon name="partsWorld" size={14} /></span>}
+                  <span class={`parts-mark pm-${level}`} title={MARK[level].label} aria-label={MARK[level].label}><Icon name={MARK[level].icon} size={14} /></span>
+                </span>
               </li>
             );
           })}
@@ -164,6 +247,9 @@ export function PartsPanel() {
           <div class="parts-card-head">
             <b title={r.mpn}>{r.mpn}</b>
             <span class="parts-tools">
+              <button type="button" class="ex-icon-btn" aria-label={lib ? 'Publish Again' : 'Publish to the World Library'} disabled={!mayPublish}
+                title={!mayPublish ? (lib!.status !== 'unverified' ? `In the world library as ${STATUS_NAMES[lib!.status]}: no longer changed by publishing again` : `In the world library, published by ${byOf(lib!)}: theirs to change`) : lib ? 'Publish this copy to the world library again, as its next revision…' : 'Publish to the world library, for everyone…'}
+                onClick={() => showDialog(PublishPartDialog, { part: sel })}><Icon name="partsPublish" /></button>
               <button type="button" class="ex-icon-btn" aria-label="Save as Integrated Library" title="Save as an integrated library, as the desktop software opens it…" onClick={() => void exportIntLib()}><Icon name="partsIntLib" /></button>
               <button type="button" class="ex-icon-btn" aria-label="Save as Part File" title="Save as a part file, for another Konium Designer to take in…" onClick={() => void exportFile()}><Icon name="partsFileOut" /></button>
               <button type="button" class="ex-icon-btn parts-del" aria-label="Remove" title="Take it off your shelf" onClick={() => { removePart(r.mpn); setOpen(null); notify(`${r.mpn} taken off your shelf`); }}><Icon name="partsRemove" /></button>
@@ -178,6 +264,10 @@ export function PartsPanel() {
             <dd>{webLink(r.datasheet.url) ? <a class="parts-link" href={webLink(r.datasheet.url)} target="_blank" rel="noopener noreferrer">{r.datasheet.title || r.datasheet.url}<Icon name="partsLink" size={12} /></a> : r.datasheet.sha256 ? 'A file given by hand (no link)' : 'None'}
               {(r.datasheet.pinPages.length > 0 || r.datasheet.packagePages.length > 0) && <span class="parts-sub">{[r.datasheet.pinPages.length ? `pins on ${pages(r.datasheet.pinPages)}` : '', r.datasheet.packagePages.length ? `package on ${pages(r.datasheet.packagePages)}` : ''].filter(Boolean).join(' · ')}</span>}</dd>
             <dt>Made</dt><dd>{r.made.at.slice(0, 10)}<span class="parts-sub">by {r.made.by || 'hand'}{r.made.app ? `, Konium Designer ${r.made.app}` : ''}</span></dd>
+            <dt>Library</dt>
+            <dd>{lib ? <span class="parts-inline">In the world library<StatusChip entry={lib} /></span> : 'On your shelf only'}
+              <span class="parts-sub">{lib ? noteOf(lib) : 'not published'}</span>
+              {lib && <span class="parts-sub">given to the public domain ({LICENCE_NAME})</span>}</dd>
           </dl>
           <ul class="parts-checks">
             {(checksOf.get(sel) ?? []).map((c, i) => <li key={i} class={`pm-${c.level}`}><Icon name={c.level === 'note' ? 'partsOk' : 'warn'} size={14} /><span>{c.text}</span></li>)}
@@ -186,7 +276,7 @@ export function PartsPanel() {
         </div>
       )}
 
-      <p class="parts-note"><Icon name="partsLocal" size={13} /><span>Kept in this browser only. The world library, where a part made once is there for everyone and is checked by others, comes in a later step.</span></p>
+      <p class="parts-note"><Icon name="partsLocal" size={13} /><span>Your shelf is kept in this browser only. A part goes to the world library when you publish it, and comes from it when you look its number up.</span></p>
     </section>
   );
 }

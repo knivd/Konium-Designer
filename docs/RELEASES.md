@@ -331,6 +331,14 @@ Step 1 as built (26.197):
 - Feature `partsLibrary` (stage 21): the panel, its commands and the builder's two buttons are planned until the release.
 - tests/parts197.test.ts (10); smoke section 26.197.
 
+Step 2 as built (the service in 26.200, the app in 26.201):
+
+- The service (cloudflare/library; not deployed yet): a part is four files in the public repository (`parts/<first two of its key>/<key>/`: part.json, library.json, symbol.SchLib, footprint.PcbLib); looking up needs no sign-in; publishing needs one (a link mailed to an address, confirmed by a press on the page it opens) and the CC0 agreement with every part; a contributor is a number made from the address (`k-` and eight characters) with the name chosen to show; the limits are in its README.
+- The app (src/platform/libraryService.ts, src/app/worldLibrary.ts): Look in the World Library for a number that is not on the shelf, the found part shown with the library's note and its checks before it is kept; Publish to the World Library from a part's card (src/app/dialogs/PublishPart.tsx); the sign-in kept in the browser until Sign Out or 90 days.
+- A part published is Unverified; its author may publish it again (the next revision) until somebody confirms it. Confirmed and Proven are read and shown already; how a part gets there is step 3.
+- Before the release: the service deployed, the mail provider named in the list of connections, the row added to the guide and the website.
+- tests/library200.test.ts (11), tests/library201.test.ts (13); smoke section 26.201.
+
 ### The open-source release (26.200)
 
 **26.200 is the first build whose source is public.** What was settled for it, and done:
