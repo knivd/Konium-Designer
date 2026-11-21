@@ -2,8 +2,10 @@
 
 (The commands are written for Windows, where `npx.cmd` is needed in PowerShell; elsewhere it is `npx`.)
 
-**Not in service yet.** The Worker and its tests are here; the program's side (looking a part up,
-signing in, publishing) comes with a later build. Nothing of this needs deploying before then.
+**Not in service yet.** The Worker and its tests are here, and from 26.201 the program's side too
+(Tools › Parts with the parts library switched on: looking a part up, signing in, publishing).
+Until this is deployed the program says that the library isn't there. Before the parts library is
+released, the list of connections in the program must name the mail provider chosen below.
 
 Parts made in Konium Designer (a symbol, a footprint and what is known of the part) can be
 published to one library for everyone and fetched by anyone who types the same part number. The

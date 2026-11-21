@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CONNECTIONS, mayConnect } from '../src/platform/network';
 import { settings } from '../src/core/settings';
+import { FEATURES, STAGE } from '../src/core/release';
 import { GUIDE_REFERENCE as REFERENCE } from '../src/help/guide/reference';
 import { GETTING_STARTED } from '../src/help/guide/gettingStarted';
 
@@ -13,11 +14,14 @@ describe('where each connection goes (26.191)', () => {
   const guide = tableOf(REFERENCE, 'ref-network');
 
   it('About and Preferences list every connection the User Guide does, with the same To and What goes', () => {
-    expect(CONNECTIONS.map((c) => c.what)).toEqual(guide.map((r) => r[0]));
+    // (a planned feature's row is in the program for whoever switches it on; the guide gets it when the feature is released)
+    const released = CONNECTIONS.filter((c) => !c.feature || FEATURES[c.feature].stage <= STAGE);
+    expect(released.map((c) => c.what)).toEqual(guide.map((r) => r[0]));
     for (const [i, r] of guide.entries()) {
-      expect(CONNECTIONS[i]!.to).toBe(plain(r[2]!));
-      expect(CONNECTIONS[i]!.sends).toBe(plain(r[3]!));
+      expect(released[i]!.to).toBe(plain(r[2]!));
+      expect(released[i]!.sends).toBe(plain(r[3]!));
     }
+    expect(CONNECTIONS.filter((c) => !released.includes(c)).map((c) => c.feature)).toEqual(['partsLibrary']);
   });
 
   it('To names who the data reaches after konium.app: OpenRouter, Digi-Key, Mouser, GitHub, and Ko-fi for the links', () => {
