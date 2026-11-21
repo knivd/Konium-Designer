@@ -1,6 +1,7 @@
 import { Logo } from './icons';
 import { GYDEL_ICON } from './gydelIcon';
-import { PLANNED_NOTE, plannedFeature } from '../core/release';
+import { PLANNED_NOTE, featureOn, plannedFeature } from '../core/release';
+import { live } from './liveSim';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { commands, scopeIncludes, type Scope } from '../core/commands';
 import type { AccelNode, ChainState } from '../core/keymap';
@@ -88,6 +89,13 @@ export function MenuBar({ scope: own, od }: { scope?: MenuScope; od?: OpenDoc | 
       {settings.offline && (
         <button class="menubar-chip offline" title="Network activity is off: Konium Designer makes no connections (Preferences › System › Network Activity)"
           onClick={() => { prefsPage.value = 'sys-network'; showPrefs.value = true; }}>Offline</button>
+      )}
+      {featureOn('live') && (
+        <button class={`menubar-chip live${live.value ? ' on' : ''}`} aria-label="Live Simulation" aria-pressed={live.value ? true : undefined}
+          title={live.value ? `Live Simulation is running ${live.value.sheet}: bring it in front` : 'Live Simulation: the schematic in front runs as a circuit while you draw it, and nothing on it is changed by running it. With no schematic in front, a new circuit is opened'}
+          onClick={() => commands.run('live.open', scope)}>
+          <ColourIcon name="liveSim" size={14} /><span>Live Simulation</span>
+        </button>
       )}
       {canGet() && (
         <button class="menubar-chip get" title="Install Konium Designer: a window of its own, without the browser's address bar and buttons, that runs without a connection (or download it as one file)" onClick={() => commands.run('help.getKonium', scope)}>
@@ -269,6 +277,7 @@ function item(c: AccelNode, i: number, depth: number, scope: Scope, next: AccelN
         role="menuitem"
         class={`menu-item${live ? '' : ' disabled'}${cmd?.planned ? ' planned' : ''}${isOpen ? ' open' : ''}`}
         data-label={c.label}
+        data-cmd={c.command}
         aria-haspopup={c.children ? 'menu' : undefined}
         disabled={!live && !cmd?.planned}
         title={cmd?.planned ? PLANNED_NOTE : undefined}

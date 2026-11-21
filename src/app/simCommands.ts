@@ -26,7 +26,7 @@ import { defaultChart, type SimDataDocument } from '../sim/simData';
 import { pickFileHandle, pickTextFile, saveFileAs } from '../platform/fs';
 import { showPanel } from './dock/store';
 import { textTarget } from './textTarget';
-import { addNewDocument, freshName, openBatch } from './actions';
+import { addNewDocument, cmdNewDocument, freshName, openBatch } from './actions';
 import { LIVE_EXAMPLES, liveExampleBytes, liveExampleFile } from './liveExamples';
 import { LiveExamplesDialog } from './dialogs/LiveExamples';
 import { newSimText, writeSimText } from '../sim/simText';
@@ -34,7 +34,7 @@ import { placePart } from './placeCommands';
 import { partRecords } from '../model/schPlace';
 import { setSimParam } from '../model/simModels';
 import { SIM_SOURCES_LIB, simSourceSymbols } from '../formats/synthetic/simLib';
-import { againLive, contextDrop, contextKept, contextReads, contextTake, holdLive, live, resetScopes, setLiveSpeed, startLive, stepLiveSpeed, stopLive } from './liveSim';
+import { againLive, contextDrop, contextKept, contextReads, contextTake, holdLive, live, liveSheet, liveSymbols, resetScopes, setLiveSpeed, startLive, stepLiveSpeed, stopLive } from './liveSim';
 import { featureOn } from '../core/release';
 import { selectionSketch, sketchNote } from './liveSelection';
 import { writeSchDoc } from '../formats/altium/schdoc';
@@ -236,6 +236,9 @@ export function simCommands(): Command[] {
     { id: 'live.panel', label: 'Live Simulation', scopes: SCH, run: () => { if (!live.value) { showPanel('liveScope'); startLive(); } showPanel('liveSim'); }, enabled: () => !!sch() },
     { id: 'live.scope', label: 'Live Scope', scopes: SCH, run: () => showPanel('liveScope'), enabled: () => !!sch() },
     { id: 'live.examples', label: 'Live Simulation Examples...', run: () => showDialog(LiveExamplesDialog, { onOk: openLiveExample }) },
+    // From anywhere (the menu bar's button): the running sheet brought in front, else the schematic in front run, else a new circuit
+    { id: 'live.open', label: 'Live Simulation', run: openLive },
+    { id: 'live.new', label: 'New Live Simulation Circuit', run: newLiveCircuit },
     { id: 'live.selection', label: 'Run the Selection as a Sketch', scopes: SCH, run: runSelection, enabled: () => { const ed = sch(); return !!ed && ed.selectedIndices().some((i) => ed.doc.objects[i]?.kind === 'component'); } },
     // The right-click menu of a running sheet: what was right-clicked (a wire, a pin, a two-pin part) watched
     { id: 'live.monitorWithContext', label: 'Monitor Here', scopes: SCH, run: () => { contextTake('monitor'); }, enabled: contextReads },
@@ -426,7 +429,7 @@ export function openLiveExample(id: string): void {
   const ex = LIVE_EXAMPLES.find((e) => e.id === id);
   if (!ex) return;
   const name = liveExampleFile(ex), find = () => docs.value.find((d) => d.name === name && !d.projectId);
-  if (!find()) openBatch([{ name, bytes: liveExampleBytes(ex) }]);
+  if (!find()) openBatch([{ name, bytes: liveExampleBytes(ex, liveSymbols.value) }]);
   const d = find();
   if (!d) return;
   activeId.value = d.id;
@@ -471,8 +474,32 @@ function runSelection(): void {
   });
 }
 
+/** A blank sheet of its own for a sketch (in no project), running, with the palette beside it. Nothing that is open is touched. */
+export function newLiveCircuit(): void {
+  cmdNewDocument('SchDoc', null);
+  const d = active.value;
+  if (!d || !sch()) return;
+  stopLive();
+  resetScopes();
+  requestAnimationFrame(() => {
+    if (active.value?.id !== d.id) return;
+    showPanel('liveScope');
+    startLive();
+    showPanel('liveSim');
+  });
+}
+/** Live Simulation from anywhere: the sheet that runs brought in front; else the schematic in front run as it is; else a new circuit. */
+export function openLive(): void {
+  const running = liveSheet(), at = running && docs.value.find((d) => d.editor === running);
+  if (at) { activeId.value = at.id; requestAnimationFrame(() => showPanel('liveSim')); return; }
+  if (!sch()) { newLiveCircuit(); return; }
+  showPanel('liveScope');
+  startLive();
+  showPanel('liveSim');
+}
+
 /** Design › Simulate: the project's simulators (Mixed Sim, Live Simulation and its examples). */
-registerMenuProvider('@simulators', (): AccelNode[] => [{ key: 'M', label: 'Mixed Sim', command: 'sim.mixedSim' }, ...(featureOn('live') ? [{ key: 'L', label: 'Live Simulation', command: 'live.panel' }, { key: 'E', label: 'Live Simulation Examples...', command: 'live.examples' }, { key: 'S', label: 'Run the Selection as a Sketch', command: 'live.selection' }] : [])]);
+registerMenuProvider('@simulators', (): AccelNode[] => [{ key: 'M', label: 'Mixed Sim', command: 'sim.mixedSim' }, ...(featureOn('live') ? [{ key: 'L', label: 'Live Simulation', command: 'live.panel' }, { key: 'N', label: 'New Live Simulation Circuit', command: 'live.new' }, { key: 'E', label: 'Live Simulation Examples...', command: 'live.examples' }, { key: 'S', label: 'Run the Selection as a Sketch', command: 'live.selection' }] : [])]);
 
 /** Open documents a run made (for tests). */
 export const simDocs = () => docs.value.filter((d) => d.doc.kind === 'SimData' || d.doc.kind === 'SimText');

@@ -6,11 +6,13 @@
 import { useMemo, useRef, useState } from 'preact/hooks';
 import { active, activeScope, tick } from '../state';
 import { SchEditor } from '../../editors/sch/SchEditor';
-import { LIVE_GROUPS, LIVE_PARTS, LIVE_SPEEDS, againLive, clearProbes, endLiveDrag, holdLive, live, liveAudio, liveFields, livePartSymbol, liveReadables, liveSolve, placeLivePart, scope, setLiveField, setLiveSpeed, setLiveZero, setSketchKeys, setSound, si, sketchKeys, sound, spiceText, startLive, stepLiveSpeed, stopLive, voltColour, type LiveField } from '../liveSim';
+import { LIVE_GROUPS, LIVE_PARTS, LIVE_SPEEDS, SYMBOL_STYLES, liveSymbols, setLiveSymbols, againLive, clearProbes, endLiveDrag, holdLive, live, liveAudio, liveFields, livePartSymbol, liveReadables, liveSolve, placeLivePart, scope, setLiveField, setLiveSpeed, setLiveZero, setSketchKeys, setSound, si, sketchKeys, sound, spiceText, startLive, stepLiveSpeed, stopLive, voltColour, type LiveField } from '../liveSim';
 import { SymbolPreview } from '../dialogs/PlacePart';
 import { isSpiceNumber, spiceNumber } from '../../sim/num';
 import { commands } from '../../core/commands';
 import { RATING_PARAMS } from '../../sim/liveStress';
+import type { SymbolStyle } from '../../formats/synthetic/simLib';
+import { Tool } from './kv';
 
 /**
  * Solve for a value: one of the selected part's values found so that something the running sheet reads (a meter, a
@@ -131,7 +133,7 @@ function Palette({ enabled, keys }: { enabled: boolean; keys: boolean }) {
   const tile = (id: string, label: string, caption: string, hint: string, key: string | undefined, art: preact.ComponentChildren, go: () => void) => (
     <button key={id} class="live-tile" disabled={!enabled} title={`${hint}${keys ? keyHint(key) : ''}`} aria-label={label} onClick={go}>
       <span class="live-art">{art}{keys && key && <kbd class="live-key">{key}</kbd>}</span>
-      <span class="live-cap">{caption}</span>
+      <span class={`live-cap${caption.length > 10 ? ' long' : ''}`}>{caption}</span>
     </button>
   );
   return (
@@ -161,12 +163,24 @@ export function LivePanel() {
   if (!sheet && !st) return <p class="panel-empty">Bring a schematic sheet in front to run it live.</p>;
   const part = sheet ? liveFields() : null;
   const keys = sketchKeys.value;
-  const palette = useMemo(() => <Palette enabled={sheet} keys={keys} />, [sheet, keys]);
+  const style = liveSymbols.value;
+  const palette = useMemo(() => <Palette enabled={sheet} keys={keys} />, [sheet, keys, style]);
+  const go = (command: string) => () => void commands.run(command, activeScope.value);
+  const name = sheet ? active.value!.name : st?.sheet ?? '';
   const watched = scope.value.kept.length;
   const behind = !!st && st.running && !st.error && st.pace > 0 && st.pace < st.speed * 0.8;
   const audio = st ? liveAudio() : 0;
   return (
     <div class="panel-body powerpanel livepanel">
+      <div class="kv-head live-head">
+        <h4 title={`${name}: a circuit is a schematic sheet, saved and opened as one`}>{name}</h4>
+        <span class="kv-tools">
+          <Tool icon="liveNew" label="New Circuit" title="New circuit: a blank sheet of its own for a sketch. What is open stays as it is" onClick={go('live.new')} />
+          <Tool icon="liveOpen" label="Open a Circuit" title="Open a circuit: any schematic file (a circuit is saved as one)" onClick={go('file.open')} />
+          <Tool icon="save" label="Save the Circuit" title="Save this circuit as a schematic file (Ctrl+S): its monitors and scopes are kept with it" disabled={!sheet} onClick={go('file.save')} />
+          <Tool icon="liveExamples" label="Examples" title="Examples: circuits that run as they open, each a document of its own" onClick={go('live.examples')} />
+        </span>
+      </div>
       <div class="pw-run">
         {st
           ? <button class="btn default" onClick={stopLive}>Stop</button>
@@ -239,6 +253,13 @@ export function LivePanel() {
           <button class="btn" onClick={() => void commands.run('live.examples', activeScope.value)}>Examples...</button>
           <button class="btn" disabled={!commands.get('live.selection')?.enabled?.()} title="What is selected on this sheet goes to a schematic of its own and runs there, with rails for the supplies its power ports name: a part of a design on the bench"
             onClick={() => void commands.run('live.selection', activeScope.value)}>Run the Selection</button>
+        </div>
+        <div class="pw-field" title="How resistors, capacitors and inductors are drawn. Changing it redraws those of this sheet (Undo brings them back): each keeps its place, its values and its wires">
+          <span>Symbols</span>
+          <select aria-label="Symbols" value={style} onChange={(e) => setLiveSymbols((e.target as HTMLSelectElement).value as SymbolStyle)}>
+            {SYMBOL_STYLES.map(([id, label, hint]) => <option key={id} value={id} title={hint}>{label}</option>)}
+          </select>
+          <span />
         </div>
         <label class="live-keys" title="While the sheet runs, a key places its part (R a resistor, C a capacitor, W a wire and so on) in place of the menu it opens otherwise">
           <input type="checkbox" checked={keys} onChange={(e) => setSketchKeys((e.target as HTMLInputElement).checked)} /> Keys place parts

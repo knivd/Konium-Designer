@@ -94,6 +94,10 @@ const P: Record<string, preact.ComponentChildren> = {
   partsLink: <><path d="M9.2 2.8h4v4M13.2 2.8L7.6 8.4" /><path d="M11 9.6V13H3V5h3.4" /></>,
   /* Kept on this computer */
   partsLocal: <><rect x="3" y="7" width="10" height="7" rx="1.2" /><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" /></>,
+  /* Live Simulation's panel: a new circuit (a sheet and a plus), open one (a folder), the examples (four tiles) */
+  liveNew: <><path d="M3 1.8h5.5l3 3v3" /><path d="M8.5 1.8v3h3" stroke-width="1.1" /><path d="M3 1.8v12.4h4.5" /><path d="M11.5 10v5M9 12.5h5" /></>,
+  liveOpen: <><path d="M1.8 12.8V3.2h4l1.4 1.5h5.6v2" /><path d="M1.8 12.8l1.9-5.6h10.6l-1.9 5.6z" /></>,
+  liveExamples: <><rect x="2" y="2" width="5" height="5" rx="1" /><rect x="9" y="2" width="5" height="5" rx="1" /><rect x="2" y="9" width="5" height="5" rx="1" /><rect x="9" y="9" width="5" height="5" rx="1" /></>,
   /* The world library: a globe */
   partsWorld: <><circle cx="8" cy="8" r="6" /><path d="M2 8h12" /><path d="M8 2c2.3 2.2 2.3 9.8 0 12M8 2c-2.3 2.2-2.3 9.8 0 12" stroke-width="1.1" /></>,
   /* Publish: up and out of the tray */

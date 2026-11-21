@@ -26,6 +26,8 @@
   --input-line: #a9a9a9;
   --btn-a: #fcfcfc; --btn-b: #e3e3e3; --btn-line: #9f9f9f;
   --err: #c42b1c; --warn: #a86400; --ok: #2e7d32; --info: #2a6fbb;
+  /* Live Simulation's own colour, where it is offered (26.202): a dark red, lighter where the surface is dark */
+  --live: #a3161a;
   --shadow: 0 6px 22px rgba(0, 0, 0, 0.28);
   --gold: #b8860b;
   color-scheme: light;
@@ -51,6 +53,7 @@
   --input-line: #2c463d;
   --btn-a: #22382f; --btn-b: #1a2b27; --btn-line: #2c463d;
   --err: #e5484d; --warn: #e0a43a; --ok: #6cc08b; --info: #9aaea6;
+  --live: #ff8a80;
   --shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
   --gold: #d2b04c;
   color-scheme: dark;
@@ -452,6 +455,15 @@ body.dock-dragging, body.dock-dragging * { cursor: move !important; user-select:
 .menubar-chip:hover { background: var(--hover); }
 .menubar-chip.update { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 /* Offline: a grey chip, its word in white (blue on grey read as a plain bar); a shade darker under the mouse */
+.menubar-chip.live { border-color: var(--live); background: color-mix(in srgb, var(--live) 8%, transparent); color: var(--live); }
+.menubar-chip.live:hover { background: color-mix(in srgb, var(--live) 18%, transparent); }
+.menubar-chip.live.on { background: var(--live); color: var(--panel, #fff); }
+.menubar-chip.live.on:hover { background: color-mix(in srgb, var(--live) 86%, #000); }
+@media (max-width: 1180px) { .menubar-chip.live span { display: none; } .menubar-chip.live { padding: 0 6px; } }
+.menu-item:not(.disabled)[data-cmd='live.panel'] .menu-label { color: var(--live); font-weight: 600; }
+.live-head { margin: 0 0 6px; }
+.livepanel .live-head h4 { margin: 0; padding: 0; border: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 600; color: var(--text); }
+.live-cap.long { font-size: 9.5px; letter-spacing: -0.2px; }
 .menubar-chip.offline { background: #6b7684; border-color: #6b7684; color: #fff; }
 .menubar-chip.offline:hover { background: #59636f; border-color: #59636f; }
 .menubar-icon.support:hover { background: color-mix(in srgb, #d8433b 16%, transparent); }

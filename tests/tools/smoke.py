@@ -5934,7 +5934,7 @@ with sync_playwright() as p:
     check(f"The palette (26.186): {pal['n']} tiles by kind {pal['groups']}, each a picture of its symbol over its name ({pal['drawn']} drawn); the first five in one row ({pal['rows']}), all of one width ({pal['widths']}): {pal['names']}",
           pal["groups"] == [["Passive", 13], ["Diodes and thyristors", 7], ["Transistors", 7], ["Amplifiers and blocks", 8], ["Logic and chips", 21], ["Sources", 15], ["Instruments and outputs", 6], ["Wiring and notes", 5]]
           and pal["n"] == 82 and pal["drawn"] == 82 and pal["rows"] == 1 and pal["widths"] == 1
-          and pal["names"] == ["Resistor", "Capacitor", "Polarised capacitor", "Inductor", "Potentiometer"])
+          and pal["names"] == ["Resistor", "Capacitor", "Electrolytic capacitor", "Inductor", "Potentiometer"])
     c.close()
 
     c, pg = site_page("26.182-hands")
@@ -6018,7 +6018,7 @@ with sync_playwright() as p:
       const fills = (el) => el ? [...el.querySelectorAll('svg *')].map((n) => n.getAttribute('fill')).filter((f) => f && f !== 'none') : [];
       return { open: fills(b('Open')), neu: fills(b('New')), circle: !!b('New')?.querySelector('svg circle') }; }""")
     check(f"R18 public (26.182): with no features=all Design › Simulate offers {sims}; Live Simulation starts the run ({ran is not None and round(ran['volt'].get('VCC', 0), 2)} V on VCC) with its panel and the Live Scope ({panels}); Stop ends it ({stopped is None}). The Open icon is a folder with a document in it ({ico['open']}), New a page with a badge ({ico['neu']}, {ico['circle']})",
-          sims == ["Mixed Sim", "Live Simulation", "Live Simulation Examples...", "Run the Selection as a Sketch"] and ran is not None and abs(ran["volt"].get("VCC", 0) - 12) < 1e-6 and panels == [1, 1] and stopped is None
+          sims == ["Mixed Sim", "Live Simulation", "New Live Simulation Circuit", "Live Simulation Examples...", "Run the Selection as a Sketch"] and ran is not None and abs(ran["volt"].get("VCC", 0) - 12) < 1e-6 and panels == [1, 1] and stopped is None
           and ico["open"] == ["#f0c75a", "#ffffff", "#f7da84"] and "#3f9a6a" in ico["neu"] and ico["circle"])
     c.close()
     # 26.183: Live Simulation's kit: the examples, a logic input clicked, a light, a part's own values, the keys
@@ -7544,6 +7544,75 @@ with sync_playwright() as p:
     lib_row = next((r for r in rows_all if r.startswith("World parts library")), "")
     check(f"…About's list of connections: with every feature on, {len(rows_all)} rows, the world library's among them ('{lib_row[:70]}…'); in the release itself {len(rows_rel)}, without it",
           len(rows_all) == 17 and "github.com" in lib_row and "never published" in lib_row and "Nothing of your designs" in lib_row and len(rows_rel) == 16 and not any(r.startswith("World parts library") for r in rows_rel))
+    c.close()
+
+    # 26.202: Live Simulation from anywhere (the red button of the menu bar), a new circuit that leaves what is open alone, the two drawings
+    # of resistors, capacitors and inductors, and the electrolytic capacitor watched for a voltage the wrong way round
+    c, pg = site_page("26.202-live")
+    pg.goto(URL); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(1200)
+    names = lambda: pg.evaluate("window.konium.state.docs.value.map((d) => d.name)")
+    chip = pg.locator(".menubar-chip.live")
+    chip0 = pg.evaluate("""() => { const e = document.querySelector('.menubar-chip.live'); return e ? { text: e.textContent, colour: getComputedStyle(e).color, on: e.classList.contains('on'), tip: e.title } : null; }""")
+    docs0 = names()
+    chip.click(); pg.wait_for_timeout(2500)
+    lp = pg.locator(".livepanel")
+    head = lp.locator(".live-head h4").inner_text()
+    tools = lp.locator(".live-head .ex-icon-btn").evaluate_all("(els) => els.map((e) => e.getAttribute('aria-label'))")
+    docs1 = names()
+    run1 = lp.locator(".pw-run .btn", has_text="Stop").count() == 1   # (a blank sheet has no circuit to read yet: the run is on)
+    chip1 = pg.evaluate("document.querySelector('.menubar-chip.live').classList.contains('on')")
+    shot(pg, "202-new.png")
+    check(f"Live Simulation (26.202): a button of its own in the menu bar ('{chip0 and chip0['text']}', {chip0 and chip0['colour']}); with nothing in front ({docs0}) it opens a new circuit ({docs1}) that runs ({run1}), the button lit ({chip1}); the panel is headed by the sheet's name ('{head}') with {tools}",
+          chip0 is not None and chip0["text"] == "Live Simulation" and chip0["colour"] == "rgb(163, 22, 26)" and not chip0["on"] and "nothing on it is changed" in chip0["tip"] and docs0 == [] and docs1 == ["Sheet1.SchDoc"] and run1 and chip1
+          and head == "Sheet1.SchDoc" and tools == ["New Circuit", "Open a Circuit", "Save the Circuit", "Examples"])
+    # An example opens beside it; the parts are drawn the European way until the other is chosen
+    pg.evaluate("window.konium.liveExample('smoothing')"); pg.wait_for_timeout(3000)
+    drawn = lambda: pg.evaluate("window.konium.liveDrawn().map((p) => [p.designator, p.libRef, p.style])")
+    eu = drawn()
+    docs2 = names()
+    tile = lambda name: pg.evaluate("""(n) => { const t = document.querySelector(`.livepanel .live-tile[aria-label='${n}'] svg`); return t ? [...t.querySelectorAll('*')].map((e) => e.tagName.toLowerCase()).filter((x) => x !== 'g').sort().join(' ') : ''; }""", name)
+    tiles_eu = [tile(n) for n in ("Resistor", "Capacitor", "Electrolytic capacitor", "Inductor", "Potentiometer")]
+    stress = pg.evaluate("window.konium.liveStress().filter((s) => s.designator === 'C1')")
+    net_eu = pg.evaluate("Object.keys(window.konium.liveReading().volt).sort()")
+    shot(pg, "202-european.png")
+    lp.locator("select[aria-label='Symbols']").select_option("american"); pg.wait_for_timeout(1500)
+    us = drawn()
+    toast = pg.locator(".toast").last.inner_text() if pg.locator(".toast").count() else ""
+    tiles_us = [tile(n) for n in ("Resistor", "Capacitor", "Electrolytic capacitor", "Inductor", "Potentiometer")]
+    run_us = pg.evaluate("(() => { const r = window.konium.liveReading(); return r ? Object.keys(r.volt).sort() : null; })()")
+    kept = pg.evaluate("[window.konium.liveSymbols(), localStorage.getItem('live.symbols.v1')]")
+    shot(pg, "202-american.png")
+    pg.evaluate("window.konium.run('edit.undo')"); pg.wait_for_timeout(600)
+    undone = drawn()
+    pg.evaluate("window.konium.run('edit.redo')"); pg.wait_for_timeout(600)
+    redone = drawn()
+    check(f"…an example opens as a document of its own ({docs2}), drawn the European way ({eu}); its electrolytic capacitor is watched for a voltage the wrong way round and stands none ({stress}). Symbols › American redraws the sheet's parts ({us}; '{toast}') and the palette ({tiles_eu[0]} → {tiles_us[0]}), the run going on with the same nets ({run_us == net_eu}); Undo and Redo take it back and forth; the choice is kept ({kept})",
+          docs2 == ["Sheet1.SchDoc", "Rectifier with a smoothing capacitor.SchDoc"] and len(eu) >= 2 and all(p[2] == "european" for p in eu) and ["C1", "CAP_POL", "european"] in eu and ["R1", "RES", "european"] in eu
+          and len(stress) == 2 and [s["reverse"] for s in stress] == [False, True] and stress[0]["shown"] > 5 and stress[1]["shown"] == 0 and not stress[1]["over"] and stress[1]["rating"] == 1
+          and [p[:2] for p in us] != [] and sorted(p[0] for p in us) == sorted(p[0] for p in eu) and all(p[2] == "american" for p in us) and "redrawn in the American style" in toast
+          and all(a != b and a and b for a, b in zip(tiles_eu, tiles_us)) and "polyline" in tiles_us[0] and "rect" in tiles_eu[0] and run_us is not None and run_us == net_eu
+          and all(p[2] == "european" for p in undone) and all(p[2] == "american" for p in redone) and kept == ["american", "american"])
+    # The next example follows the choice; a new circuit leaves the others open; the menu's item is in the same red
+    pg.evaluate("window.konium.liveExample('lrc')"); pg.wait_for_timeout(3000)
+    lrc = drawn()
+    lp.get_by_role("button", name="New Circuit").click(); pg.wait_for_timeout(2500)
+    docs3 = names()
+    lp.locator("select[aria-label='Symbols']").select_option("european"); pg.wait_for_timeout(500)
+    toast2 = pg.locator(".toast").last.inner_text() if pg.locator(".toast").count() else ""
+    pg.locator(".menubar-item[data-menu='Design']").dispatch_event("mousedown"); pg.wait_for_timeout(400)
+    pg.locator(".menu-item[data-label='Simulate']").hover(); pg.wait_for_timeout(700)
+    item = pg.evaluate("""() => { const e = document.querySelector(".menu-item[data-cmd='live.panel'] .menu-label"); const o = document.querySelector(".menu-item[data-cmd='sim.mixedSim'] .menu-label");
+      return e && o ? { red: getComputedStyle(e).color, other: getComputedStyle(o).color, labels: [...e.closest('.menu-popup').querySelectorAll('.menu-item')].map((m) => m.getAttribute('data-label')) } : null; }""")
+    shot(pg, "202-menu.png")
+    pg.keyboard.press("Escape"); pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+    pg.evaluate("window.konium.prefs.set({ theme: 'dark' })"); pg.wait_for_timeout(500)
+    dark = pg.evaluate("getComputedStyle(document.querySelector('.menubar-chip.live')).backgroundColor")
+    shot(pg, "202-dark.png")
+    pg.evaluate("window.konium.prefs.set({ theme: 'light' })"); pg.wait_for_timeout(300)
+    check(f"…the next example opened is drawn the American way ({sorted(set(p[2] for p in lrc))}); New Circuit leaves every document open ({docs3}); back to European with nothing to redraw says so ('{toast2}'). Design › Simulate lists {item and item['labels']} with Live Simulation in the button's red ({item and item['red']}, the others {item and item['other']}); dark theme: the lit button is {dark}",
+          len(lrc) == 3 and all(p[2] == "american" for p in lrc) and len(docs3) == 4 and docs3[:2] == docs2 and docs3[3] == "Sheet2.SchDoc"
+          and "European style from here on" in toast2 and item is not None and item["red"] == "rgb(163, 22, 26)" and item["other"] != item["red"]
+          and item["labels"][:3] == ["Mixed Sim", "Live Simulation", "New Live Simulation Circuit"] and dark == "rgb(255, 138, 128)")
     c.close()
     b.close()
 

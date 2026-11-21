@@ -12,7 +12,13 @@
  */
 
 export type StressKind = 'power' | 'voltage' | 'current';
-export interface Rating { kind: StressKind; value: number }
+export interface Rating {
+  kind: StressKind; value: number;
+  /** A voltage the wrong way round across a polarised part: its second pin above its first (26.202). */
+  reverse?: boolean;
+}
+/** What an electrolytic capacitor stands the wrong way round before it is flagged [est: about a volt for an aluminium one]. */
+export const REVERSE_LIMIT = 1;
 
 /** The parameter a part's rating is kept in, by its kind. */
 export const RATING_PARAMS: Record<StressKind, string> = { power: 'Power Rating', voltage: 'Voltage Rating', current: 'Maximum Current' };
@@ -52,7 +58,7 @@ export class Stress {
   constructor(readonly designator: string, readonly rating: Rating, private readonly pins: readonly (readonly [node: number, meter: number])[]) {}
   private now(valueAt: (i: number) => number): number {
     const p = this.pins;
-    if (this.rating.kind === 'voltage') return Math.abs(valueAt(p[0]![0]) - valueAt(p[1]![0]));
+    if (this.rating.kind === 'voltage') { const v = valueAt(p[0]![0]) - valueAt(p[1]![0]); return this.rating.reverse ? Math.max(0, -v) : Math.abs(v); }
     if (this.rating.kind === 'current') return Math.abs(valueAt(p[0]![1]));
     let w = 0;
     for (const [n, m] of p) w += valueAt(n) * valueAt(m);

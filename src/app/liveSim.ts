@@ -11,7 +11,7 @@ import { css, rgba, type Scene } from '../render/Scene';
 import { SchEditor } from '../editors/sch/SchEditor';
 import { compileProject, type CompiledProject } from '../model/compile';
 import { liveGeometry, runCurrents, type LiveGeometry } from '../model/liveWires';
-import { bagOf, type SchDocument } from '../model/sch';
+import { SR, bagOf, ownedBy, type SchDocument } from '../model/sch';
 import { setProps } from '../model/schEdit';
 import { partRecords } from '../model/schPlace';
 import { simModelOf, simParamHolder } from '../model/simModels';
@@ -22,7 +22,8 @@ import { readSimSettings } from '../sim/settings';
 import { LiveRecord, liveStepLimit, measure, spectrum, type Measure, type Trace } from '../sim/liveRecord';
 import { spiceNumber } from '../sim/num';
 import type { ToolPointer } from '../core/tools';
-import { SIM_PARTS_LIB, SIM_SOURCES_LIB, simPartSymbols, simSourceSymbols, type SimSymbolBuilder } from '../formats/synthetic/simLib';
+import { SIM_PARTS_LIB, SIM_SOURCES_LIB, simPartSymbols, simSourceSymbols, type SimSymbolBuilder, type SymbolStyle } from '../formats/synthetic/simLib';
+import { applyPartUpdates, partSource, updatedPart } from '../model/schUpdate';
 import { active, activeScope, chain, docs, notify, projects } from './state';
 import { commands } from '../core/commands';
 import { KIT, KIT_GROUPS, KIT_KEYS, kitFields, type KitField, type KitPart } from './liveKit';
@@ -32,7 +33,7 @@ import { placePart } from './placeCommands';
 import { SEG7_LINES } from '../formats/synthetic/simKit';
 import { Listener, playStretch, soundReady, soundState, soundStop } from './liveSound';
 import { docParam, docParamChange } from '../model/schParams';
-import { RATING_UNITS, Stress, ratingOf } from '../sim/liveStress';
+import { RATING_UNITS, REVERSE_LIMIT, Stress, ratingOf } from '../sim/liveStress';
 import { nearestE } from '../core/calc';
 import { solveValue } from '../sim/liveSolve';
 import { LIVE_SAVED, liveSavedText, readLiveSaved, sameWatch, type LiveSaved } from './liveSaved';
@@ -265,7 +266,7 @@ function gear(): void {
     r.gear.push(g);
   }
   // The rated parts (see liveStress): one that was over its rating before a change to the sheet is still said to be until it is seen not to be
-  const sim = r.sim, was = new Map(r.stress.map((x) => [x.s.designator, x.s]));
+  const sim = r.sim, was = new Map(r.stress.map((x) => [x.s.designator + (x.s.rating.reverse ? '~' : ''), x.s]));
   r.stress = [];
   for (const o of doc.objects) {
     if (o.kind !== 'component' || !simModelOf(doc, o.index)) continue;
@@ -276,6 +277,16 @@ function gear(): void {
     const st = new Stress(o.designator, rating, pins), old = was.get(o.designator);
     if (old && old.rating.kind === rating.kind) { st.shown = old.shown; st.over = old.over && old.shown > rating.value * 0.9; }
     r.stress.push({ s: st, at: o.at });
+    // An electrolytic capacitor is also watched for a voltage the wrong way round (pin 1 is its positive side)
+    if (o.libRef.toUpperCase() === 'CAP_POL') {
+      const ends = ['1', '2'].map((n) => r.map.pins.get(`${o.designator}|${n}`));
+      if (ends[0] && ends[1]) {
+        const back = new Stress(o.designator, { kind: 'voltage', value: REVERSE_LIMIT, reverse: true }, ends.map((p): [number, number] => [sim.unknownAt(p!.node) ?? -1, sim.unknownAt(`${p!.meter}#branch`) ?? -1]));
+        const before = was.get(`${o.designator}~`);
+        if (before) { back.shown = before.shown; back.over = before.over && before.shown > REVERSE_LIMIT * 0.9; }
+        r.stress.push({ s: back, at: o.at });
+      }
+    }
   }
   const most = Math.min(MAX_SCOPES, Math.max(0, ...r.gear.map((g) => g.scope))), sc = scope.value;
   if (most > sc.scopes.length) {
@@ -370,12 +381,12 @@ function frame(now: number): void {
 }
 const frameListeners = new Set<() => void>();
 /** A rated part's reading against its rating: "0.61 W, rated for 0.25 W". */
-const stressText = (x: Stress): string => `${reads(x.shown, RATING_UNITS[x.rating.kind])}, rated for ${reads(x.rating.value, RATING_UNITS[x.rating.kind])}`;
+const stressText = (x: Stress): string => (x.rating.reverse ? `${reads(x.shown, 'V')} the wrong way round (its + is pin 1)` : `${reads(x.shown, RATING_UNITS[x.rating.kind])}, rated for ${reads(x.rating.value, RATING_UNITS[x.rating.kind])}`);
 /** The parts over their ratings, as the panel lists them. */
 const stressLines = (r: Run): string[] => r.stress.filter((x) => x.s.over).map((x) => `${x.s.designator}: ${stressText(x.s)}`);
 /** For tests and scripts: every rated part, what it takes now and whether that is over its rating. */
-export function liveStress(): { designator: string; kind: string; rating: number; shown: number; over: boolean }[] {
-  return (run?.stress ?? []).map((x) => ({ designator: x.s.designator, kind: x.s.rating.kind, rating: x.s.rating.value, shown: x.s.shown, over: x.s.over }));
+export function liveStress(): { designator: string; kind: string; rating: number; shown: number; over: boolean; reverse: boolean }[] {
+  return (run?.stress ?? []).map((x) => ({ designator: x.s.designator, kind: x.s.rating.kind, rating: x.s.rating.value, shown: x.s.shown, over: x.s.over, reverse: !!x.s.rating.reverse }));
 }
 /** How brightly a light is lit now (0 to 1): an LED by its current against its full current, a lamp by its power against its nominal power. */
 function brightness(r: Run, g: Gear): number {
@@ -612,11 +623,76 @@ export const LIVE_GROUPS = KIT_GROUPS;
 export type LivePart = KitPart;
 export const LIVE_PARTS: KitPart[] = KIT;
 /** A palette part's symbol (the records its picture is drawn from and its placing uses). */
-export function livePartSymbol(part: LivePart): { libRef: string; description: string; bags: SimSymbolBuilder['bags'] } | null {
-  symbols ??= { parts: simPartSymbols(), sources: simSourceSymbols() };
-  return symbols[part.lib].find((x) => x.libRef === part.libRef) ?? null;
+export function livePartSymbol(part: LivePart, style: SymbolStyle = liveSymbols.value): { libRef: string; description: string; bags: SimSymbolBuilder['bags'] } | null {
+  return symbolSet(style)[part.lib].find((x) => x.libRef === part.libRef) ?? null;
 }
-let symbols: { parts: SimSymbolBuilder[]; sources: SimSymbolBuilder[] } | null = null;
+const symbolSets = new Map<SymbolStyle, { parts: SimSymbolBuilder[]; sources: SimSymbolBuilder[] }>();
+function symbolSet(style: SymbolStyle) {
+  let set = symbolSets.get(style);
+  if (!set) symbolSets.set(style, set = { parts: simPartSymbols(style), sources: simSourceSymbols() });
+  return set;
+}
+
+/* ─── European or American symbols (26.202) ──────────────────────────────────────────── */
+
+const SYMBOLS_STORE = 'live.symbols.v1';
+export const SYMBOL_STYLES: [SymbolStyle, string, string][] = [
+  ['european', 'European', 'European (IEC): a resistor is a box, a capacitor two plates, an electrolytic capacitor has a hollow plate for its positive side, an inductor is half circles'],
+  ['american', 'American', 'American (ANSI): a resistor is a zigzag, a capacitor a plate and a curved one, an inductor is loops'],
+];
+/** How the palette's parts are drawn (remembered). */
+export const liveSymbols = signal<SymbolStyle>((() => { try { return localStorage.getItem(SYMBOLS_STORE) === 'american' ? 'american' : 'european'; } catch { return 'european'; } })());
+/** The simulation parts that are drawn differently in the two styles. */
+export const STYLED_PARTS: readonly string[] = ['RES', 'POT', 'CAP', 'CAP_POL', 'IND'];
+const DRAWN = new Set<number>([SR.LINE, SR.RECTANGLE, SR.ARC, SR.POLYLINE, SR.POLYGON, SR.ELLIPSE]);
+/** What a drawing is made of, however it is turned: the kinds of its shapes (an arc by how far round it goes). */
+export function drawingOf(bags: { int(key: string, or: number): number }[]): string {
+  return bags.map((b) => { const k = b.int('RECORD', -1); return !DRAWN.has(k) ? '' : k === SR.ARC ? `${k}:${(((b.int('ENDANGLE', 0) - b.int('STARTANGLE', 0)) % 360) + 360) % 360}` : String(k); }).filter(Boolean).sort().join(' ');
+}
+/**
+ * A sheet's simulation parts redrawn in a style: each keeps its place, its designator, its values and its wires
+ * (the pins' ends are where they were), in one step that Undo takes back. Those drawn that way already are left. How many were redrawn.
+ */
+export function restyleSheet(ed: SchEditor, style: SymbolStyle): number {
+  const doc = ed.doc, kids = ownedBy(doc), set = symbolSet(style).parts;
+  const results: NonNullable<ReturnType<typeof updatedPart>>[] = [];
+  for (const o of doc.objects) {
+    if (o.kind !== 'component') continue;
+    const src = partSource(doc, o.index), libRef = src?.libRef.toUpperCase() ?? '';
+    if (!src || src.library !== SIM_PARTS_LIB || !STYLED_PARTS.includes(libRef)) continue;
+    const sym = set.find((s) => s.libRef === libRef);
+    if (!sym || drawingOf((kids.get(o.index) ?? []).flatMap((k) => bagOf(doc, k) ?? [])) === drawingOf(sym.bags)) continue;
+    const u = updatedPart(doc, o.index, sym, SIM_PARTS_LIB, { graphics: true, parameters: 'keep', models: false });
+    if (u) results.push(u);
+  }
+  if (!results.length) return 0;
+  ed.undo.transact(`Redraw ${results.length} part${results.length === 1 ? '' : 's'} in the ${style === 'american' ? 'American' : 'European'} style`, (tx) => tx.add(applyPartUpdates(doc, results)));
+  ed.clearSelection();
+  ed.invalidate();
+  return results.length;
+}
+/** The style chosen: new parts and examples are drawn in it from here on, and the sheet in front is redrawn in it. */
+export function setLiveSymbols(style: SymbolStyle): void {
+  liveSymbols.value = style;
+  try { localStorage.setItem(SYMBOLS_STORE, style); } catch { /* not kept */ }
+  const ed = sheetInFront(), n = ed ? restyleSheet(ed, style) : 0;
+  const name = style === 'american' ? 'American' : 'European';
+  notify(n ? `${n} part${n === 1 ? '' : 's'} of this sheet redrawn in the ${name} style (Undo brings ${n === 1 ? 'it' : 'them'} back)` : `Parts are drawn in the ${name} style from here on`);
+}
+/** For tests: each simulation part of the sheet in front that the styles draw differently, and the style it is drawn in now ('' : neither). */
+export function liveDrawn(): { designator: string; libRef: string; style: SymbolStyle | '' }[] {
+  const ed = sheetInFront();
+  if (!ed) return [];
+  const doc = ed.doc, kids = ownedBy(doc);
+  return doc.objects.flatMap((o) => {
+    if (o.kind !== 'component' || !STYLED_PARTS.includes(o.libRef.toUpperCase())) return [];
+    const drawn = drawingOf((kids.get(o.index) ?? []).flatMap((k) => bagOf(doc, k) ?? []));
+    const as = (['european', 'american'] as const).find((s) => drawingOf(symbolSet(s).parts.find((x) => x.libRef === o.libRef.toUpperCase())?.bags ?? []) === drawn);
+    return [{ designator: o.designator, libRef: o.libRef.toUpperCase(), style: as ?? '' }];
+  });
+}
+/** The sheet a run is on (null: none runs). */
+export const liveSheet = (): SchEditor | null => run?.ed ?? null;
 
 /** The next designator free on the sheet for a prefix: R1, then R2 … */
 export function nextDesignator(doc: SchDocument, prefix: string): string {

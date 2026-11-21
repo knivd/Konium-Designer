@@ -65,7 +65,11 @@ export function updatedPart(doc: SchDocument, ci: number, symbol: { libRef: stri
   visit(ci);
   owned.sort((a, b) => a - b);
   const rec = (i: number) => doc.objects[i]!.record;
-  const isModel = (i: number) => MODEL_RECS.has(rec(i));
+  // A model's records and whatever is under them (a simulation model's own parameters are under its
+  // parameter list): they stay with their model, the part's or the library's, and are never taken for graphics
+  const modelish = new Set<number>();
+  for (const i of owned) if (MODEL_RECS.has(rec(i)) || modelish.has(doc.objects[i]!.owner)) modelish.add(i);
+  const isModel = (i: number) => modelish.has(i);
   const own = {
     designator: owned.filter((i) => rec(i) === SR.DESIGNATOR && doc.objects[i]!.owner === ci),
     params: owned.filter((i) => rec(i) === SR.PARAMETER && doc.objects[i]!.owner === ci),
@@ -73,6 +77,8 @@ export function updatedPart(doc: SchDocument, ci: number, symbol: { libRef: stri
     graphics: owned.filter((i) => !isModel(i) && rec(i) !== SR.DESIGNATOR && !(rec(i) === SR.PARAMETER && doc.objects[i]!.owner === ci)),
   };
   const libKind = (it: Item) => it.bag.int('RECORD', -1);
+  const libModel = new Set<number>();
+  lib.forEach((it, k) => { if (k && (MODEL_RECS.has(libKind(it)) || libModel.has(it.owner))) libModel.add(k); });
   const libParams = lib.slice(1).filter((it) => libKind(it) === SR.PARAMETER && it.owner === 0);
   const nameOf = (b: PropertyBag) => (b.get('NAME') ?? '').toLowerCase();
 
@@ -87,8 +93,8 @@ export function updatedPart(doc: SchDocument, ci: number, symbol: { libRef: stri
   if (!opts.graphics) for (const k of ['LIBREFERENCE', 'DESIGNITEMID', 'SOURCELIBRARYNAME', 'PARTCOUNT', 'DISPLAYMODECOUNT']) { const v = cb.getRaw(k); if (v !== undefined) nc.setRaw(k, v); }
 
   const out: Item[] = [{ bag: nc, owner: -1 }];
-  const fromLib = (it: Item, at: Map<number, number>) => {
-    const b = MODEL_RECS.has(libKind(it)) ? it.bag.clone() : transformBag(it.bag, x);
+  const fromLib = (it: Item, at: Map<number, number>, model = false) => {
+    const b = model ? it.bag.clone() : transformBag(it.bag, x);
     out.push({ bag: b, owner: it.owner === 0 ? 0 : at.get(it.owner) ?? 0 });
   };
   /** Old records kept: owners re-pointed to their new positions. */
@@ -129,7 +135,7 @@ export function updatedPart(doc: SchDocument, ci: number, symbol: { libRef: stri
   const libAt = new Map<number, number>();
   if (opts.graphics) {
     lib.forEach((it, k) => {
-      if (k === 0 || libKind(it) === SR.DESIGNATOR || (libKind(it) === SR.PARAMETER && it.owner === 0) || MODEL_RECS.has(libKind(it))) return;
+      if (k === 0 || libKind(it) === SR.DESIGNATOR || (libKind(it) === SR.PARAMETER && it.owner === 0) || libModel.has(k)) return;
       libAt.set(k, out.length);
       fromLib(it, libAt);
     });
@@ -137,7 +143,7 @@ export function updatedPart(doc: SchDocument, ci: number, symbol: { libRef: stri
 
   // Models
   if (opts.models) {
-    lib.forEach((it, k) => { if (!MODEL_RECS.has(libKind(it))) return; libAt.set(k, out.length); fromLib(it, libAt); });
+    lib.forEach((it, k) => { if (!libModel.has(k)) return; libAt.set(k, out.length); fromLib(it, libAt, true); });
   } else keep(own.models);
 
   return { remove: [ci, ...owned], items: out };
