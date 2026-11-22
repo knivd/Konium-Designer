@@ -3,6 +3,7 @@ import { Emitter } from './events';
 import './storage';
 import { FORMERS, formerValue } from './former';
 import { VIEW3D_DEFAULT, view3dFrom, type View3D } from './view3d';
+import { TEARDROP_DEFAULTS, cleanTeardropSettings, type TeardropSettings } from './teardropSettings';
 
 /**
  * User preferences. Persisted per browser profile; every field has a safe default and every
@@ -485,8 +486,8 @@ export interface Settings {
   pcbTuneTarget: 'manual' | 'net' | 'rules';
   pcbTuneManual: number;
   pcbTuneFromNet: string;
-  /** Teardrops dialog: Track or Arc style, and the scope ticks. */
-  pcbTeardropStyle: 'track' | 'arc';
+  /** Tools › Teardrops: the style, the options and each scope's sizes, as last used. */
+  pcbTeardrops: TeardropSettings;
   /** Tools › Cross Select Mode: components selected in a schematic hang from the cursor in the PCB to be put down. */
   pcbCrossSelectReposition: boolean;
   /** Preferences › PCB Editor › General › Polygon Repour: repour a pour after it is edited (Always) or never. */
@@ -755,7 +756,7 @@ export const DEFAULTS: Settings = {
   pcbTuneTarget: 'rules',
   pcbTuneManual: 1000,
   pcbTuneFromNet: '',
-  pcbTeardropStyle: 'arc',
+  pcbTeardrops: structuredClone(TEARDROP_DEFAULTS),
   pcbCrossSelectReposition: false,
   pcbRepourAfterModification: true,
   pcbRepourDependent: false,
@@ -854,6 +855,8 @@ export function fromStored(parsed: Record<string, unknown>): Settings {
   if (!(Number(parsed.settingsRev) >= 4) && parsed.pcbTrackWidthMode === 'pref') out.pcbTrackWidthMode = DEFAULTS.pcbTrackWidthMode;
   // 26.087: Restrict To 90/45 off unless chosen since (earlier builds had it on, leaving any angle out of Interactive Routing)
   if (!(Number(parsed.settingsRev) >= 5) && parsed.pcbRestrict9045 === true) out.pcbRestrict9045 = DEFAULTS.pcbRestrict9045;
+  // 26.209: teardrops are copper regions; the style chosen for the earlier ones (made of tracks or arcs) is carried over
+  if (parsed.pcbTeardrops === undefined && parsed.pcbTeardropStyle === 'track') out.pcbTeardrops = { ...out.pcbTeardrops, style: 'line' };
   out.settingsRev = DEFAULTS.settingsRev;
   return out;
 }
@@ -887,6 +890,7 @@ export function sanitise(input: unknown): Settings {
       if (Array.isArray(d)) { if (Array.isArray(v) && v.every((x) => typeof x === 'string')) out[k] = v; continue; }
       if (k === 'pcb3d') { out[k] = view3dFrom(v); continue; }
       if (k === 'pcbTransparency') { out[k] = transparencyFrom(v); continue; }
+      if (k === 'pcbTeardrops') { out[k] = cleanTeardropSettings(v); continue; }
       if (typeof d === typeof v && (typeof d !== 'object' || (v && !Array.isArray(v)))) out[k] = v;
     }
   }

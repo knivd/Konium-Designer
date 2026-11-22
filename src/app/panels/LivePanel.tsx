@@ -190,7 +190,7 @@ export function LivePanel() {
       </div>
       {st && <section aria-label="Time">
         <h4>Time</h4>
-        <div class="pw-field">
+        <div class="pw-field live-speed">
           <span>Speed</span>
           <select aria-label="Speed" value={String(st.speed)} onChange={(ev) => setLiveSpeed(Number((ev.target as HTMLSelectElement).value))}>
             {LIVE_SPEEDS.map((s) => <option key={s} value={String(s)}>{speedText(s)}</option>)}

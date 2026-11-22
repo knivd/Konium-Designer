@@ -15,7 +15,7 @@ import { binToBytes, bytesToBin } from '../text';
 import { countHeader, joinBinaryRecords, joinTextRecords, PCB_TAG, splitBinaryRecords, splitTextRecords, type PcbRawRecord } from './framing';
 import { PropertyBag } from './props';
 import { defaultRules, joinRuleRecords, type PcbRule } from './rules';
-import { encodeArc, encodeFill, encodePad, encodeText, encodeTrack, encodeVia, layerFromName, layerToName, readPcbDoc, writePcbDoc, type PadFields } from './pcbdoc';
+import { TEARDROP_FLAG, encodeArc, encodeFill, encodePad, encodeText, encodeTrack, encodeVia, layerFromName, layerToName, readPcbDoc, writePcbDoc, type PadFields } from './pcbdoc';
 import { readRegionParts, writeRegionParts, type RegionParts, type RegionVertex } from './regionRecord';
 import { altiumFloat } from './pcbTransform';
 import { FLAG, get, PAD, PAD_STACK, put, TRACK, ARC, FILL, VIA, REGION, TEXT, type Field } from './pcbLayouts';
@@ -115,7 +115,7 @@ function regionRecord(f: Fields, bag: PropertyBag, body: boolean, boardRegion = 
     holes.push(pts);
   }
   const head = new BinWriter(32);
-  head.u8(layer <= 82 ? layer : 0).u8(f.bool('LOCKED') ? 0x08 : 0x0c).u8(!boardRegion && f.bool('KEEPOUT') ? 2 : 0)
+  head.u8(layer <= 82 ? layer : 0).u8((f.bool('LOCKED') ? 0x08 : 0x0c) | (!body && f.bool('TEARDROP') ? TEARDROP_FLAG : 0)).u8(!boardRegion && f.bool('KEEPOUT') ? 2 : 0)
     .u16(body ? NO_NET : f.idx('NET')).u16(body ? NO_NET : f.idx('POLYGON')).u16(f.idx('COMPONENT')).u32(0xffffffff).u8(0).u16(holes.length).zeros(2);
   if (!bag.has('V7_LAYER')) bag.set('V7_LAYER', layerToName(layer));
   const parts: RegionParts = { shapeBased, head: head.finish().slice(0, REGION.propsAt), props: bag, propHigh: 0, verts, holes, tail: new Uint8Array(0), closing: shapeBased ? closing : undefined };
@@ -423,6 +423,8 @@ export function writePcbAscii(edited: PcbDocument): { bytes: Uint8Array; warning
           parts.holes.forEach((h, k) => { holes.push([`HOLE${k}VERTEXCOUNT`, String(h.length)]); h.forEach((q, j) => holes.push([`H${k}VX${j}`, q.x.toFixed(4)], [`H${k}VY${j}`, q.y.toFixed(4)])); });
           const kind = p.kind === 'body' ? 'ComponentBody' : 'Region';
           const ownerOf = p.kind === 'body' ? { component: p.component } : { net: p.net, component: p.component, polygon: p.polygon };
+          // (a teardrop keeps its mark [est: under the key tracks and arcs have it by])
+          if (p.kind === 'region' && p.teardrop) own.unshift(['TEARDROP', 'TRUE']);
           lines.push(line(kind, [...owners(ownerOf), ...common(next(kind), p.layer, p.locked, p.kind === 'region' && p.keepout), ...own,
             ['MAINCONTOURVERTEXCOUNT', String(parts.verts.length)], ...vertexEntries(parts.verts, parts.closing), ...holes]));
           break;

@@ -1,5 +1,5 @@
 """The User Guide's picture recipes (see helpPictures.py): one per picture id."""
-from helpPictures import recipe, run, panel, hide_panel, demo, tab, menu, deselect  # noqa: F401
+from helpPictures import recipe, run, panel, hide_panel, demo, tab, menu, deselect, default_layout  # noqa: F401
 
 K = "window.konium"
 
@@ -39,7 +39,7 @@ def _(pg):
 @recipe("gs-main-window")
 def _(pg):
     demo(pg)
-    ev(pg, f"{K}.dock.restoreLayout('default')", 600)
+    default_layout(pg, 600)
     return None
 
 
@@ -53,7 +53,7 @@ def _(pg):
 @recipe("gs-projects-panel")
 def _(pg):
     demo(pg)
-    ev(pg, f"{K}.dock.restoreLayout('default')")
+    default_layout(pg)
     panel(pg, "projects")
     for _i in range(2):
         ev(pg, "document.querySelectorAll('.tree-folder-row[aria-expanded=\"false\"]').forEach(b => b.click())", 300)
@@ -97,7 +97,7 @@ def _(pg):
 @recipe("gs-panel-group")
 def _(pg):
     demo(pg)
-    ev(pg, f"{K}.dock.restoreLayout('default')")
+    default_layout(pg)
     ev(pg, f"{K}.state.activeId.value = {K}.state.docs.value.find(d => d.name === 'Demo.PcbDoc').id", 1000)
     return ".dock-zone.zone-left"
 
@@ -136,6 +136,13 @@ def _(pg):
     demo_pcb(pg)
     run(pg, "pcb.viewConfigurations", 800)
     return ".dlg.viewcfg"
+
+
+@recipe("pcb-teardrops")
+def _(pg):
+    demo_pcb(pg)
+    run(pg, "ad:PCB:TearDrops", 600)
+    return ".dlg.teardropsdlg"
 
 
 @recipe("pcb-layer-stack")
@@ -670,7 +677,7 @@ def _(pg):
     demo(pg, "Demo.SchDoc")
     run(pg, "ad:WorkspaceManager:NewBOM", 1500)
     hide_panel(pg, "projects")
-    hide_panel(pg, "navigator")
+    hide_panel(pg, "storage")
     pg.locator(".bomdoc tbody tr").first.locator("td").nth(1).click()
     pg.wait_for_timeout(500)
     ev(pg, "document.querySelector('.bomdoc .bom-scroll').scrollLeft = 0", 300)
@@ -1030,8 +1037,9 @@ def _(pg):
     ev(pg, "(() => { const e = window.konium.state.active.value.editor; const r = e.doc.objects.find((o) => o.kind === 'component' && o.designator === 'R2'); e.select(['o' + r.index]); })()", 400)
     # Three cycles on the scope, then the next moment the LED is lit
     pg.wait_for_timeout(5000)
+    # (held as the LED comes on: waited for dark first, so that the hold falls at the start of its lit time on any machine)
+    pg.wait_for_function("window.konium.liveLights().every((l) => l.brightness < 0.1)", timeout=20000)
     pg.wait_for_function("window.konium.liveLights().some((l) => l.brightness > 0.6)", timeout=20000)
-    pg.wait_for_timeout(250)
     run(pg, "live.hold", 500)
     ev(pg, "document.querySelector(\".livepanel section[aria-label='The part selected']\").scrollIntoView({block: 'end'})", 300)
     return None

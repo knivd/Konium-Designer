@@ -130,6 +130,55 @@ export function closePanel(l0: Layout, panel: string): Layout {
 }
 
 /**
+ * A panel put behind a tab at an edge, from wherever it stands (or from nowhere): into the side's
+ * hidden group that holds `beside`, right after it; else into the side's first hidden group; else
+ * into a hidden group of its own. One that is behind a tab on that side already is left there.
+ */
+export function tuckPanel(l0: Layout, panel: string, side: Side, beside?: string): Layout {
+  const at = findPanel(l0, panel);
+  if (at?.side === side && at.g.autoHide) return l0;
+  const l = clone(l0);
+  if (at) detach(l, [panel]);
+  delete l.last[panel];
+  const groups = l.zones[side].groups;
+  const g = (beside ? groups.find((x) => x.autoHide && x.panels.includes(beside)) : undefined) ?? groups.find((x) => x.autoHide);
+  if (!g) groups.push({ id: newId(l), panels: [panel], active: panel, weight: 1, autoHide: true });
+  else if (beside && g.panels.includes(beside)) g.panels.splice(g.panels.indexOf(beside) + 1, 0, panel);
+  else g.panels.push(panel);
+  return l;
+}
+
+/** A first arrangement of the panels: those that stand as tabs beside `main`, and those behind tabs on the right edge. */
+export interface Arrangement { main: string; left: string[]; right: string[]; /** The tabs the arrangement before had beside `main` and this one has not. */ gone: string[] }
+
+/**
+ * A desktop kept from before brought to a new first arrangement, for the panels the arrangement
+ * names and no others: `right` behind tabs on the right edge, in their order; `gone` closed where
+ * they still stand beside `main`; `left` as tabs beside `main` where they are not open anywhere.
+ * What else is open (at the bottom, floating, pinned beside these) stays where it is.
+ */
+export function rearranged(l0: Layout, a: Arrangement): Layout {
+  let l = l0;
+  const [first, ...rest] = a.right;
+  if (first) {
+    l = tuckPanel(l, first, 'right');
+    // (each put right after the first, the last of them first: they end in their order)
+    for (const p of [...rest].reverse()) l = tuckPanel(l, p, 'right', first);
+  }
+  const m = findPanel(l, a.main);
+  if (!m?.side) return l;
+  for (const p of a.gone) if (findPanel(l, p)?.g.id === m.g.id) l = closePanel(l, p);
+  const out = clone(l), g = findPanel(out, a.main)!.g;
+  let at = g.panels.indexOf(a.main) + 1;
+  for (const p of a.left) {
+    if (p === a.main) continue;
+    if (isOpen(out, p)) { if (g.panels.includes(p)) at = g.panels.indexOf(p) + 1; continue; }
+    g.panels.splice(at++, 0, p);
+  }
+  return out;
+}
+
+/**
  * Show the panel's tab in its group (and the group, if F4 hid floating panels). `ctx` is the
  * editor kind it's shown in; `scoped` says the panel exists only in some editors (SCH / PCB
  * Inspector …), so it becomes that kind's choice without becoming the group's general one.
@@ -159,6 +208,9 @@ export function frontOf(g: Group, ctx: string, visible: readonly string[]): stri
   return own && visible.includes(own) ? own : visible[0];
 }
 
+/** The group the tools' panels share (panels.ts): behind tabs on the right edge, apart from the panels that are there at first. */
+export const TOOLS_GROUP = 'tools';
+
 /**
  * Open a closed panel where it was last (its old group if that still exists, else a new group
  * on the same edge or floating where it floated), else at the default place given.
@@ -174,7 +226,10 @@ export function openPanel(l0: Layout, panel: string, def: Place, ctx?: string, s
     if (into.float) l.floatHidden = false;
     return l;
   }
-  const g: Group = { id: newId(l), panels: [panel], active: panel, weight: 1, autoHide: want.autoHide };
+  // (a first place may name its group, one that is made when its first panel opens and joined by those that open after it:
+  // a name of its own, never one of the numbered ids that groups are given as they are made)
+  const named = want.group && !/^g\d+$/.test(want.group) ? want.group : undefined;
+  const g: Group = { id: named ?? newId(l), panels: [panel], active: panel, weight: 1, autoHide: want.autoHide };
   choose(g, panel, ctx, scoped);
   if (want.side) {
     const z = l.zones[want.side];

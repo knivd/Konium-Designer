@@ -12,8 +12,9 @@ import { active, docs, notify, projects } from './state';
 import { showDialog } from './dialogs';
 import { ConfirmDialog, InfoDialog } from './dialogs/Confirm';
 import {
-  NumberDialog, PinSwapConfigDialog, ShieldingDialog, StitchingDialog, TeardropsDialog, type TeardropChoice,
+  NumberDialog, PinSwapConfigDialog, ShieldingDialog, StitchingDialog,
 } from './dialogs/RouteTools';
+import { TeardropsDialog, type TeardropChoice } from './dialogs/TeardropsDialog';
 import { ReportDialog } from './dialogs/Hierarchy';
 import { PcbEditor } from '../editors/pcb/PcbEditor';
 import { PcbLibEditor } from '../editors/pcb/PcbLibEditor';
@@ -27,21 +28,24 @@ import { placement } from '../formats/altium/pcbTransform';
 import { ROUTE_MODES } from '../editors/pcb/RouteTool';
 import { settings, updateSettings } from '../core/settings';
 import { formatCoord, mil } from '../core/units';
-import { encodeArc } from '../formats/altium/pcbdoc';
+import { count } from '../core/words';
+import { layerName } from '../model/layers';
+import { encodeRegion } from '../formats/altium/pcbdoc';
 import { setPolygonName } from '../formats/altium/polygonProps';
 import { autoPolygonName } from './dialogs/Polygon';
 import {
-  addPolygon, addPrimRecords, addTracks, addVias, freshRecord, removePolygons, removePrims, repour, replaceRecords, setComponentProps, setNetProps, setPolygon,
+  addPolygon, addPrimRecords, addVias, removePolygons, removePrims, repour, replaceRecords, setComponentProps, setNetProps, setPolygon,
 } from '../model/pcbEdit';
 import { chamferedPaths, cleanNets, gloss, replaceTracks, retrace, strayCopper } from '../model/trackOps';
 import { equaliseNetLengths } from '../model/tuneEdit';
-import { findTeardrops, planTeardrops } from '../model/teardrops';
+import { findTeardrops } from '../model/teardrops';
+import { planTeardropRegions, teardropRegions, teardropsAt, type TeardropKind } from '../model/teardropRegions';
 import { planShielding, planStitching, shieldGroup, stitchGroup } from '../model/viaStitch';
 import { combinePolygons, pourOrder, resizePolygon, slicePolygon, subtractPolygons, withOutline } from '../model/polygonOps';
 import { canSwapPins, optimisePins, pairSwap, partSwap, setPadNets } from '../model/pinSwap';
 import { computePour } from '../model/pour';
 import { runDrc } from '../model/drc';
-import { NO_NET, type PcbDocument, type PcbPad, type PcbPrim, type PcbTrack, type PcbVia } from '../model/pcb';
+import { NO_NET, netName, type PcbDocument, type PcbPad, type PcbPrim, type PcbTrack, type PcbVia } from '../model/pcb';
 import type { BBox, Vec2 } from '../core/geom';
 import type { Change } from '../core/undo';
 
@@ -102,23 +106,47 @@ function shoveFrom(e: PcbEditor, c0: number): number {
 
 /* ── Teardrops ── */
 
+/** What a teardrop's kind is called in the report. */
+const TEARDROP_NAMES: Record<TeardropKind, string> = { via: 'Via', pad: 'Through-hole pad', smd: 'SMD pad', tracks: 'Tracks', tJunction: 'T-junction' };
+
 function teardrops(e: PcbEditor, c: TeardropChoice): void {
   const doc = e.doc, sel = new Set(selectedPrims(e));
   if (!c.add) {
-    const drops = findTeardrops(doc, c.selectedOnly ? undefined : undefined).filter((p) => !c.selectedOnly || sel.has(p) || [...sel].some((s) => (s.kind === 'pad' || s.kind === 'via') && 'net' in s && s.net === p.net));
-    if (!drops.length) { notify('No teardrops to remove'); return; }
+    // The teardrops (regions marked as such), and those of earlier builds: short tracks and arcs, found by their shape
+    const regions = c.selectedOnly ? teardropsAt(doc, sel) : teardropRegions(doc);
+    const old = findTeardrops(doc).filter((p) => !c.selectedOnly || sel.has(p) || [...sel].some((s) => (s.kind === 'pad' || s.kind === 'via') && 'net' in s && s.net === p.net));
+    const drops: PcbPrim[] = [...regions, ...old];
+    if (!drops.length) { notify(c.selectedOnly ? 'The selected objects have no teardrops' : 'No teardrops to remove'); return; }
     e.undo.transact('Remove teardrops', (tx) => tx.add(removePrims(doc, drops)));
-    notify(`${plural(drops.length, 'teardrop track')} removed`);
+    notify(old.length ? `${count(regions.length, 'teardrop')} and ${count(old.length, 'teardrop track')} removed` : `${count(regions.length, 'teardrop')} removed`);
     return;
   }
-  const plan = planTeardrops(doc, { pads: c.pads, vias: c.vias, selectedOnly: c.selectedOnly, force: c.force, style: c.style }, sel);
-  if (!plan.joints) { notify(plan.skipped ? `No room for teardrops (${plural(plan.skipped, 'joint')} would break clearance)` : 'No joints to teardrop'); return; }
-  e.undo.transact('Teardrops', (tx) => {
-    if (plan.tracks.length) tx.add(addTracks(doc, plan.tracks.map((t) => ({ ...t, net: t.net === NO_NET ? undefined : t.net }))));
-    if (plan.arcs.length) tx.add(addPrimRecords(doc, plan.arcs.map((a) => ({ storage: 'Arcs6', rec: freshRecord(doc, 'Arcs6', (t) => encodeArc({ ...a, net: a.net === NO_NET ? undefined : a.net }, t)) }))));
-  });
-  if (c.report) showDialog(InfoDialog, { title: 'Teardrops', lines: [`${plural(plan.joints, 'joint')} teardropped`, `${plural(plan.skipped, 'joint')} left out: no room within the clearance`] });
-  else notify(`${plural(plan.joints, 'joint')} teardropped${plan.skipped ? `, ${plan.skipped} left out` : ''}`);
+  const plan = planTeardropRegions(doc, c.settings, c.selectedOnly ? sel : undefined);
+  if (plan.made.length) {
+    e.undo.transact('Teardrops', (tx) => tx.add(addPrimRecords(doc, plan.made.map((t) => ({ storage: 'Regions6', rec: encodeRegion({ layer: t.layer, outline: t.outline, net: t.net === NO_NET ? undefined : t.net, teardrop: true }) })))));
+  }
+  if (c.settings.report) {
+    const u = e.units(), o = e.origin(), f = (v: number) => formatCoord(v, u), xy = (p: Vec2) => `${f(p.x - o.x).padStart(12)} ${f(p.y - o.y).padStart(12)}`;
+    const od = docs.value.find((d) => d.editor === e);
+    const project = od?.projectId ? projects.value.find((p) => p.id === od.projectId) ?? null : null;
+    const WHY = { clearance: 'too close to other copper', room: 'no room on the track' };
+    const text = [
+      `Teardrops: ${od?.name ?? 'board'}`, '',
+      `Made: ${plan.made.length}${plan.smaller ? ` (${plan.smaller} smaller than the size set)` : ''}`,
+      `Not made: ${plan.failed.length}`, '',
+      ...(plan.made.length ? ['Made', `${'Kind'.padEnd(18)}${'Layer'.padEnd(18)}${'Net'.padEnd(22)}${'X'.padStart(12)} ${'Y'.padStart(12)}`,
+        ...plan.made.map((t) => `${TEARDROP_NAMES[t.kind].padEnd(18)}${layerName(t.layer).padEnd(18)}${(t.net === NO_NET ? 'No Net' : netName(doc, t.net)).padEnd(22)}${xy(t.at)}`), ''] : []),
+      ...(plan.failed.length ? ['Not made', `${'Kind'.padEnd(18)}${'X'.padStart(12)} ${'Y'.padStart(12)}   Why`,
+        ...plan.failed.map((t) => `${TEARDROP_NAMES[t.kind].padEnd(18)}${xy(t.at)}   ${WHY[t.why]}`)] : []),
+    ].join('\r\n');
+    showDialog(ReportDialog, { title: 'Teardrops', name: 'Teardrops.txt', text, project });
+    return;
+  }
+  if (!plan.made.length) { notify(plan.failed.length ? `No teardrops made: ${count(plan.failed.length, 'joint')} had no room for one` : 'No joints to make teardrops at'); return; }
+  const made = count(plan.made.length, 'teardrop');
+  notify(plan.smaller && plan.failed.length ? `${made} made, ${plan.smaller} of them smaller than the size set; ${count(plan.failed.length, 'joint')} had no room for one`
+    : plan.smaller ? `${made} made, ${plan.smaller} of them smaller than the size set`
+      : plan.failed.length ? `${made} made; ${count(plan.failed.length, 'joint')} had no room for one` : `${made} made`);
 }
 
 /* ── Polygons ── */
@@ -287,7 +315,7 @@ export function pcbRouteCommands(): Command[] {
       updateSettings({ pcbRoutingMode: next });
       notify(`Routing: ${ROUTE_MODES.find(([m]) => m === next)?.[1]}`);
     } },
-    { id: 'ad:PCB:TearDrops', label: 'Teardrops...', scopes: PCB, enabled: () => !!board(), run: on((e) => showDialog(TeardropsDialog, { onOk: (c: TeardropChoice) => teardrops(e, c) })) },
+    { id: 'ad:PCB:TearDrops', label: 'Teardrops...', scopes: PCB, enabled: () => !!board(), run: on((e) => showDialog(TeardropsDialog, { selected: selectedPrims(e).length, onOk: (c: TeardropChoice) => teardrops(e, c) })) },
 
     /* ── stitching and shielding ── */
     { id: 'ad:PCB:ViaStitchingFlood', label: 'Add Stitching to Net...', scopes: PCB, enabled: () => !!board()?.doc.board.outline.length, run: on((e) => showDialog(StitchingDialog, { ed: e, onOk: (o: Parameters<typeof planStitching>[1]) => {

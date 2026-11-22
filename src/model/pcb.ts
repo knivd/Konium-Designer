@@ -70,6 +70,8 @@ export interface PcbRegion {
   regionKind: number; boardCutout: boolean; net: number; polygon: number; component: number; locked: boolean; keepout: boolean; keepoutRestrictions?: number;
   /** ARCRESOLUTION: how far the stored outline's chords may lie from its true arcs. */
   arcRes?: Coord;
+  /** A teardrop (Tools › Teardrops): the record's teardrop mark, by which Remove finds it. */
+  teardrop?: boolean;
   /** Part of a polygon pad's shape (KONIUMPADSHAPE: the pad's designator when it was made), and that pad's key once linked (model/padShapes). */
   padShape?: string; shapeOf?: string;
   /** A KiCad teardrop it was read from (KICADTEARDROP: its type; KICADZONE, KICADOUTLINE, KICADPRIORITY), for the way back. */

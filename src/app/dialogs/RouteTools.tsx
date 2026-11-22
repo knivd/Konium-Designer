@@ -1,7 +1,7 @@
 /**
  * The dialogs of 26.038's routing tools [est: laid out from AD17's, without screenshots]:
  * Interactive Length Tuning (Tab while tuning), Differential Pair / Multi-Routing properties (Tab
- * while routing them), Teardrop Options, Add Stitching to Net, Add Shielding to Net, Chamfered
+ * while routing them), Add Stitching to Net, Add Shielding to Net, Chamfered
  * Path, Shove Depth, Resize Polygon, and Configure Pin Swapping.
  */
 import { useState } from 'preact/hooks';
@@ -84,34 +84,6 @@ export function BusRoutingDialog({ ed, tool }: { ed: PcbEditor; tool: BusRouteTo
           <label key={m} class="pd-radio"><input type="radio" name="crm" checked={mode === m} onChange={() => setMode(m)} /> {label}</label>
         ))}
       </fieldset>
-    </Dialog>
-  );
-}
-
-export interface TeardropChoice { pads: boolean; vias: boolean; selectedOnly: boolean; force: boolean; report: boolean; add: boolean; style: 'track' | 'arc' }
-
-/** Tools › Teardrops: what gets them, add or remove, arcs or tracks. */
-export function TeardropsDialog({ onOk }: { onOk: (c: TeardropChoice) => void }) {
-  const [c, setC] = useState<TeardropChoice>({ pads: true, vias: true, selectedOnly: false, force: false, report: false, add: true, style: settings.pcbTeardropStyle });
-  const ok = () => { updateSettings({ pcbTeardropStyle: c.style }); closeDialog(); onOk(c); };
-  const tick = (label: string, k: keyof TeardropChoice) => <Check label={label} checked={c[k] as boolean} onChange={(v) => setC({ ...c, [k]: v })} />;
-  return (
-    <Dialog title="Teardrop Options" width={460} onClose={closeDialog} onAccept={() => { ok(); return false; }} footer={footer(ok)}>
-      <div class="tune-grid">
-        <fieldset class="pd-group"><legend>General</legend>
-          {tick('All Pads', 'pads')}{tick('All Vias', 'vias')}{tick('Create Only On Selected Objects', 'selectedOnly')}{tick('Force Teardrops', 'force')}{tick('Create Report', 'report')}
-        </fieldset>
-        <div>
-          <fieldset class="pd-group"><legend>Action</legend>
-            <label class="pd-radio"><input type="radio" name="tda" checked={c.add} onChange={() => setC({ ...c, add: true })} /> Add</label>
-            <label class="pd-radio"><input type="radio" name="tda" checked={!c.add} onChange={() => setC({ ...c, add: false })} /> Remove</label>
-          </fieldset>
-          <fieldset class="pd-group"><legend>Teardrop Style</legend>
-            <label class="pd-radio"><input type="radio" name="tds" checked={c.style === 'arc'} onChange={() => setC({ ...c, style: 'arc' })} /> Arc</label>
-            <label class="pd-radio"><input type="radio" name="tds" checked={c.style === 'track'} onChange={() => setC({ ...c, style: 'track' })} /> Track</label>
-          </fieldset>
-        </div>
-      </div>
     </Dialog>
   );
 }

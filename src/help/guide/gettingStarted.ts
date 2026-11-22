@@ -92,7 +92,7 @@ export const GETTING_STARTED: Chapter = {
       title: 'The Home page',
       blocks: [
         { p: "The Home page is a tab of its own, ahead of the documents. It opens when Konium Designer starts and whenever the last document closes, and it is where you begin: open or create something, reopen recent work, recover unsaved changes and see what is new." },
-        { img: 'gs-home-page', alt: "The Konium Designer window with the Home page in front and no documents open, the Projects panel on the left holding only Workspace1.DsnWrk and a Libraries tab on the right edge. On the Home page: the name, the files it opens and the version at the top; a Start column with links to open a project, a document, the demo project or the simulation demo and to import or export, and a New column below it; a middle column with the What's New card and the empty Recent projects and Recent documents lists; and a side column with the Get Konium Designer, Support Konium Designer, Found a bug? and Network activity boxes and the top of the Good to know box.", caption: 'The Home page' },
+        { img: 'gs-home-page', alt: "The Konium Designer window with the Home page in front and no documents open, the Projects panel on the left holding only Workspace1.DsnWrk and the Libraries, Requirements, Calculators and Clipboard tabs on the right edge. On the Home page: the name, the files it opens and the version at the top; a Start column with links to open a project, a document, the demo project or the simulation demo and to import or export, and a New column below it; a middle column with the What's New card and the empty Recent projects and Recent documents lists; and a side column with the Get Konium Designer, Support Konium Designer, Found a bug? and Network activity boxes and the top of the Good to know box.", caption: 'The Home page' },
         {
           list: [
             "**View › Home** opens it at any time, and **Help › What's New** opens it at What's New.",
@@ -127,7 +127,7 @@ export const GETTING_STARTED: Chapter = {
       title: 'The main window',
       blocks: [
         { p: "The window has the same parts whatever you are working on. The menus, toolbars and panels change with the document in front: a schematic brings the schematic editor's, a PCB the PCB editor's." },
-        { img: 'gs-main-window', alt: "The Konium Designer window with the demo project open and Demo.SchDoc in front: the menu bar and toolbars at the top, the Home, Demo.SchDoc and Demo.PcbDoc tabs below them, the Projects panel docked on the left listing Demo.PrjPcb and its documents, the schematic in the middle with Mask Level and Clear under it, a Libraries tab on the right edge, and the status bar along the bottom with the cursor position, the grid, a hint, the panel buttons and Shortcuts.", caption: 'The main window with the demo project' },
+        { img: 'gs-main-window', alt: "The Konium Designer window with the demo project open and Demo.SchDoc in front: the menu bar and toolbars at the top, the Home, Demo.SchDoc and Demo.PcbDoc tabs below them, the Projects panel docked on the left listing Demo.PrjPcb and its documents, the schematic in the middle with Mask Level and Clear under it, the Libraries, Requirements, Calculators and Clipboard tabs on the right edge, and the status bar along the bottom with the cursor position, the grid, a hint, the panel buttons and Shortcuts.", caption: 'The main window with the demo project' },
         {
           head: ['Part', 'What it does'],
           table: [
@@ -588,6 +588,7 @@ export const GETTING_STARTED: Chapter = {
       title: 'Panels',
       blocks: [
         { p: "Panels sit around the document: the Projects tree, Messages, the libraries, the selected objects' properties and more. They can be docked along any edge, grouped as tabs, floated over the window, or tucked away as tabs on an edge." },
+        { p: "**At first.** Projects, the Storage Manager and the SCH or PCB Inspector are docked on the left, as tabs of one group. Libraries, Requirements, Calculators and the Clipboard are tucked away behind tabs on the right edge: point at a tab and its panel slides out over the document. Every other panel opens when you ask for it, and a library's own panel when you open a library." },
         {
           head: ['Panel', 'What it is for'],
           table: [
@@ -597,6 +598,7 @@ export const GETTING_STARTED: Chapter = {
             ['Storage Manager', 'The project\'s files and their Local History (see [Local History and the Storage Manager](#gs-history)).'],
             ['File Inspector', 'The streams inside a .SchDoc, .PcbDoc, .SchLib or .PcbLib file.'],
             ['Navigator', 'Browsing a compiled project.'],
+            ['Requirements, Calculators, Clipboard', 'The project\'s requirements; the everyday sums and the board\'s; what was cut or copied lately.'],
             ['SCH or PCB Inspector, Filter, List', 'The selected objects\' properties (F11), finding objects with a query (F12), and objects as a table (Shift+F12).'],
             ['SCH Library, PCB Library', 'The components of the library in front, in a library editor.'],
             ['PCB, PCB Rules And Violations', 'The board\'s nets, components and other objects; its rules and the violations found.'],
@@ -613,7 +615,7 @@ export const GETTING_STARTED: Chapter = {
           ],
         },
         { p: "**The title bar.** A panel group's title bar shows the panel in front and three buttons: the down arrow (the panel menu: the group's panels, the one in front ticked, then a Close item for it), the pin (**Auto-hide**, or **Dock (pin open)** on a tucked-away panel; a floating group has no pin) and **×** (**Close**). When a group holds several panels, their tabs run along its foot: click one to bring it forward." },
-        { img: 'gs-panel-group', alt: "The panels docked on the left of the window with Demo.PcbDoc in front and selected in the tree: the Projects panel's title bar with its menu, pin and close buttons, the project tree below it, and tabs along the foot for Projects, Navigator, PCB Filter and PCB Inspector.", caption: 'A docked panel group' },
+        { img: 'gs-panel-group', alt: "The panels docked on the left of the window with Demo.PcbDoc in front and selected in the tree: the Projects panel's title bar with its menu, pin and close buttons, the project tree below it, and tabs along the foot for Projects, Storage Manager and PCB Inspector.", caption: 'A docked panel group' },
         { p: "**Moving panels.** Drag a title bar to move the whole group, or a tab to move one panel. An outline shows where it will go:" },
         {
           list: [
@@ -633,7 +635,7 @@ export const GETTING_STARTED: Chapter = {
             "F4 hides or shows every floating panel; Shift+F5 moves between the document and the top floating panel.",
           ],
         },
-        { p: "**Desktop Layouts.** **View › Desktop Layouts** has **Default** (Projects and its neighbours as tabs on the left, Libraries tucked away on the right edge), **Startup** (the panels as they were when this session started), **Load Layout...** and **Save Layout...** (to keep an arrangement in a file)." },
+        { p: "**Desktop Layouts.** **View › Desktop Layouts** has **Default** (the panels as they are at first: Projects, the Storage Manager and the Inspector on the left; Libraries, Requirements, Calculators and the Clipboard behind tabs on the right edge), **Startup** (the panels as they were when this session started), **Load Layout...** and **Save Layout...** (to keep an arrangement in a file)." },
         {
           head: ['Preferences › System › View', 'What it does'],
           table: [

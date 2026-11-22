@@ -53,8 +53,8 @@ describe('the help (26.147)', () => {
     expect(files.filter((f) => !used.includes(f))).toEqual([]);
     for (const { section } of all) for (const b of section.blocks) if ('img' in b) expect(b.alt.length, b.img).toBeGreaterThan(40);
     const bytes = pictureFiles.reduce((n, f) => n + fs.statSync(`${PICTURES}/${f}`).size, 0);
-    // (98 pictures at 26.175, the analysis tools' among them: about 27 KB each)
-    expect(bytes).toBeLessThan(3_000_000);
+    // (98 pictures at 26.175, the analysis tools' among them: about 27 KB each; 111 at 26.209, with the panels' tabs at the window's edges in most of them)
+    expect(bytes).toBeLessThan(3_200_000);
   });
   it('the house rules: no long dashes, none of the names the app never uses', () => {
     const bad = texts.filter((t) => /[–—]|\bAltium\b|\bProtel\b|\bAD\b|\bKD\b/.test(t));

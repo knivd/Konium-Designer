@@ -455,10 +455,11 @@ body.dock-dragging, body.dock-dragging * { cursor: move !important; user-select:
 .menubar-chip:hover { background: var(--hover); }
 .menubar-chip.update { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 /* Offline: a grey chip, its word in white (blue on grey read as a plain bar); a shade darker under the mouse */
-.menubar-chip.live { border-color: var(--live); background: color-mix(in srgb, var(--live) 8%, transparent); color: var(--live); }
-.menubar-chip.live:hover { background: color-mix(in srgb, var(--live) 18%, transparent); }
-.menubar-chip.live.on { background: var(--live); color: var(--panel, #fff); }
-.menubar-chip.live.on:hover { background: color-mix(in srgb, var(--live) 86%, #000); }
+/* Live Simulation: a quiet button at rest (the bar's own text, a plain outline); its red only while a sheet runs, as a tint */
+.menubar-chip.live { border-color: var(--line-strong); color: var(--text); font-weight: 400; }
+.menubar-chip.live:hover { background: var(--hover); }
+.menubar-chip.live.on { border-color: var(--live); background: color-mix(in srgb, var(--live) 10%, transparent); color: var(--live); }
+.menubar-chip.live.on:hover { background: color-mix(in srgb, var(--live) 18%, transparent); }
 @media (max-width: 1180px) { .menubar-chip.live span { display: none; } .menubar-chip.live { padding: 0 6px; } }
 .menu-item:not(.disabled)[data-cmd='live.panel'] .menu-label { color: var(--live); font-weight: 600; }
 .live-head { margin: 0 0 6px; }
@@ -1642,6 +1643,34 @@ input.ir-val { width: 110px; }
 .dp-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; margin-bottom: 6px; }
 /* 26.038 routing tools */
 .tune-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+/* Tools › Teardrops: what to do, how, and each kind of joint with its drawing and sizes */
+.td-top { display: grid; grid-template-columns: 230px 1fr; gap: 10px; align-items: stretch; }
+.td-what { display: grid; grid-template-rows: 1fr 1fr; gap: 10px; }
+.td-what fieldset { justify-content: center; }
+.td-radios { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.td-radio { display: inline-flex; align-items: center; gap: 6px; }
+.td-radio input, .td-option input, .td-scope-head input { margin: 0; }
+.td-options { gap: 8px; }
+.td-style { display: grid; grid-template-columns: 104px 150px; align-items: center; gap: 8px; padding-left: 24px; }
+.td-option { display: grid; grid-template-columns: 16px 1fr; gap: 8px; align-items: start; }
+.td-option input { margin-top: 2px; }
+.td-option b { display: block; font-weight: 600; }
+.td-option small { display: block; color: var(--text-dim); font-size: 11px; line-height: 1.35; }
+.td-scopes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.td-scope { display: flex; flex-direction: column; gap: 7px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); min-width: 0; }
+.td-scope-head { display: flex; align-items: center; gap: 7px; font-weight: 600; }
+.td-pic { display: block; width: 100%; aspect-ratio: 150 / 92; background: var(--field); border: 1px solid var(--line); border-radius: 4px; --td-copper: #aab3bd; }
+:root[data-theme='dark'] .td-pic { --td-copper: #51685f; }
+.td-copper { fill: var(--td-copper); }
+.td-drop { fill: var(--accent); }
+.td-hole { fill: var(--field); }
+.td-measure line { stroke: var(--text); stroke-width: 0.6; }
+.td-measure text { fill: var(--text); font-size: 9px; font-style: italic; }
+.td-fields { display: flex; flex-direction: column; gap: 4px; min-height: 50px; }
+.td-pct { display: grid; grid-template-columns: 44px 56px 1fr; align-items: center; gap: 6px; }
+.td-pct input { width: 100%; box-sizing: border-box; }
+.td-of { color: var(--text-dim); white-space: nowrap; }
+.td-scope.off .td-pic, .td-scope.off .td-fields, .td-options.off { opacity: 0.45; }
 .pd-radio { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
 .pinswap-body { display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px; height: 100%; min-height: 0; }
 .pinswap-body .grid { min-height: 0; }
@@ -2964,6 +2993,8 @@ h4.dg-lib-head { cursor: default; }
 .live-key { position: absolute; right: 1px; top: 0; font: 9.5px/1.1 var(--font); color: var(--text-dim); background: none; border: 0; padding: 0 1px; }
 .live-keys { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
 .livepanel .pw-field { grid-template-columns: 8.8em minmax(0, 1fr) 48px; }
+/* (the speed's row: its list needs the room for "10.0 ms a second", which the labels' column took from it) */
+.livepanel .pw-field.live-speed { grid-template-columns: 4.2em minmax(0, 1fr) 48px; }
 .live-cap { font-size: 10.5px; line-height: 1.2; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .livepanel .live-turn { padding: 0 0 4px; }
 .livepanel .live-turn input[type=range] { height: 16px; margin: 0; padding: 0; }

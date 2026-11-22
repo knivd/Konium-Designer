@@ -1,9 +1,10 @@
 /**
- * Tools › Teardrops (AD17's Teardrop Options): where a track ends in a pad or via, two tracks or
- * arcs from the pad's edge either side back to the track widen the joint. Removing finds them by
- * their shape [est]: a track or arc of the net from inside a pad or via (off its centre) to the
- * middle of another track of the net. Teardrops that would break clearance are left out unless
- * Force Teardrops is ticked.
+ * Teardrops as builds before 26.209 made them: where a track ends in a pad or via, two tracks or
+ * arcs from the pad's edge either side back to the track widen the joint. Tools › Teardrops now
+ * makes copper regions (teardropRegions.ts); this planner is kept for the boards the showcase
+ * draws, and the finder so that Remove also takes such teardrops off a board that has them. It
+ * finds them by their shape [est]: a track or arc of the net from inside a pad or via (off its
+ * centre) to the middle of another track of the net.
  */
 import type { Vec2 } from '../core/geom';
 import { distToSegment } from '../core/geom';

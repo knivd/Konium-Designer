@@ -1444,6 +1444,9 @@ with sync_playwright() as p:
     check(f"a tab dragged to the front of its strip goes first ({tabs0} -> {tabs1})", len(tabs0) >= 2 and tabs1 == [tabs0[-1]] + tabs0[:-1])
     page.locator(".zone-left .dock-tabs").first.locator("[role=tab]", has_text=tabs0[0]).click(); page.wait_for_timeout(100)
     # Docking: drag a tab to an edge, float a group, close and reopen, auto-hide, F4, sizes remembered
+    # (Navigator is not among the panels at first from 26.209: asked for, it opens as a tab beside Projects)
+    page.evaluate("window.konium.dock.showPanel('navigator')"); page.wait_for_timeout(200)
+    page.locator(".zone-left .dock-tabs").first.locator("[role=tab]", has_text="Projects").click(); page.wait_for_timeout(100)
     t = page.locator(".dock-tabs [role=tab]", has_text="Navigator").bounding_box()
     page.mouse.move(t["x"] + 8, t["y"] + 6); page.mouse.down(); page.mouse.move(t["x"] + 40, t["y"] - 40, steps=4); page.mouse.move(1432, 420, steps=8)
     check("dragging a tab shows where it will dock", page.locator(".dock-preview").count() == 1)
@@ -1675,9 +1678,10 @@ with sync_playwright() as p:
     check("undo gives VIN its length back", abs(page.evaluate(VINLEN) - l0) < 2)
     na = page.evaluate(f"{ED}.doc.prims.filter(p => p.kind === 'arc').length")
     page.evaluate("window.konium.run('ad:PCB:TearDrops')"); page.wait_for_timeout(150)
-    check("Tools › Teardrops: AD17's Teardrop Options", all(t in page.locator(".dlg").inner_text() for t in ["All Pads", "All Vias", "Force Teardrops", "Teardrop Style"]))
+    check("Tools › Teardrops: its window (the working mode, the objects, the options and the four scopes, 26.209)", all(t in page.locator(".dlg").inner_text() for t in ["Working Mode", "Selected only", "Force teardrops", "Teardrop style", "Via/TH Pad", "T-Junction"]))
     page.locator(".dlg .dlg-foot .btn", has_text="OK").click(); page.wait_for_timeout(200)
-    check("teardrops: arcs where tracks meet pads and vias, one undo step", page.evaluate(f"{ED}.doc.prims.filter(p => p.kind === 'arc').length") > na and page.evaluate(f"{ED}.undo.undoLabel") == "Teardrops")
+    check("teardrops: copper regions where tracks meet pads and vias (no arcs any more), one undo step",
+          page.evaluate(f"{ED}.doc.prims.filter(p => p.kind === 'region' && p.teardrop).length") > 5 and page.evaluate(f"{ED}.doc.prims.filter(p => p.kind === 'arc').length") == na and page.evaluate(f"{ED}.undo.undoLabel") == "Teardrops")
     shot(page, "51-teardrops.png")
     page.keyboard.press("Control+z")
     nv0 = page.evaluate(f"{ED}.doc.prims.filter(p => p.kind === 'via').length")
@@ -2628,8 +2632,8 @@ with sync_playwright() as p:
     more = wn.locator(".news-more").inner_text() if wn.locator(".news-more").count() else ""
     if more: wn.locator(".news-more").click(); page.wait_for_timeout(300)
     rels_all = wn.locator(".news-release").count()
-    check(f"Help › What's New: the Home page's feature log — 26.200 first, three shown, Earlier releases down to the Initial Release, their pictures, no dates ({rels}, '{more}', {rels_all} releases, {wn.locator('.news-shot').count()} pictures)",
-          wn.count() == 1 and rels == 3 and "26.200" in first and more == "Earlier releases (31)" and rels_all == 34 and "Initial Release" in wn.inner_text() and wn.locator(".news-shot").count() == 69
+    check(f"Help › What's New: the Home page's feature log — 26.209 first, three shown, Earlier releases down to the Initial Release, their pictures, no dates ({rels}, '{more}', {rels_all} releases, {wn.locator('.news-shot').count()} pictures)",
+          wn.count() == 1 and rels == 3 and "26.209" in first and more == "Earlier releases (32)" and rels_all == 35 and "Initial Release" in wn.inner_text() and wn.locator(".news-shot").count() == 71
           and not re.search(r"\b20\d\d\b", wn.inner_text()))
     sha = wn.locator(".news-release").first.locator(".news-sha")
     # The newest entry's SHA-256: this build's own when the build has an entry (a build with nothing to tell has none, and the release before keeps its own)
@@ -7840,13 +7844,13 @@ with sync_playwright() as p:
           and as_member == ["Member", 1, 0, 0] and as_out == ["Not a member", 0, 1] and "take example.com's library over" in out.lower())
     c.close()
 
-    # 26.202: Live Simulation from anywhere (the red button of the menu bar), a new circuit that leaves what is open alone, the two drawings
+    # 26.202: Live Simulation from anywhere (the button of the menu bar; quiet at rest and red while a sheet runs, 26.209), a new circuit that leaves what is open alone, the two drawings
     # of resistors, capacitors and inductors, and the electrolytic capacitor watched for a voltage the wrong way round
     c, pg = site_page("26.202-live")
     pg.goto(URL); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(1200)
     names = lambda: pg.evaluate("window.konium.state.docs.value.map((d) => d.name)")
     chip = pg.locator(".menubar-chip.live")
-    chip0 = pg.evaluate("""() => { const e = document.querySelector('.menubar-chip.live'); return e ? { text: e.textContent, colour: getComputedStyle(e).color, on: e.classList.contains('on'), tip: e.title } : null; }""")
+    chip0 = pg.evaluate("""() => { const e = document.querySelector('.menubar-chip.live'); return e ? { text: e.textContent, colour: getComputedStyle(e).color, plain: getComputedStyle(document.querySelector('.menubar-item')).color, on: e.classList.contains('on'), tip: e.title } : null; }""")
     docs0 = names()
     chip.click(); pg.wait_for_timeout(2500)
     lp = pg.locator(".livepanel")
@@ -7855,9 +7859,10 @@ with sync_playwright() as p:
     docs1 = names()
     run1 = lp.locator(".pw-run .btn", has_text="Stop").count() == 1   # (a blank sheet has no circuit to read yet: the run is on)
     chip1 = pg.evaluate("document.querySelector('.menubar-chip.live').classList.contains('on')")
+    lit = pg.evaluate("(() => { const s = getComputedStyle(document.querySelector('.menubar-chip.live')); return [s.color, s.borderTopColor]; })()")
     shot(pg, "202-new.png")
-    check(f"Live Simulation (26.202): a button of its own in the menu bar ('{chip0 and chip0['text']}', {chip0 and chip0['colour']}); with nothing in front ({docs0}) it opens a new circuit ({docs1}) that runs ({run1}), the button lit ({chip1}); the panel is headed by the sheet's name ('{head}') with {tools}",
-          chip0 is not None and chip0["text"] == "Live Simulation" and chip0["colour"] == "rgb(163, 22, 26)" and not chip0["on"] and "nothing on it is changed" in chip0["tip"] and docs0 == [] and docs1 == ["Sheet1.SchDoc"] and run1 and chip1
+    check(f"Live Simulation (26.202; quiet at rest from 26.209): a button of its own in the menu bar ('{chip0 and chip0['text']}', in the bar's own colour {chip0 and chip0['colour']}); with nothing in front ({docs0}) it opens a new circuit ({docs1}) that runs ({run1}), the button lit ({chip1}) in its red ({lit}); the panel is headed by the sheet's name ('{head}') with {tools}",
+          chip0 is not None and chip0["text"] == "Live Simulation" and chip0["colour"] == chip0["plain"] and chip0["colour"] != "rgb(163, 22, 26)" and lit == ["rgb(163, 22, 26)", "rgb(163, 22, 26)"] and not chip0["on"] and "nothing on it is changed" in chip0["tip"] and docs0 == [] and docs1 == ["Sheet1.SchDoc"] and run1 and chip1
           and head == "Sheet1.SchDoc" and tools == ["New Circuit", "Open a Circuit", "Save the Circuit", "Examples"])
     # An example opens beside it; the parts are drawn the European way until the other is chosen
     pg.evaluate("window.konium.liveExample('smoothing')"); pg.wait_for_timeout(3000)
@@ -7902,10 +7907,10 @@ with sync_playwright() as p:
     shot(pg, "202-menu.png")
     pg.keyboard.press("Escape"); pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
     pg.evaluate("window.konium.prefs.set({ theme: 'dark' })"); pg.wait_for_timeout(500)
-    dark = pg.evaluate("getComputedStyle(document.querySelector('.menubar-chip.live')).backgroundColor")
+    dark = pg.evaluate("getComputedStyle(document.querySelector('.menubar-chip.live')).color")
     shot(pg, "202-dark.png")
     pg.evaluate("window.konium.prefs.set({ theme: 'light' })"); pg.wait_for_timeout(300)
-    check(f"…the next example opened is drawn the American way ({sorted(set(p[2] for p in lrc))}); New Circuit leaves every document open ({docs3}); back to European with nothing to redraw says so ('{toast2}'). Design › Simulate lists {item and item['labels']} with Live Simulation in the button's red ({item and item['red']}, the others {item and item['other']}); dark theme: the lit button is {dark}",
+    check(f"…the next example opened is drawn the American way ({sorted(set(p[2] for p in lrc))}); New Circuit leaves every document open ({docs3}); back to European with nothing to redraw says so ('{toast2}'). Design › Simulate lists {item and item['labels']} with Live Simulation in its red ({item and item['red']}, the others {item and item['other']}); dark theme: the lit button's lettering is {dark}",
           len(lrc) == 3 and all(p[2] == "american" for p in lrc) and len(docs3) == 4 and docs3[:2] == docs2 and docs3[3] == "Sheet2.SchDoc"
           and "European style from here on" in toast2 and item is not None and item["red"] == "rgb(163, 22, 26)" and item["other"] != item["red"]
           and item["labels"][:3] == ["Mixed Sim", "Live Simulation", "New Live Simulation Circuit"] and dark == "rgb(255, 138, 128)")
@@ -8051,6 +8056,131 @@ with sync_playwright() as p:
     pg.keyboard.press("Shift+S"); pg.wait_for_timeout(500)
     check(f"A layer alone in 3D (26.208): the top layer shown alone is copper like the rest of the view (pixels of the copper's hue, of the layer's red: {lone}); with the view coloured by layer it takes its layer's colour ({by_layer})",
           lone[0] > 2000 and lone[1] < lone[0] / 20 and by_layer[1] > 2000 and by_layer[0] < by_layer[1] / 20)
+    c.close()
+
+    # 26.209: teardrops as copper regions, set by a window of the working mode, the objects, the options and four kinds of
+    # joint. On the routing example (Konium's own), routed by the autorouter
+    c, pg = site_page("26.209-teardrops")
+    c.add_init_script("for (const k of ['showSaveFilePicker']) { try { delete window[k]; } catch (e) {} if (window[k]) Object.defineProperty(window, k, { value: undefined, configurable: true }); }")
+    pg.goto(URL); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(600)
+    pg.evaluate("window.konium.prefs.set({ openHomePage: false })")
+    pg.evaluate("window.konium.run('ai.routeExample')")
+    pg.wait_for_function("window.konium.state.active.value && window.konium.state.active.value.name === 'Routing Example.PcbDoc'", timeout=30000); pg.wait_for_timeout(1500)
+    pg.evaluate("window.konium.dock.hidePanel('smartRouter')"); pg.wait_for_timeout(300)
+    pg.evaluate("window.konium.run('ad:PCB:AutorouteAll')"); pg.wait_for_timeout(300)
+    pg.locator(".dlg .dlg-foot .btn", has_text="Route All").click()
+    pg.wait_for_function("window.konium.state.messages.value.some((m) => m.source === 'Auto Route' && /Routing finished/.test(m.message))", timeout=90000); pg.wait_for_timeout(800)
+    pg.evaluate("window.konium.dock.hidePanel('messages')"); pg.wait_for_timeout(300)
+    DROPS = f"{ED}.doc.prims.filter(p => p.kind === 'region' && p.teardrop)"
+    viol0 = pg.evaluate(f"{ED}.violations.length")
+    strip_all = pg.locator(".strip-right .strip-tab").all_inner_texts()   # (every feature on here: for the panels' check below)
+    # (1) The window: its parts; a drawing follows the sizes typed; a scope unticked is put aside; Selected only waits for a selection
+    pg.evaluate("window.konium.run('ad:PCB:TearDrops')"); pg.wait_for_timeout(400)
+    dlg = pg.locator(".dlg.teardropsdlg")
+    text = dlg.inner_text()
+    via = dlg.locator(".td-scope").nth(0)
+    d0 = via.locator("path.td-drop").get_attribute("d")
+    via.locator("input[type=number]").first.fill("120"); pg.wait_for_timeout(150)
+    d1 = via.locator("path.td-drop").get_attribute("d")
+    via.locator("input[type=number]").first.fill("30"); pg.wait_for_timeout(150)
+    back = via.locator("path.td-drop").get_attribute("d") == d0
+    tracks = dlg.locator(".td-scope").nth(2)
+    tracks.locator("input[type=checkbox]").uncheck(); pg.wait_for_timeout(100)
+    aside = "off" in (tracks.get_attribute("class") or "") and tracks.locator("input[type=number]").first.is_disabled()
+    tracks.locator("input[type=checkbox]").check()
+    sel_only = dlg.locator(".td-radio", has_text="Selected only").locator("input")
+    waits = sel_only.is_disabled()
+    cols = pg.evaluate("[...document.querySelectorAll('.td-scope input[type=number]')].map((e) => Math.round(e.getBoundingClientRect().width))")
+    shot(pg, "209-teardrops-window.png")
+    pg.evaluate("window.konium.prefs.set({ theme: 'dark' })"); pg.wait_for_timeout(250)
+    shot(pg, "209-teardrops-window-dark.png")
+    pg.evaluate("window.konium.prefs.set({ theme: 'classic' })"); pg.wait_for_timeout(250)
+    check(f"Tools › Teardrops, the window (26.209): Working Mode, Objects, the Options and the four scopes, each with a drawing ({dlg.locator('svg.td-pic').count()}); a drawing follows the size typed ({d0 != d1}) and comes back with it ({back}); a scope unticked is put aside ({aside}); Selected only waits for a selection ({waits}); the size fields are one width ({sorted(set(cols))})",
+          all(t in text for t in ["Working Mode", "Add", "Remove", "Objects", "Selected only", "Teardrop style", "Force teardrops", "Adjust teardrop size", "Generate report", "Via/TH Pad", "SMD Pad", "Tracks", "T-Junction", "% of d", "% of w"])
+          and dlg.locator("svg.td-pic").count() == 4 and d0 != d1 and back and aside and waits and len(set(cols)) == 1 and len(cols) == 7)
+    # (2) Made, with the report: regions marked as teardrops, each with its track's net, on the two copper layers, none
+    # breaking a clearance; one undo step; the settings kept
+    dlg.locator(".td-option", has_text="Generate report").locator("input").check()
+    dlg.locator(".dlg-foot .btn", has_text="OK").click(); pg.wait_for_timeout(900)
+    report = pg.locator(".dlg.report .report-text").inner_text() if pg.locator(".dlg.report").count() else ""
+    pg.locator(".dlg.report .dlg-foot .btn", has_text="Close").click(); pg.wait_for_timeout(300)
+    made = pg.evaluate(f"(() => {{ const t = {DROPS}; return {{ n: t.length, pts: [...new Set(t.map(r => r.outline.length))].sort((a, b) => a - b), nets: t.every(r => r.net !== 0xffff), layers: [...new Set(t.map(r => r.layer))].sort((a, b) => a - b), undo: {ED}.undo.undoLabel, viol: {ED}.violations.length, kept: window.konium.prefs.get().pcbTeardrops.report }}; }})()")
+    m = re.search(r"Made: (\d+)", report)
+    box = pg.evaluate(f"(() => {{ const d = {ED}.doc, c = d.components.findIndex(c => c.designator === 'U2'); const ps = d.prims.filter(p => p.kind === 'pad' && p.component === c); const xs = ps.map(p => p.at.x), ys = ps.map(p => p.at.y); return {{ minX: Math.min(...xs) - 900000, minY: Math.min(...ys) - 600000, maxX: Math.max(...xs) + 900000, maxY: Math.max(...ys) + 600000 }}; }})()")
+    pg.evaluate(f"(b) => {ED}.zoomToBox(b)", box); pg.wait_for_timeout(700)
+    shot(pg, "209-teardrops-board.png")
+    check(f"Teardrops made (26.209): {made['n']} copper regions marked as teardrops, as the report counts them ({m.group(1) if m else None}), each with its track's net ({made['nets']}), on the copper layers {made['layers']}, of {made['pts']} points; the rules broken before {viol0} and after {made['viol']}; one undo step ({made['undo']!r}); the settings are kept ({made['kept']})",
+          made["n"] > 60 and m is not None and int(m.group(1)) == made["n"] and made["nets"] and made["layers"] == [1, 32] and set(made["pts"]) <= {4, 13, 22} and viol0 == 0 and made["viol"] == 0
+          and made["undo"] == "Teardrops" and made["kept"] is True and "Kind" in report and "Via" in report and "SMD pad" in report)
+    # (3) A second time: none where one is already. Saved and read back: the mark is in the file
+    pg.evaluate("window.konium.prefs.set({ pcbTeardrops: { ...window.konium.prefs.get().pcbTeardrops, report: false } })")
+    pg.evaluate("window.konium.run('ad:PCB:TearDrops')"); pg.wait_for_timeout(300)
+    pg.locator(".dlg.teardropsdlg .dlg-foot .btn", has_text="OK").click(); pg.wait_for_timeout(700)
+    again = pg.evaluate(f"{DROPS}.length")
+    with pg.expect_download() as dl:
+        pg.evaluate("window.konium.run('file.save')")
+    pg.wait_for_timeout(700)
+    import base64
+    saved = open(dl.value.path(), "rb").read()
+    pg.evaluate("(s) => window.konium.openBatch([{ name: 'Teardrops Back.PcbDoc', bytes: Uint8Array.from(atob(s), (c) => c.charCodeAt(0)) }])", base64.b64encode(saved).decode())
+    pg.wait_for_function("window.konium.state.active.value && window.konium.state.active.value.name === 'Teardrops Back.PcbDoc'", timeout=30000); pg.wait_for_timeout(800)
+    read_back = pg.evaluate(f"[{DROPS}.length, {ED}.doc.prims.filter(p => p.kind === 'region' && !p.teardrop).length]")
+    check(f"Teardrops kept (26.209): a second run adds none ({again} after {made['n']}); saved and opened again, the board has its {read_back[0]} teardrops marked as such (other regions: {read_back[1]})",
+          again == made["n"] and read_back[0] == made["n"])
+    # (4) Remove: with Selected only, those at the via selected and no others; then all of them; undo brings them back
+    one = pg.evaluate(f"(() => {{ const e = {ED}; const i = e.doc.prims.findIndex(p => p.kind === 'via'); e.selection = new Set([e.keyOf(i)]); e.invalidate(); const v = e.doc.prims[i]; return {DROPS}.filter(r => r.outline.some(q => Math.hypot(q.x - v.at.x, q.y - v.at.y) <= v.diameter / 2 + 2000)).length; }})()")
+    pg.evaluate("window.konium.run('ad:PCB:TearDrops')"); pg.wait_for_timeout(300)
+    dlg = pg.locator(".dlg.teardropsdlg")
+    dlg.locator(".td-radio", has_text="Remove").locator("input").check()
+    offered = not dlg.locator(".td-radio", has_text="Selected only").locator("input").is_disabled()
+    dlg.locator(".td-radio", has_text="Selected only").locator("input").check()
+    dimmed = "off" in (dlg.locator(".td-options").get_attribute("class") or "")
+    dlg.locator(".dlg-foot .btn", has_text="OK").click(); pg.wait_for_timeout(500)
+    after_one = pg.evaluate(f"{DROPS}.length")
+    pg.evaluate(f"(() => {{ const e = {ED}; e.selection = new Set(); e.invalidate(); }})()")
+    pg.evaluate("window.konium.run('ad:PCB:TearDrops')"); pg.wait_for_timeout(300)
+    dlg.locator(".td-radio", has_text="Remove").locator("input").check()
+    dlg.locator(".dlg-foot .btn", has_text="OK").click(); pg.wait_for_timeout(500)
+    after_all = pg.evaluate(f"{DROPS}.length")
+    pg.evaluate("window.konium.run('edit.undo')"); pg.wait_for_timeout(400)
+    undone = pg.evaluate(f"{DROPS}.length")
+    check(f"Teardrops removed (26.209): with a via selected, Selected only is offered ({offered}) and the options are put aside ({dimmed}); its {one} go and no others ({read_back[0]} then {after_one}); Remove with All leaves {after_all}; undo brings back {undone}",
+          offered and dimmed and one >= 1 and after_one == read_back[0] - one and after_all == 0 and undone == after_one)
+    c.close()
+
+    # (5) The panels at first (26.209): three tabs docked on the left, the rest behind tabs on the right edge (Parts among
+    # them only once the parts library is switched on). A desktop kept by an earlier build is brought to it once
+    c, pg = site_page("26.209-panels")
+    pg.goto(SITE + "app/?debug"); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(800)
+    strip0 = pg.locator(".strip-right .strip-tab").all_inner_texts()
+    pg.evaluate("window.konium.prefs.set({ openHomePage: false })")
+    pg.evaluate("window.konium.run('file.openDemo')"); pg.wait_for_timeout(2500)
+    pg.locator(".doctab", has_text="Demo.PcbDoc").first.dispatch_event("mousedown"); pg.wait_for_timeout(800)
+    left0 = pg.locator(".zone-left .dock-tabs").first.locator("[role=tab]").all_inner_texts()
+    pg.locator(".strip-right .strip-tab", has_text="Calculators").click(); pg.wait_for_timeout(500)
+    slid = pg.locator(".dock-slide .panel-title").all_inner_texts()
+    shot(pg, "209-panels.png")
+    docked = pg.locator(".zone-right").count()
+    check(f"The panels at first (26.209): docked on the left {left0}; behind tabs on the right edge {strip0} (with every feature on: {strip_all}); a click on the Calculators tab slides the panel out ({slid}) with nothing docked on the right ({docked})",
+          left0 == ["Projects", "Storage Manager", "PCB Inspector"] and strip0 == ["Libraries", "Requirements", "Calculators", "Clipboard"]
+          and strip_all == ["Libraries", "Parts", "Requirements", "Calculators", "Clipboard"] and slid == ["Calculators"] and docked == 0)
+    # The desktop of an earlier build: its own first arrangement, Calculators open in a group of its own on the right, Messages at the bottom
+    group = lambda gid, panels, **more: {"id": gid, "panels": panels, "active": panels[0], "weight": 1, **more}
+    old = {"v": 1, "zones": {"left": {"size": 300, "groups": [group("g1", ["projects", "navigator", "library", "filter", "inspector"])]},
+                             "right": {"size": 300, "groups": [group("g2", ["libraries"], autoHide=True), group("g3", ["calculators"])]},
+                             "top": {"size": 160, "groups": []}, "bottom": {"size": 190, "groups": [group("g4", ["messages"])]}}, "floating": [], "last": {}, "noDock": {}, "seq": 4}
+    seen = lambda: (lambda l: {"left": [g["panels"] for g in l["zones"]["left"]["groups"]], "right": [[g["panels"], bool(g.get("autoHide"))] for g in l["zones"]["right"]["groups"]],
+                               "bottom": [g["panels"] for g in l["zones"]["bottom"]["groups"]]})(json.loads(pg.evaluate("window.konium.dock.layoutJson()"))["layout"])
+    pg.evaluate("(l) => { localStorage.setItem('konium.layout.v1', JSON.stringify(l)); localStorage.removeItem('konium.layout.rev'); localStorage.removeItem('konium.layout.kinds.v1'); }", old)
+    pg.reload(); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(800)
+    first = seen(); rev = pg.evaluate("localStorage.getItem('konium.layout.rev')")
+    # Arranged by hand after that (the same desktop put back): the next start leaves it as it is
+    pg.evaluate("(l) => localStorage.setItem('konium.layout.v1', JSON.stringify(l))", old)
+    pg.reload(); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(800)
+    again = seen()
+    check(f"A desktop kept by an earlier build (26.209) is brought to the arrangement once: {first} (revision {rev}); arranged by hand after that, it is left alone: {again}",
+          first == {"left": [["projects", "storage", "inspector"]], "right": [[["libraries", "requirements", "calculators", "clipboard"], True]], "bottom": [["messages"]]} and rev == "2"
+          and again == {"left": [["projects", "navigator", "library", "filter", "inspector"]], "right": [[["libraries"], True], [["calculators"], False]], "bottom": [["messages"]]})
     c.close()
     b.close()
 

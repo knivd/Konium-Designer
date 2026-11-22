@@ -140,6 +140,12 @@ function pascal(b: Uint8Array | undefined): string {
   return ansiToStr(bytesToBin(b.subarray(1, 1 + Math.min(n, b.length - 1))), currentCodePage());
 }
 
+/**
+ * A primitive's teardrop mark in its first flags byte [checked: the regions Tools › Teardrops made
+ * on a board saved by the desktop software carry 0x1c there, where other regions carry 0x0c].
+ */
+export const TEARDROP_FLAG = 0x10;
+
 /** Regions6 (f64 vertices) and ShapeBasedRegions6 (shape vertices with arcs). */
 function decodeRegion(storage: string, src: { storage: string; index: number }, s: Uint8Array): PcbPrim | null {
   try {
@@ -186,6 +192,7 @@ function decodeRegion(storage: string, src: { storage: string; index: number }, 
       net: get(s, REGION.net) ?? 0xffff, polygon: get(s, REGION.polygon) ?? 0xffff, component: get(s, REGION.component) ?? 0xffff,
       locked: isLocked(get(s, REGION.flags1)), keepout: get(s, REGION.flags2) === 2, ...(props.has('KEEPOUTRESTRICTIONS') ? { keepoutRestrictions: props.int('KEEPOUTRESTRICTIONS') } : {}),
       ...(props.has('ARCRESOLUTION') ? { arcRes: parseLength(props.getRaw('ARCRESOLUTION')) ?? 0 } : {}),
+      ...((get(s, REGION.flags1) ?? 0) & TEARDROP_FLAG ? { teardrop: true } : {}),
       ...(props.has(PAD_SHAPE_KEY) ? { padShape: props.get(PAD_SHAPE_KEY) ?? '' } : {}),
       ...(props.has('KICADZONE') && !props.has('KICADTEARDROP') ? { kicadZone: { id: props.get('KICADZONE') ?? '', layers: props.get('KICADZONELAYERS') ?? '', keepout: props.get('KICADKEEPOUT') ?? '', ...(props.has('KICADZONEX') ? { x: props.getRaw('KICADZONEX') ?? '' } : {}) } } : {}),
       ...(props.has('KICADPRIM') ? { kicadPrim: { prim: props.get('KICADPRIM') ?? '', clearance: props.get('KICADCLEARANCE') ?? 'outline' } } : {}),
@@ -1064,13 +1071,15 @@ export interface RegionFields {
   boardCutout?: boolean;
   /** More properties (KONIUMPADSHAPE for a polygon pad's shape). */
   extra?: Record<string, string>;
+  /** A teardrop: the record carries the teardrop mark. */
+  teardrop?: boolean;
 }
 
 /** Encode a Regions6 / ShapeBasedRegions6 record (header, property block, vertices, holes). */
 export function encodeRegion(f: RegionFields): PcbRawRecord {
   const w = new BinWriter(256);
   // Header as AD17 writes it: flags 0x0c, net, polygon, component, 0xFFFFFFFF, 0, hole count, 0
-  w.u8(f.layer <= 82 ? f.layer : 0).u8(0x0c).u8(0).u16(f.net ?? 0xffff).u16(f.polygon ?? 0xffff).u16(f.component ?? 0xffff)
+  w.u8(f.layer <= 82 ? f.layer : 0).u8(f.teardrop ? 0x0c | TEARDROP_FLAG : 0x0c).u8(0).u16(f.net ?? 0xffff).u16(f.polygon ?? 0xffff).u16(f.component ?? 0xffff)
     .u32(0xffffffff).u8(0).u16(f.holes?.length ?? 0).zeros(2);
   const props = PropertyBag.from({ V7_LAYER: layerToName(f.layer), NAME: ' ', KIND: f.kind ?? 0, SUBPOLYINDEX: -1, UNIONINDEX: 0, ARCRESOLUTION: '0.5mil', ISSHAPEBASED: f.shapeBased ? 'TRUE' : 'FALSE', CAVITYHEIGHT: '0mil',
     ...(f.boardCutout ? { ISBOARDCUTOUT: 'TRUE' } : {}), ...(f.extra ?? {}) }).toBytes();

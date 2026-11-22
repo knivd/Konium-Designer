@@ -1,6 +1,44 @@
 {
  "releases": [
   {
+   "version": "26.209",
+   "title": "Teardrops as copper regions; Live Simulation's own button and symbols; a tidier desktop",
+   "sha256": "c695855b8c2c9cadc477d06b07030c6e1d9a081dd8ac6f4a9637abfdb6dc26c1",
+   "items": [
+    {
+     "text": "Tools › Teardrops now makes each teardrop a region of copper on the track's layer, as the desktop software does, in place of the short arcs or tracks it used to add. Its window sets the working mode (Add or Remove), the objects (All or Selected only), the style (Curved or Line), Force teardrops, Adjust teardrop size and Generate report, and four kinds of joint, each with its tick, its sizes in per cent and a drawing that follows the sizes as you type them: Via/TH Pad, SMD Pad, Tracks (where a track changes width) and T-Junction. A teardrop is made smaller where the full one would come too close to other copper, a joint that has one gets no second, and Remove takes them off again, those of earlier versions too. In the board's file each is marked as a teardrop the way the desktop software marks its own, and the teardrops of its boards are known as such here.",
+     "image": "whats-new/26.209-teardrops.webp",
+     "alt": "A routed example board near a microcontroller, its tracks widening into curved teardrops where they meet vias and pads, with the Teardrops window in front: Working Mode, Objects, the Options, and under Scope the four kinds of joint, each with a drawing of its teardrop and its sizes in per cent."
+    },
+    {
+     "text": "Live Simulation has a button of its own at the right of the menu bar, quiet until a sheet runs and red while one does. With a schematic in front, that sheet runs as it is, and nothing on it is changed by running it; with anything else in front, a new circuit is opened. The panel is headed by the sheet's name, with New Circuit, Open a Circuit, Save the Circuit and Examples beside it.",
+     "image": "whats-new/26.209-live.webp",
+     "alt": "The example of a rectifier with a smoothing capacitor running in Live Simulation: the wires coloured by their voltage, two test points with their readings, the Live Simulation panel headed by the sheet's name with its four icons, and the Live Scope drawing the supply's sine wave and the smoothed output."
+    },
+    {
+     "text": "Live Simulation's parts can be drawn the European or the American way: the resistor, the potentiometer, the capacitor, the polarised capacitor and the inductor have a drawing for each. Choose under Symbols in the panel, and the parts already on the sheet are redrawn where they stand, still on their wires. A Polarised capacitor is in the palette (Polarized capacitor with the American symbols); while a sheet runs, one with its voltage the wrong way round is ringed and listed."
+    },
+    {
+     "text": "The panels start in a new arrangement: Projects, the Storage Manager and the Inspector docked on the left, and Libraries, Requirements, Calculators and the Clipboard behind tabs on the right edge, where pointing at a tab slides its panel out. The first start of this version brings your desktop to it once, for those panels only: what else you have open stays where it is. Every other panel opens from View › Workspace Panels or the panel buttons of the status bar."
+    },
+    {
+     "text": "Tools › Update From Libraries no longer takes a simulation model's own values away from it."
+    },
+    {
+     "text": "In a browser without a folder picker (Firefox, Safari), the button that asks for a project's folder did nothing. It now asks through the browser's own folder window, and the project opens with its documents."
+    },
+    {
+     "text": "Interactive routing no longer pushes other tracks when every pushing mode is unticked in Preferences › PCB Editor › Interactive Routing: the mode in force is always one of those ticked."
+    },
+    {
+     "text": "In the 3D view the board stays sharp when you zoom in: once the view rests, the part in view is painted again finely. A layer shown alone there (Shift+S) is copper like the rest of the view, whichever layer it is."
+    },
+    {
+     "text": "konium.app now says at the top of its first page that Konium Designer is free, and exactly what free does not cover."
+    }
+   ]
+  },
+  {
    "version": "26.200",
    "title": "The source code is public",
    "sha256": "6d54b3d5a5a3233c8aac303db6a53be6e122ce312fdbe79626ef046699430a61",

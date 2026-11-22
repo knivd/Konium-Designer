@@ -4,7 +4,7 @@
 // Bump CACHE on every release. The website's build (website/build.mjs) adds the fingerprint of the
 // site's files to its name and fills MORE, so an upload of the website alone, between releases,
 // is a new worker with a new cache: nothing of the upload before it is served again.
-const CACHE = 'konium-site-v26.208';
+const CACHE = 'konium-site-v26.209';
 const scoped = (p) => new URL(p, self.registration.scope).href;
 // The website's other pages and its style sheet under the address the pages ask for it by (filled by the build)
 const MORE = [];

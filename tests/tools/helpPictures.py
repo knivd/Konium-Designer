@@ -20,6 +20,8 @@ URL = "http://localhost:4173/app/?debug&features=all"
 OUT = os.path.join(os.path.dirname(__file__), "..", "..", "src", "help", "pictures")
 W, H = 1280, 800
 RECIPES = {}
+# Panels of features the release has not switched on yet (src/core/release.ts): kept out of the pictures' edge tabs
+PLANNED_PANELS = ["parts"]
 
 
 def recipe(name):
@@ -88,7 +90,20 @@ def fresh(browser):
     pg.wait_for_function("window.konium !== undefined")
     pg.wait_for_timeout(700)
     pg.evaluate("window.konium.prefs.set({ openHomePage: false })")
+    no_planned(pg)
     return ctx, pg
+
+
+def no_planned(pg):
+    """The pictures are taken with every feature on: a panel that is still planned in the release has no tab in them."""
+    pg.evaluate("for (const p of %s) window.konium.dock.hidePanel(p)" % PLANNED_PANELS)
+
+
+def default_layout(pg, wait=300):
+    """View › Desktop Layouts › Default, as the release shows it."""
+    pg.evaluate("window.konium.dock.restoreLayout('default')")
+    no_planned(pg)
+    pg.wait_for_timeout(wait)
 
 
 def shoot(pg, what, name):
