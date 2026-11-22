@@ -371,7 +371,7 @@ export const PCB: Chapter = {
       id: 'pcb-routing-options',
       title: 'Routing modes, widths and vias',
       blocks: [
-        { p: 'The routing conflict mode decides what a route does when something is in its way. Shift+R, while routing or not, steps through the modes ticked in Preferences › PCB Editor › Interactive Routing; while routing, the status bar shows the mode in use. Hug And Push Obstacles (HugNPush Obstacles in the Current Mode list) is the mode at first.' },
+        { p: 'The routing conflict mode decides what a route does when something is in its way. Shift+R, while routing or not, steps through the modes ticked in Preferences › PCB Editor › Interactive Routing; while routing, the status bar shows the mode in use. Hug And Push Obstacles (HugNPush Obstacles in the Current Mode list) is the mode at first. The mode in use is always one of those ticked: untick the mode you are in and routing carries on in another, one that moves nothing (Walkaround, then Stop At First Obstacle) before one that pushes. So with Push Obstacles and Hug And Push Obstacles both unticked, nothing is pushed.' },
         { table: [
           ['Ignore Obstacles', 'Where the cursor is; violations are marked.'],
           ['Push Obstacles', 'Free tracks of other nets move aside; the route stops at fixed objects. With Allow Via Pushing, free vias move too.'],
@@ -841,7 +841,7 @@ export const PCB: Chapter = {
       blocks: [
         { p: '3D Layout Mode (3, or **View › 3D Layout Mode**) shows the board as a solid at the thickness of its layer stack: copper under the solder mask, exposed pads, silkscreen, holes and plated barrels, and the 3D bodies of the components. Extruded bodies are drawn as their outline between standoff and overall height; STEP models embedded in the board, or linked and found, are drawn in their own shape and colours. The 3D view is for looking: press 2 to go back to 2D and edit.' },
         { img: 'pcb-3d', alt: 'The demo board in 3D Layout Mode seen at an angle from above: a green board with copper pads, white silkscreen and the 3D bodies of J1, C1, U1 and C2 standing on it.', caption: 'The demo board in 3D' },
-        { p: 'Single layer mode works here as in 2D: Shift+S shows the current layer alone, its tracks, pours, pads and vias in the layer\'s colour, on its own face of the board or, for a layer inside the board, at its depth. The board is seen through and the components are left out, so an inner layer can be followed from end to end. + and - step to the next and the previous layer; Shift+S again brings the whole board back.' },
+        { p: 'Single layer mode works here as in 2D: Shift+S shows the current layer alone, its tracks, pours, pads and vias in copper like the rest of the view (in the layer\'s own colour where the view is coloured by layer), on its own face of the board or, for a layer inside the board, at its depth. The board is seen through and the components are left out, so an inner layer can be followed from end to end. + and - step to the next and the previous layer; Shift+S again brings the whole board back.' },
         { keys: [
           ['Shift+right-drag', 'Turn the board'],
           ['Right-drag', 'Pan'],
@@ -854,6 +854,7 @@ export const PCB: Chapter = {
           ['+, - and *', 'The next and the previous layer; the next signal layer'],
           ['2', 'Back to 2D Layout Mode'],
         ] },
+        { p: 'Zoomed in close, the part of the board in view is drawn again at the screen\'s own fineness a moment after the view comes to rest, so tracks, pads and lettering stay sharp however near you go.' },
         { p: "In 3D Layout Mode, View Configurations (L) shows the 3D configurations and their Physical Materials tab: Workspace Colour, Gradient, Board Thickness (Scale), Show Origin Marker, Show Board Cutouts, Show Rooms, Show Route Tool Path, Projection (Perspective or Orthographic); Show Simple 3D Bodies, Show Generic Models, Show Snap Point Markers, Show Axes; and Realistic Colours or Colour By Layer Using Current System Colours, with the colour of copper and the colour and opacity of core, silkscreen and solder mask, and swatches for the solder mask colour and surface finish." },
         { p: "Linked STEP models are looked for in the project's folder and in the folders listed in Preferences › PCB Editor › Models; the 3D view says which it could not find." },
         { steps: [

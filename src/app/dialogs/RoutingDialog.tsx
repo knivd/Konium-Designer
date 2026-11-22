@@ -9,7 +9,7 @@ import { Dialog } from '../Dialog';
 import { closeDialog, showDialog } from './index';
 import type { PcbEditor } from '../../editors/pcb/PcbEditor';
 import { ROUTE_MODES, type RouteTool, type ViaMode, type WidthMode } from '../../editors/pcb/RouteTool';
-import { DEFAULTS, settings, updateSettings, type Settings } from '../../core/settings';
+import { DEFAULTS, routingModeOf, settings, updateSettings, type Settings } from '../../core/settings';
 import { formatCoord, parseLength } from '../../core/units';
 import { isSignal } from '../../model/layers';
 import { viaTemplateName } from '../../model/padTemplates';
@@ -138,8 +138,8 @@ export function InteractiveRoutingDialog({ ed }: { ed: PcbEditor }) {
           <div class="ir-block"><h4>Routing Conflict Resolution</h4>
             {ROUTE_MODES.map(([, label, k]) => check(k, label))}
             <div class="ir-row"><span>Current Mode</span>
-              <select aria-label="Current Mode" value={s('pcbRoutingMode')} onChange={(e) => put({ pcbRoutingMode: (e.target as HTMLSelectElement).value as Settings['pcbRoutingMode'] })}>
-                {ROUTE_MODES.map(([m, label]) => <option key={m} value={m}>{m === 'hug' ? 'HugNPush Obstacles' : label}</option>)}
+              <select aria-label="Current Mode" value={routingModeOf({ ...settings, ...draft })} onChange={(e) => put({ pcbRoutingMode: (e.target as HTMLSelectElement).value as Settings['pcbRoutingMode'] })}>
+                {ROUTE_MODES.map(([m, label, k]) => <option key={m} value={m} disabled={!s(k)}>{m === 'hug' ? 'HugNPush Obstacles' : label}</option>)}
               </select></div>
           </div>
           <div class="ir-block"><h4>Interactive Routing Width Sources</h4>

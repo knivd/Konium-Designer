@@ -7981,6 +7981,77 @@ with sync_playwright() as p:
           "Tell Konium Designer's author what went wrong" in home and "to the author and to the AI assistant that helps build Konium Designer (Claude)" in bug
           and "developer" not in home.lower() and "developer" not in bug.lower())
     c.close()
+
+    # 26.208: four faults told on a forum.
+    # (1) In a browser without the folder picker (Firefox, Safari), the window that asks for a project's folder had a button
+    # that did nothing. It asks through a classic folder input there, and the project opens with its documents
+    c, pg = site_page("26.208-folder")
+    c.add_init_script("for (const k of ['showDirectoryPicker', 'showOpenFilePicker', 'showSaveFilePicker']) { try { delete window[k]; } catch (e) {} if (window[k]) Object.defineProperty(window, k, { value: undefined, configurable: true }); }")
+    pg.goto(URL); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(600)
+    pg.evaluate("window.konium.prefs.set({ openHomePage: false, projExpand: 'full' })")
+    demo = os.path.join(os.path.dirname(__file__), "..", "..", "demo")
+    prj = open(os.path.join(demo, "Demo.PrjPcb"), "rb").read()
+    no_picker = pg.evaluate("typeof window.showDirectoryPicker")
+    pg.evaluate("(b) => window.konium.openBatch([{ name: 'Demo.PrjPcb', bytes: new Uint8Array(b) }])", list(prj)); pg.wait_for_timeout(500)
+    asked = pg.locator(".access").inner_text() if pg.locator(".access").count() else ""
+    tree0 = pg.locator(".panel[aria-label=Projects]").inner_text()
+    with pg.expect_file_chooser() as fc:
+        pg.locator(".access button", has_text="Choose project folder").click()
+    is_folder = fc.value.element.evaluate("(el) => el.webkitdirectory === true")
+    fc.value.set_files(os.path.abspath(demo)); pg.wait_for_timeout(3000)
+    tree1 = pg.locator(".panel[aria-label=Projects]").inner_text()
+    tabs1 = pg.locator(".doctab").all_inner_texts()
+    shot(pg, "208-folder.png")
+    check(f"A project's folder without the folder picker (26.208): with no picker in the browser ({no_picker}) the window says the folder is chosen each time ({'chosen each time' in asked}); its button asks for a folder ({is_folder}); the project then has its documents (before: {tree0.count('SchDoc')} sheets in the tree; after: {tree1.count('.SchDoc')}, the board too: {'Demo.PcbDoc' in tree1}), is in the tree once ({tree1.count('Demo.PrjPcb')}), the window is gone ({pg.locator('.access').count()}) and its documents are open ({[t.strip() for t in tabs1][:3]})",
+          no_picker == "undefined" and "chosen each time" in asked and is_folder and tree1.count("Demo.PrjPcb") == 1
+          and "Demo.SchDoc" in tree1 and "Demo.PcbDoc" in tree1 and pg.locator(".access").count() == 0 and any("Demo." in t for t in tabs1))
+    c.close()
+
+    # (2) Routing went on pushing with every pushing mode unticked in the preferences: the mode in force stayed the unticked
+    # one. (3) A layer shown alone in 3D is copper like the rest of the view, whichever layer. (4) Zoomed in, the board's
+    # faces ran out of pixels: once the view rests, the part in view is painted again finely
+    c, pg = site_page("26.208-3d")
+    pg.goto(URL); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(600)
+    pg.evaluate("window.konium.prefs.set({ openHomePage: false, pcbRoutingMode: 'hug' })")
+    pg.evaluate("window.konium.prefs.set({ pcbModePush: false, pcbModeHug: false })")
+    unticked = pg.evaluate("window.konium.prefs.get().pcbRoutingMode")
+    pg.evaluate("window.konium.prefs.set({ pcbRoutingMode: 'push' })")
+    named = pg.evaluate("(() => { const s = window.konium.prefs.get(); return [s.pcbRoutingMode, s.pcbModePush, s.pcbModeHug]; })()")
+    pg.evaluate("window.konium.prefs.set({ pcbModePush: true, pcbModeHug: true, pcbRoutingMode: 'hug' })")
+    check(f"The routing mode in force (26.208): with Push and Hug unticked while Hug And Push was the current mode, the mode becomes '{unticked}'; a mode chosen by name is ticked with it ({named})",
+          unticked == "walkaround" and named == ["push", True, False])
+    pg.evaluate("window.konium.run('file.openDemo')"); pg.wait_for_timeout(2500)
+    pg.locator(".doctab", has_text="Demo.PcbDoc").first.dispatch_event("mousedown"); pg.wait_for_timeout(800)
+    pg.evaluate(f"{ED}.set3d(true)"); pg.wait_for_timeout(2200)
+    fit = pg.evaluate(f"[{ED}.view3d.sharpness, {ED}.view3d.detail.size]")
+    shot(pg, "208-3d-fit.png")
+    pg.evaluate(f"(() => {{ const v = {ED}.view3d; v.dist = v.dist / 9; v.requestRender(); }})()"); pg.wait_for_timeout(1500)
+    near = pg.evaluate(f"(() => {{ const v = {ED}.view3d; return [v.sharpness, [...v.detail.keys()], [...v.detail.values()][0].rect.map((x) => +x.toFixed(2))]; }})()")
+    shot(pg, "208-3d-near.png")
+    pg.evaluate(f"{ED}.view3d.fit()"); pg.wait_for_timeout(1200)
+    back = pg.evaluate(f"[{ED}.view3d.sharpness, {ED}.view3d.detail.size]")
+    check(f"The 3D view zoomed in (26.208): with the whole board in view its faces are their own picture ({fit}); nine times nearer, the part in view is painted {near[0]:.1f} times finer on {near[1]} (where in the face: {near[2]}); back out, the finer picture is let go ({back})",
+          fit == [1, 0] and near[0] > 1.5 and near[1] == ["top"] and 0 < near[2][0] < 1 and near[2][2] > 2 and back == [1, 0])
+    # (the top layer alone, then a layer by its own colour where the view is coloured by layer: the copper on the screen, counted by its hue)
+    hues = """(() => { const g = document.querySelector('.viewer3d canvas'), c = document.createElement('canvas'); c.width = g.width; c.height = g.height;
+      const x = c.getContext('2d'); x.drawImage(g, 0, 0); const d = x.getImageData(0, 0, c.width, c.height).data; let gold = 0, red = 0;
+      for (let i = 0; i < d.length; i += 4) { const r = d[i], gg = d[i + 1], bb = d[i + 2]; if (r < 90) continue; if (gg > r * 0.6 && gg < r * 0.95 && bb < gg * 0.7) gold++; else if (gg < r * 0.5 && bb < r * 0.5) red++; }
+      return [gold, red]; })()"""
+    pg.evaluate(f"(() => {{ const e = {ED}; e.setCurrentLayer(1); }})()")
+    box = pg.locator(".viewer3d canvas").bounding_box()
+    pg.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+    pg.keyboard.press("Shift+S"); pg.wait_for_timeout(1200)
+    lone = pg.evaluate(hues)
+    shot(pg, "208-3d-single.png")
+    p3 = pg.evaluate("window.konium.prefs.get().pcb3d")
+    pg.evaluate("(p) => window.konium.prefs.set({ pcb3d: { ...p, colouring: 'layers' } })", p3); pg.wait_for_timeout(1200)
+    by_layer = pg.evaluate(hues)
+    shot(pg, "208-3d-bylayer.png")
+    pg.evaluate("(p) => window.konium.prefs.set({ pcb3d: p })", p3); pg.wait_for_timeout(400)
+    pg.keyboard.press("Shift+S"); pg.wait_for_timeout(500)
+    check(f"A layer alone in 3D (26.208): the top layer shown alone is copper like the rest of the view (pixels of the copper's hue, of the layer's red: {lone}); with the view coloured by layer it takes its layer's colour ({by_layer})",
+          lone[0] > 2000 and lone[1] < lone[0] / 20 and by_layer[1] > 2000 and by_layer[0] < by_layer[1] / 20)
+    c.close()
     b.close()
 
     # 26.179: the steps on the graphics card (here one drawn in software, let in by gpu=software): the same as the processor's

@@ -9,13 +9,14 @@
 import { rgbToHex, settings, settingsChanged, wheelAction, type Settings } from '../../core/settings';
 import { baseOpacity, hexRgb, sideLook, workspaceEnds, type View3D } from '../../core/view3d';
 import { L, layerColour, type LayerId } from '../../model/layers';
+import type { BBox } from '../../core/geom';
 import { bodyMesh, buildBoardModel, type BoardModel, type Body3D, type Mesh, type RGBA } from './boardModel';
 import { bodyTransform, embeddedModels, linkedModels, loadModel, placedMeshes, type ModelFiles } from './stepBodies';
 import { addModelFolder, allowModelFolders, modelFolders, modelFoldersChanged } from '../../platform/modelFolders';
 import { apply, invert, type StepModel } from '../../formats/step/tessellate';
 import { UNITS_PER_MM } from '../../core/units';
 import type { Vec2 } from '../../core/geom';
-import { paintSide, paintSingle, singleFace } from './boardTexture';
+import { loneColour, paintSide, paintSingle, singleFace } from './boardTexture';
 import { foldPoints, regionAt } from '../../model/rigidFlex';
 import type { PcbDocument } from '../../model/pcb';
 import { routeCuts } from '../../model/routeToolPath';
@@ -43,6 +44,9 @@ const add = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 const scale = (a: V3, k: number): V3 => [a[0] * k, a[1] * k, a[2] * k];
 const dot = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 
+/** The faces' own picture: this many pixels along the board's longer side at most. */
+const BASE_PX = 3072;
+
 export const VS = `#version 300 es
 in vec3 aPos; in vec3 aNrm; in vec2 aUv;
 uniform mat4 uMvp;
@@ -52,11 +56,18 @@ export const FS = `#version 300 es
 precision highp float;
 in vec3 vN; in vec2 vUv; in vec3 vP;
 uniform vec4 uColour; uniform int uTex; uniform sampler2D uSampler; uniform vec3 uEye; uniform float uSee;
+uniform int uDet; uniform sampler2D uDetail; uniform vec4 uDetRect;
 out vec4 o;
 void main() {
   vec4 c = uColour;
   if (uTex == 1) {
     c = texture(uSampler, vUv);
+    // Zoomed in: the part of the face in view, painted again more finely (uDetRect: where it starts, and one over its size)
+    if (uDet == 1) {
+      vec2 d = (vUv - uDetRect.xy) * uDetRect.zw;
+      vec4 fine = texture(uDetail, clamp(d, 0.0, 1.0));
+      if (d.x > 0.0 && d.x < 1.0 && d.y > 0.0 && d.y < 1.0) c = fine;
+    }
     // An opaque board's faces are solid (holes cut at half cover); a see-through one keeps the painted alpha
     if (uSee < 0.5) { if (c.a < 0.5) discard; c.a = 1.0; } else if (c.a < 0.02) discard;
   }
@@ -160,6 +171,17 @@ export class Viewer3D {
   private picker: { hint: string; fn: (h: Hit3D | null) => void } | null = null;
   private downAt: { x: number; y: number } | null = null;
   private textures = new Map<'top' | 'bottom' | 'single', WebGLTexture>();
+  /**
+   * Zoomed in, a face's one picture runs out of pixels (the whole board is 3072 across at most).
+   * Once the view rests, the part of the board in view is painted again at the screen's own
+   * fineness and laid over the face: `rect` is where it lies in the face's picture (u, v, 1/width, 1/height).
+   */
+  private detail = new Map<'top' | 'bottom' | 'single', { tex: WebGLTexture; rect: [number, number, number, number] }>();
+  private paintFace: ((face: 'top' | 'bottom' | 'single', rect: BBox, maxPx: number) => ReturnType<typeof paintSide> | null) | null = null;
+  private sharpTimer = 0;
+  private sharpKey = '';
+  /** How many times finer than the faces' own picture the part in view was last painted (1: not at all). For tests. */
+  sharpness = 1;
   private model: BoardModel | null = null;
   private frame = 0;
   /** Rigid-flex: how far the board is folded (0 flat … 1 folded), and the animation towards a target. */
@@ -218,6 +240,7 @@ export class Viewer3D {
     this.offFolders();
     try { this.win.cancelAnimationFrame(this.frame); this.win.cancelAnimationFrame(this.foldFrame); } catch { /* its window closed */ }
     clearTimeout(this.stepTimer);
+    clearTimeout(this.sharpTimer);
     this.ro.disconnect();
     this.freeGpu();
     // Give the context back now (a browser keeps only so many)
@@ -250,6 +273,17 @@ export class Viewer3D {
     const outline = doc.board.outline.length >= 3 ? doc.board.outline : [
       { x: model.rect.minX, y: model.rect.minY }, { x: model.rect.maxX, y: model.rect.minY }, { x: model.rect.maxX, y: model.rect.maxY }, { x: model.rect.minX, y: model.rect.maxY }];
     const maxTex = Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE) as number, 4096);
+    // (a layer shown alone is copper like the rest of the view, or in its own colour where the view is coloured by layer)
+    const lh = (l: number) => rgbToHex(layerColour(l));
+    const lone = alone === null ? '' : loneColour(alone, v.colouring, v.copper, lh);
+    const layerHex = (side: 'top' | 'bottom') => (side === 'top'
+      ? { copper: lh(L.TOP), mask: lh(L.TOP_SOLDER), silk: lh(L.TOP_OVERLAY), board: settings.pcbBoardColour }
+      : { copper: lh(L.BOTTOM), mask: lh(L.BOTTOM_SOLDER), silk: lh(L.BOTTOM_OVERLAY), board: settings.pcbBoardColour });
+    // One face's picture over a rectangle of the board: the whole of it here, the part in view when zoomed in
+    this.paintFace = (f, rect, maxPx) => (f === 'single'
+      ? (alone !== null && face === 'inner' ? paintSingle(doc, alone, outline, rect, maxPx, lone, settings.pcbBoardColour, 0, v.showCutouts) : null)
+      : alone !== null ? paintSingle(doc, face === f ? alone : null, outline, rect, maxPx, lone, settings.pcbBoardColour, 0.14, v.showCutouts)
+        : paintSide(doc, f, outline, rect, maxPx, sideLook(v, f, layerHex(f)), f === 'top' ? top : bottom));
     const upload = (side: 'top' | 'bottom' | 'single', c: ReturnType<typeof paintSide>) => {
       const tex = gl.createTexture()!;
       gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -263,16 +297,10 @@ export class Viewer3D {
       if (an) gl.texParameterf(gl.TEXTURE_2D, an.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, gl.getParameter(an.MAX_TEXTURE_MAX_ANISOTROPY_EXT) as number));
       this.textures.set(side, tex);
     };
-    for (const side of ['top', 'bottom'] as const) {
-      const lh = (l: number) => rgbToHex(layerColour(l));
-      const layerHex = side === 'top'
-        ? { copper: lh(L.TOP), mask: lh(L.TOP_SOLDER), silk: lh(L.TOP_OVERLAY), board: settings.pcbBoardColour }
-        : { copper: lh(L.BOTTOM), mask: lh(L.BOTTOM_SOLDER), silk: lh(L.BOTTOM_OVERLAY), board: settings.pcbBoardColour };
-      upload(side, alone !== null ? paintSingle(doc, face === side ? alone : null, outline, model.rect, Math.min(maxTex, 3072), rgbToHex(layerColour(alone)), settings.pcbBoardColour, 0.14, v.showCutouts)
-        : paintSide(doc, side, outline, model.rect, Math.min(maxTex, 3072), sideLook(v, side, layerHex), side === 'top' ? top : bottom));
-    }
+    for (const side of ['top', 'bottom'] as const) upload(side, this.paintFace(side, model.rect, Math.min(maxTex, BASE_PX))!);
     // A layer inside the board: its own plane
-    if (alone !== null && face === 'inner') upload('single', paintSingle(doc, alone, outline, model.rect, Math.min(maxTex, 3072), rgbToHex(layerColour(alone)), settings.pcbBoardColour, 0, v.showCutouts));
+    const inner = this.paintFace('single', model.rect, Math.min(maxTex, BASE_PX));
+    if (inner) upload('single', inner);
     this.foldNow = model.fold && this.folded() ? 1 : 0;
     this.uploadBoard();
     this.uploadBodies();
@@ -496,6 +524,10 @@ export class Viewer3D {
     if (!gl) return;
     for (const m of [...this.meshes, ...this.bodyMeshes]) { gl.deleteVertexArray(m.vao); for (const b of m.bufs) gl.deleteBuffer(b); }
     for (const t of this.textures.values()) gl.deleteTexture(t);
+    for (const d of this.detail.values()) gl.deleteTexture(d.tex);
+    this.detail.clear();
+    this.sharpKey = '';
+    this.sharpness = 1;
     this.meshes = [];
     this.bodyMeshes = [];
     this.textures.clear();
@@ -515,7 +547,7 @@ export class Viewer3D {
     gl.linkProgram(p);
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p) ?? 'link');
     this.prog = p;
-    for (const u of ['uMvp', 'uColour', 'uTex', 'uSampler', 'uEye', 'uSee']) this.loc[u] = gl.getUniformLocation(p, u);
+    for (const u of ['uMvp', 'uColour', 'uTex', 'uSampler', 'uEye', 'uSee', 'uDet', 'uDetail', 'uDetRect']) this.loc[u] = gl.getUniformLocation(p, u);
     const b = gl.createProgram()!;
     gl.attachShader(b, sh(gl.VERTEX_SHADER, BG_VS));
     gl.attachShader(b, sh(gl.FRAGMENT_SHADER, BG_FS));
@@ -638,6 +670,7 @@ export class Viewer3D {
     // Lighting looks along the view: from far back along it when there is no perspective
     gl.uniform3fv(this.loc.uEye!, this.ortho ? add(this.eye(), scale(this.basis().back, this.size() * 50)) : this.eye());
     gl.uniform1i(this.loc.uSampler!, 0);
+    gl.uniform1i(this.loc.uDetail!, 1);
     // Solid things first, then the see-through ones far side first (the board's faces: the one away from the eye)
     const all = [...this.meshes, ...this.bodyMeshes];
     const below = this.fromBelow;
@@ -654,12 +687,86 @@ export class Viewer3D {
       gl.uniform1f(this.loc.uSee!, see ? 1 : 0);
       gl.uniform4fv(this.loc.uColour!, m.colour);
       gl.uniform1i(this.loc.uTex!, m.texture ? 1 : 0);
+      const fine = m.texture ? this.detail.get(m.texture) : undefined;
+      gl.uniform1i(this.loc.uDet!, fine ? 1 : 0);
+      if (fine) { gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, fine.tex); gl.uniform4fv(this.loc.uDetRect!, fine.rect); }
       if (m.texture) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.textures.get(m.texture)!); }
       gl.bindVertexArray(m.vao);
       gl.drawElements(gl.TRIANGLES, m.count, gl.UNSIGNED_INT, 0);
       if (see) { gl.disable(gl.BLEND); gl.depthMask(true); }
     }
     gl.bindVertexArray(null);
+    this.sharpenSoon();
+  }
+
+  /** The view has come to rest somewhere new: paint the part in view finely (a moment later, so that it is not done while turning). */
+  private sharpenSoon(): void {
+    const key = Array.from(this.mvp(), (x) => x.toFixed(4)).join(',') + `|${this.canvas.width}x${this.canvas.height}`;
+    if (key === this.sharpKey) return;
+    clearTimeout(this.sharpTimer);
+    this.sharpTimer = this.win.setTimeout(() => { if (!this.disposed) { this.sharpKey = key; this.sharpen(); } }, 180);
+  }
+
+  /** Paint the part of the board in view again, as fine as the screen shows it (see `detail`). */
+  private sharpen(): void {
+    const gl = this.gl, model = this.model, paint = this.paintFace;
+    if (!gl || !model || !paint) return;
+    const drop = () => {
+      if (!this.detail.size) return;
+      for (const d of this.detail.values()) gl.deleteTexture(d.tex);
+      this.detail.clear(); this.sharpness = 1;
+      this.requestRender();
+    };
+    // (a board being folded is not flat: its faces keep their own picture)
+    if (this.foldNow > 0) { drop(); return; }
+    const r = model.rect, w = r.maxX - r.minX || 1, h = r.maxY - r.minY || 1, m = this.mvp();
+    // Which part of the board is on the screen: its points on a grid, each put through the view
+    const N = 128;
+    let i0 = N, i1 = -1, j0 = N, j1 = -1;
+    for (let j = 0; j <= N; j++) {
+      const y = (r.minY + (h * j) / N - model.centre.y) / UNITS_PER_MM;
+      for (let i = 0; i <= N; i++) {
+        const x = (r.minX + (w * i) / N - model.centre.x) / UNITS_PER_MM;
+        const cw = m[3]! * x + m[7]! * y + m[15]!;
+        if (cw <= 0) continue;
+        const cx = m[0]! * x + m[4]! * y + m[12]!, cy = m[1]! * x + m[5]! * y + m[13]!;
+        if (Math.abs(cx) > cw * 1.05 || Math.abs(cy) > cw * 1.05) continue;
+        if (i < i0) i0 = i; if (i > i1) i1 = i; if (j < j0) j0 = j; if (j > j1) j1 = j;
+      }
+    }
+    if (i1 < 0) { drop(); return; }
+    i0 = Math.max(0, i0 - 1); i1 = Math.min(N, i1 + 1); j0 = Math.max(0, j0 - 1); j1 = Math.min(N, j1 + 1);
+    // Most of the board in view: its own picture is fine enough
+    if (Math.max((i1 - i0) / N, (j1 - j0) / N) > 0.62) { drop(); return; }
+    const sub: BBox = { minX: r.minX + (w * i0) / N, maxX: r.minX + (w * i1) / N, minY: r.minY + (h * j0) / N, maxY: r.minY + (h * j1) / N };
+    const sw = sub.maxX - sub.minX, sh = sub.maxY - sub.minY;
+    const maxTex = Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE) as number, 4096);
+    const base = Math.min(Math.min(maxTex, BASE_PX) / w, Math.min(maxTex, BASE_PX) / h);
+    // As fine as the texture may be, and no finer than the screen can show (with half as much again for the slant)
+    const k = Math.min(maxTex / sw, maxTex / sh, 1.5 * Math.max(this.canvas.width / sw, this.canvas.height / sh));
+    if (k < base * 1.4) { drop(); return; }
+    // (the rectangle grown to the picture's whole pixels, so that the two map onto each other exactly)
+    const cw = Math.ceil(sw * k), ch = Math.ceil(sh * k);
+    sub.maxX = sub.minX + cw / k; sub.minY = sub.maxY - ch / k;
+    const rect: [number, number, number, number] = [(sub.minX - r.minX) / w, (r.maxY - sub.maxY) / h, w / (sub.maxX - sub.minX), h / (sub.maxY - sub.minY)];
+    const faces: ('top' | 'bottom' | 'single')[] = [this.fromBelow ? 'bottom' : 'top', ...(this.textures.has('single') ? ['single' as const] : [])];
+    for (const d of this.detail.values()) gl.deleteTexture(d.tex);
+    this.detail.clear();
+    for (const f of faces) {
+      const c = paint(f, sub, Math.max(cw, ch));
+      if (!c) continue;
+      const tex = gl.createTexture()!;
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c as TexImageSource);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      this.detail.set(f, { tex, rect });
+    }
+    this.sharpness = k / base;
+    this.requestRender();
   }
 
   private resize(): void {

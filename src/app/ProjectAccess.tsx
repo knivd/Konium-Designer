@@ -1,4 +1,5 @@
 import { loadProjectFolder, openBatch } from './actions';
+import { hasFolderAccess } from '../platform/fs';
 import { notify, projectAccess, projects } from './state';
 import { Dialog } from './Dialog';
 
@@ -32,7 +33,9 @@ export function ProjectAccess() {
         ? <p class="error-text">{p.error}</p>
         : wrk ? <p>Your browser gave Konium Designer only the workspace file. Confirm a folder that holds it and its {p.missing} project{p.missing === 1 ? '' : 's'} (a workspace often lists projects in folders beside its own: choose the folder above them) and they open together.</p>
         : <p>Your browser gave Konium Designer only the project file. Confirm its folder once and the schematics and board load with it. Konium Designer only reads and saves the project's files there.</p>}
-      <p class="muted small">After that, the project opens from Recent projects, or from File › Open Project, without asking for the folder again.</p>
+      <p class="muted small">{hasFolderAccess()
+        ? 'After that, the project opens from Recent projects, or from File › Open Project, without asking for the folder again.'
+        : 'This browser hands a folder\'s files over once and keeps no way back to it: the folder is chosen each time the project is opened, and what you save comes as downloads. Chrome and Edge remember the folder and save into it.'}</p>
     </Dialog>
   );
 }

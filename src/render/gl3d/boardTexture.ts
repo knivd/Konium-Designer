@@ -288,6 +288,15 @@ export function paintSingle(doc: PcbDocument, layer: LayerId | null, outline: Ve
   return canvas;
 }
 
+/**
+ * The colour of a layer shown alone in the 3D view: copper like the rest of the view (as the
+ * desktop software shows it there), every copper layer and plane alike, or the layer's own
+ * colour where the view is coloured by layer; what is not copper keeps its layer's colour.
+ */
+export function loneColour(layer: LayerId, colouring: 'realistic' | 'layers', copper: string, layerHex: (l: LayerId) => string): string {
+  return colouring !== 'layers' && (isCopper(layer) || isPlane(layer)) ? copper : layerHex(layer);
+}
+
 /** Which face a layer is seen on in single layer mode: its own for the outer layers and what lies on them, neither for a layer inside the board. */
 export function singleFace(doc: PcbDocument, layer: LayerId): 'top' | 'bottom' | 'inner' {
   if (layer === L.BOTTOM || layer === L.BOTTOM_OVERLAY || layer === L.BOTTOM_SOLDER || layer === L.BOTTOM_PASTE) return 'bottom';

@@ -449,6 +449,18 @@ export async function cmdOpenProject(): Promise<void> {
  * project in a folder Konium already knows (Recent projects) opens from there without asking.
  */
 export async function loadProjectFolder(p: { name: string; handle?: FileSystemFileHandle; file: PickedFile; missing: number }, immediate = false): Promise<void> {
+  // A browser without the folder picker (Firefox, Safari): the folder comes through a classic
+  // input, its files handed over once, with no handle to keep or to save back through
+  if (!hasFolderAccess()) {
+    const picked = await pickFolderFallback();
+    if (!picked.length) return;
+    // (their paths start with the folder's own name: taken off, as a folder's handle gives them)
+    const top = (picked[0]!.path ?? '').split('/')[0] ?? '';
+    const files = picked.map((f) => ({ ...f, path: (f.path ?? f.name).split('/').slice(1).join('/') || f.name }));
+    const ok = await openCollected(files, undefined, top, p.name);
+    projectAccess.value = ok ? null : { ...p, error: `${p.name} isn't in “${top}”. Choose the folder that contains it.` };
+    return;
+  }
   if (p.handle) {
     const known = await knownFolderOf(p.handle);
     try {
@@ -489,7 +501,11 @@ function workspaceProjects(w: PickedFile, files: PickedFile[]): PickedFile[] {
 
 /** Open a project (or every project, or a workspace's) found in a folder. */
 export async function openProjectFolder(dir: FileSystemDirectoryHandle, prjName?: string, prjPath?: string): Promise<boolean> {
-  const files = await collectFromDirectory(dir);
+  return openCollected(await collectFromDirectory(dir), dir, dir.name, prjName, prjPath);
+}
+
+/** The same from a folder's files however they came: with the folder's handle, or without one (a browser that gives none). */
+async function openCollected(files: PickedFile[], dir: FileSystemDirectoryHandle | undefined, folder: string, prjName?: string, prjPath?: string): Promise<boolean> {
   const prjs = files.filter((f) => PROJECT_FILE.test(f.name));
   const depth = (f: PickedFile) => (f.path ?? '').split('/').length;
   const wrks = files.filter((f) => /\.dsnwrk$/i.test(f.name)).sort((a, b) => depth(a) - depth(b));
@@ -514,7 +530,7 @@ export async function openProjectFolder(dir: FileSystemDirectoryHandle, prjName?
   const fresh: PickedFile[] = [];
   for (const c of chosen) {
     const ex = projects.value.find((p) => p.name.toLowerCase() === c.name.toLowerCase());
-    if (ex?.dir && (ex.path ?? ex.name).toLowerCase() === (c.path ?? c.name).toLowerCase() && (await ex.dir.isSameEntry(dir).catch(() => false))) {
+    if (ex?.dir && dir && (ex.path ?? ex.name).toLowerCase() === (c.path ?? c.name).toLowerCase() && (await ex.dir.isSameEntry(dir).catch(() => false))) {
       currentProjectId.value = ex.id;
       const d = docs.value.find((x) => x.projectId === ex.id && !x.hidden);
       if (d) activeId.value = d.id;
@@ -524,9 +540,8 @@ export async function openProjectFolder(dir: FileSystemDirectoryHandle, prjName?
     fresh.push(c);
   }
   if (!fresh.length) return true;
-  openBatch([...fresh, ...files.filter((f) => !PROJECT_FILE.test(f.name) && !/\.dsnwrk$/i.test(f.name))], dir.name, dir, true);
-  for (const c of fresh) await rememberProject(dir, c.path ?? c.name);
-  await refreshRecent();
+  openBatch([...fresh, ...files.filter((f) => !PROJECT_FILE.test(f.name) && !/\.dsnwrk$/i.test(f.name))], folder, dir, true);
+  if (dir) { for (const c of fresh) await rememberProject(dir, c.path ?? c.name); await refreshRecent(); }
   return true;
 }
 

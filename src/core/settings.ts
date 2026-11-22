@@ -792,6 +792,22 @@ const KEY_V1 = 'designerium.settings.v1';
 /** v1 defaults that changed with the AD17 look: carried over only when the user had changed them. */
 const V1_DEFAULTS: Record<string, unknown> = { schWorkspaceColour: '#56605b', schGridColour: '#9aa6a0' };
 
+// (declared before the settings are read below: reading them uses these)
+/** Each routing conflict mode's tick (Preferences › PCB Editor › Interactive Routing). */
+const MODE_TICK: Record<Settings['pcbRoutingMode'], 'pcbModeIgnore' | 'pcbModePush' | 'pcbModeWalkaround' | 'pcbModeStop' | 'pcbModeHug' | 'pcbModeAutoroute' | 'pcbModeAutorouteMulti'> = {
+  ignore: 'pcbModeIgnore', push: 'pcbModePush', walkaround: 'pcbModeWalkaround', stop: 'pcbModeStop', hug: 'pcbModeHug', autoroute: 'pcbModeAutoroute', autorouteMulti: 'pcbModeAutorouteMulti',
+};
+/**
+ * The routing conflict mode in force: the current one while its tick is on. With its tick taken
+ * off it is no longer a mode to route in, so the next comes from those still ticked, the ones
+ * that move nothing first (somebody who unticks Push and Hug wants nothing pushed). With no mode
+ * ticked at all the current one stays.
+ */
+export function routingModeOf(s: Pick<Settings, 'pcbRoutingMode' | (typeof MODE_TICK)[Settings['pcbRoutingMode']]>): Settings['pcbRoutingMode'] {
+  if (s[MODE_TICK[s.pcbRoutingMode]]) return s.pcbRoutingMode;
+  return (['walkaround', 'stop', 'ignore', 'autoroute', 'autorouteMulti', 'push', 'hug'] as const).find((m) => s[MODE_TICK[m]]) ?? s.pcbRoutingMode;
+}
+
 function load(): Settings {
   try {
     const ls = globalThis.localStorage;
@@ -832,6 +848,8 @@ export function fromStored(parsed: Record<string, unknown>): Settings {
     if (parsed.pcbRoutingMode === 'stop' || parsed.pcbRoutingMode === 'walkaround') out.pcbRoutingMode = DEFAULTS.pcbRoutingMode;
     if (parsed.pcbRemoveLoops === true) out.pcbRemoveLoops = DEFAULTS.pcbRemoveLoops;
   }
+  // 26.208: a mode whose tick was taken off in an earlier build stayed the one in force
+  out.pcbRoutingMode = routingModeOf(out);
   // 26.033: Track Width Mode defaults to User Choice
   if (!(Number(parsed.settingsRev) >= 4) && parsed.pcbTrackWidthMode === 'pref') out.pcbTrackWidthMode = DEFAULTS.pcbTrackWidthMode;
   // 26.087: Restrict To 90/45 off unless chosen since (earlier builds had it on, leaving any angle out of Interactive Routing)
@@ -898,6 +916,16 @@ function persist(): void {
 
 export function updateSettings(patch: Partial<Settings>): void {
   Object.assign(settings, patch);
+  const ticks = Object.keys(patch).some((k) => k.startsWith('pcbMode'));
+  if ('pcbRoutingMode' in patch && !ticks) {
+    // A mode chosen by name (the PCB panel, a routing tool's own window): its tick comes with it
+    const k = MODE_TICK[settings.pcbRoutingMode];
+    if (!settings[k]) { settings[k] = true; patch = { ...patch, [k]: true }; }
+  } else if (ticks) {
+    // A tick taken off the mode in force: routing goes on in one that is still ticked
+    const m = routingModeOf(settings);
+    if (m !== settings.pcbRoutingMode) { settings.pcbRoutingMode = m; patch = { ...patch, pcbRoutingMode: m }; }
+  }
   persist();
   settingsChanged.emit(patch);
 }

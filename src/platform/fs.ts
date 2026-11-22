@@ -193,12 +193,16 @@ export async function requestProjectFolder(startIn?: FileSystemHandle): Promise<
   }
 }
 
-/** Browsers without the File System Access API: choose the project's folder through a classic input. */
+/**
+ * Browsers without the File System Access API: choose the project's folder through a classic
+ * input. Each file's path starts with the chosen folder's own name. Nothing chosen: no files.
+ */
 export function pickFolderFallback(): Promise<PickedFile[]> {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
     (input as HTMLInputElement & { webkitdirectory: boolean }).webkitdirectory = true;
+    input.addEventListener('cancel', () => resolve([]));
     input.onchange = async () => {
       const files = [...(input.files ?? [])].filter((f) => RELEVANT.test(f.name));
       resolve(await Promise.all(files.map(async (f) => ({ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()),
