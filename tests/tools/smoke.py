@@ -40,7 +40,8 @@ with sync_playwright() as p:
     # The website's visit counting: an empty stand-in (the page sends nothing off konium.app anyway)
     umami = []
     page.route("https://cloud.umami.is/**", lambda r: (umami.append(r.request.url), r.fulfill(status=200, content_type="text/javascript", body=""))[1])
-    page.on("console", lambda m: errors.append(f"console.{m.type}: {m.text}") if m.type in ("error", "warning") else None)
+    # (the software graphics driver's own notes on its pace, "GPU stall due to ReadPixels", are the browser's and say nothing of the app)
+    page.on("console", lambda m: errors.append(f"console.{m.type}: {m.text}") if m.type in ("error", "warning") and "GL Driver Message (OpenGL, Performance" not in m.text else None)
     page.on("pageerror", lambda e: errors.append(f"pageerror: {e}"))
     page.goto(URL)
     page.wait_for_function("window.konium !== undefined")
@@ -7965,6 +7966,20 @@ with sync_playwright() as p:
     released = pg.locator(".parts-panel input[aria-label='Part number']").count()
     check(f"…opened from the page again with the part on the shelf, the number is typed ('{typed1}'), the shelf is narrowed to it ({rows1}) and it is the part open ('{open1}'), with nothing asked of the library ({len(lib['calls']) - asked1}); in the release as it stands the number does nothing ({released})",
           typed1 == "KD-EX1833-SO8" and open1 == "KD-EX1833-SO8" and rows1 == 1 and len(lib["calls"]) == asked1 and released == 0)
+    c.close()
+
+    # 26.207: one name for one person. The Home page, Report a Bug and the AI preferences say "the author" (they used to say
+    # "the developer" while Contact the Author and About said "the author"); who a report reaches is still said in full
+    c, pg = site_page("26.207-author")
+    pg.goto(URL); pg.wait_for_function("window.konium !== undefined", timeout=60000); pg.wait_for_timeout(800)
+    home = pg.locator(".home").inner_text()
+    pg.evaluate("window.konium.run('help.reportBug')"); pg.locator(".dlg.reportbug").wait_for(timeout=10000)
+    bug = pg.locator(".dlg.reportbug").inner_text()
+    shot(pg, "207-report.png")
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+    check(f"One name for one person (26.207): the Home page asks to tell Konium Designer's author ({'author what went wrong' in home}), Report a Bug says the report goes to the author and to the AI assistant that helps build Konium Designer, and neither says 'developer'",
+          "Tell Konium Designer's author what went wrong" in home and "to the author and to the AI assistant that helps build Konium Designer (Claude)" in bug
+          and "developer" not in home.lower() and "developer" not in bug.lower())
     c.close()
     b.close()
 

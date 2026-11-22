@@ -11,7 +11,7 @@ type SetDraft = (patch: Partial<Settings>) => void;
 
 const MODES: [AiMode, string, string][] = [
   ['off', 'Off', 'No AI: nothing is sent anywhere.'],
-  ['konium', 'Konium service', 'Free within a daily allowance of job tokens, paid for by Konium Designer\'s developer. Jobs go to konium.app, then to the chosen model through OpenRouter; providers that train on what they\'re sent are excluded.'],
+  ['konium', 'Konium service', 'Free within a daily allowance of job tokens, paid for by Konium Designer\'s author. Jobs go to konium.app, then to the chosen model through OpenRouter; providers that train on what they\'re sent are excluded.'],
   ['key', 'Your own key', 'OpenRouter (every model with one key) or any endpoint that speaks OpenAI\'s chat completions. You pay your provider; the key stays in this browser and goes only to that endpoint.'],
   ['local', 'Local model', 'Ollama, LM Studio, llama.cpp … on this computer or your network. Nothing leaves it.'],
 ];

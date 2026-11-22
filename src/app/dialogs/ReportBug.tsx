@@ -1,7 +1,7 @@
 /**
  * Help › Report a Bug (and the Home page): what happened, who to answer (optional), files to
  * show it (optional: the open document with one tick) and the diagnostics, sent to Konium's
- * developer through konium.app. Without a connection the report waits and goes later.
+ * author through konium.app. Without a connection the report waits and goes later.
  */
 import { useRef, useState } from 'preact/hooks';
 import { Dialog } from '../Dialog';
@@ -106,7 +106,7 @@ export function ReportBugDialog() {
       </>}>
       <div class="rb-intro">
         <ColourIcon name="bug" size={32} />
-        <p>Tell Konium Designer's developer what went wrong. The report goes through konium.app to the developer and to the AI assistant that helps build Konium Designer (Claude); your name and address are optional and only used to answer you.</p>
+        <p>Tell Konium Designer's author what went wrong. The report goes through konium.app to the author and to the AI assistant that helps build Konium Designer (Claude); your name and address are optional and only used to answer you.</p>
       </div>
       <div class="rb-row"><label for="rb-name">Your name</label><input id="rb-name" type="text" value={name} maxLength={100} onInput={(e) => setName((e.target as HTMLInputElement).value)} placeholder="optional" /></div>
       <div class="rb-row"><label for="rb-email">Your email</label><input id="rb-email" type="email" value={email} maxLength={254} onInput={(e) => setEmail((e.target as HTMLInputElement).value)} placeholder="optional, to hear back" /></div>

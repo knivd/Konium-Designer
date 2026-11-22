@@ -9,6 +9,8 @@
     parts   part searches (konium-parts): Digi-Key and Mouser keys, salt
     report  bug reports (konium-report): Email Routing, the address reports go to, a GitHub token
     vcs     version control (konium-vcs): the R2 bucket, salt
+    library the world parts library (konium-library): a GitHub token for the parts' repository, its
+            secret. Not among the steps run by default: asked for by name (-Steps library)
     check   every part tried from outside, as a user would
   It signs in to Cloudflare once (a browser window), deploys each Worker with its routes on
   konium.app, and sets each secret: the salts are made here and never shown; keys and the report
@@ -33,7 +35,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 # "ai,check" as one word too (from install-konium.cmd)
-$AllSteps = @('site', 'ai', 'parts', 'report', 'vcs', 'check')
+$AllSteps = @('site', 'ai', 'parts', 'report', 'vcs', 'library', 'check')
 $Steps = @($Steps | ForEach-Object { $_ -split '[,\s]+' } | ForEach-Object { $_.Trim().ToLower() } | Where-Object { $_ })
 foreach ($st in $Steps) { if ($AllSteps -notcontains $st) { throw "Not a step: $st (the steps: $($AllSteps -join ', '))" } }
 $Steps = @($AllSteps | Where-Object { $Steps -contains $_ })
@@ -364,6 +366,37 @@ function StepVcs {
   Result 'Version control' 'Deployed' "konium.app/api/vcs, /api/git"
 }
 
+# The world parts library: asked for by name (-Steps library), since it opens with its release
+function StepLibrary {
+  Title 'World parts library (konium-library)'
+  $toml = Get-Content (Join-Path (WorkerDir 'library') 'wrangler.toml') -Raw
+  $repo = ([regex]::Match($toml, 'LIBRARY_REPO\s*=\s*"([^"]+)"')).Groups[1].Value
+  if (-not $repo) { Warn 'No repository is named (LIBRARY_REPO in cloudflare\library\wrangler.toml)'; Result 'Parts library' 'Skipped' 'no repository named'; return }
+  Say "  Parts are kept in the GitHub repository $repo; the sign-in mail goes by Cloudflare's Email Service"
+  Say '  from library@konium.app (konium.app set up for sending in the Cloudflare dashboard).'
+  if (-not (Deploy 'library')) { Result 'Parts library' 'Failed' 'deploy'; return }
+  # The library's secret: made here once and sent straight to Cloudflare. Never replaced: every
+  # session would end and every contributor would get a new number.
+  if ((SecretsOf 'library') -contains 'LIBRARY_SECRET') { Good "The library's secret is set (kept as it is)" }
+  else {
+    $out = WrOut (WorkerDir 'library') @('secret', 'put', 'LIBRARY_SECRET') (NewSalt)
+    if ($script:WrCode -eq 0) { Good "The library's secret made and set" } else { Bad "The library's secret wasn't set:`n$out"; Result 'Parts library' 'Failed' 'secret'; return }
+  }
+  if (-not ((SecretsOf 'library') -contains 'GITHUB_TOKEN') -or $ReplaceKeys) {
+    Say "   - GitHub > Settings > Developer settings > Fine-grained tokens > Generate new token:"
+    Say "     only $repo; Contents: Read and write; nothing else"
+  }
+  if (-not (PutKey 'library' 'GITHUB_TOKEN' "the GitHub token for $repo")) { Result 'Parts library' 'Failed' 'token'; return }
+  $c = Fetch "https://$Domain/api/library/config"
+  $ready = $c.Code -eq 200 -and $c.Body -match '"ready"\s*:\s*true'
+  $mail = $c.Body -match '"signIn"\s*:\s*true'
+  $pages = (Fetch "https://$Domain/parts").Code
+  if ($ready -and $mail -and $pages -eq 200) { Good "The library answers: ready, sign-in by mail, its pages at $Domain/parts" }
+  else { Warn "The library's answer: /api/library/config $($c.Code) (ready: $ready, sign-in mail: $mail), /parts $pages" }
+  Say '  Parts can be fetched by the program only while the repository is public.'
+  Result 'Parts library' $(if ($ready) { 'Deployed' } else { 'Check' }) "$Domain/api/library, /parts"
+}
+
 # ---- Checks, from outside -------------------------------------------------------------------
 
 function Fetch([string]$Url, [string]$Method = 'GET', [hashtable]$Headers = @{}) {
@@ -415,7 +448,7 @@ function StepCheck {
 Write-Host 'Konium Designer: set-up and deployment' -ForegroundColor Cyan
 Say "From $Root; steps: $($Steps -join ', ')"
 CheckFolder
-$workers = @($Steps | Where-Object { $_ -in @('ai', 'parts', 'report', 'vcs') })
+$workers = @($Steps | Where-Object { $_ -in @('ai', 'parts', 'report', 'vcs', 'library') })
 if ($workers.Count) { Title 'Before anything'; CheckNode; SignIn; [void](CheckDomain) }
 
 foreach ($step in $Steps) {
@@ -426,6 +459,7 @@ foreach ($step in $Steps) {
       'parts' { StepParts }
       'report' { StepReport }
       'vcs' { StepVcs }
+      'library' { StepLibrary }
       'check' { StepCheck }
     }
   } catch {

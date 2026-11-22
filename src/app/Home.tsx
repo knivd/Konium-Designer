@@ -164,7 +164,7 @@ export function HomePage() {
           </div>
           <div class="home-box home-bug">
             <h2><ColourIcon name="bug" size={16} /> Found a bug?</h2>
-            <p>Tell Konium Designer's developer what went wrong, with a screenshot or the file that shows it.</p>
+            <p>Tell Konium Designer's author what went wrong, with a screenshot or the file that shows it.</p>
             <button class="btn" onClick={() => showDialog(ReportBugDialog)}>Report a bug...</button>
           </div>
           <div class="home-box home-netbox" aria-label="Network activity">

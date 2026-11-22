@@ -28,7 +28,7 @@ Routing to one verified address, kept as a secret: the address is in neither Kon
 
 6. **Reports to the AI assistant too (optional).** Each report can also be filed in a private
    GitHub repository — its text and attachments committed under `reports/<date>/<id>/`, an issue
-   opened for it — where the developer's AI assistant (Claude) reads and works on them.
+   opened for it — where the author's AI assistant (Claude) reads and works on them.
    1. Create a **private** repository for the reports, e.g. `konium-reports` (an empty README is enough).
    2. GitHub › Settings › Developer settings › *Fine-grained tokens* › *Generate new token*:
       *Only select repositories* → the reports repository; *Repository permissions* →

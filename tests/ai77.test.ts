@@ -62,7 +62,7 @@ describe('the Konium service with models retired', () => {
     await handle(post({ job: 'ping', input: {}, model: 'anthropic/claude-opus-5.5' }), env, store, fetchFn, Date.parse('2027-03-01T12:00:00Z'));
     expect(chats).toEqual(['~anthropic/claude-opus-latest']);
   });
-  it('the developer\'s named models (MODELS, DEFAULT_MODEL), now gone, are their successors', async () => {
+  it('the author\'s named models (MODELS, DEFAULT_MODEL), now gone, are their successors', async () => {
     const r = await handle(new Request('https://konium.app/api/ai/config', { headers: { 'CF-Connecting-IP': '1.2.3.4' } }),
       { ...env, MODELS: '[{"id": "google/gemini-3.5-flash-lite", "label": "Cheap", "roles": ["text", "vision"]}, {"id": "gone/model-1"}]', DEFAULT_MODEL: 'anthropic/claude-opus-5.5' }, store, fetchFn, Date.parse('2027-03-01T12:00:00Z'));
     const c = await r.json() as { models: { id: string; name: string }[]; defaults: { vision: string } };

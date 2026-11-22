@@ -1,7 +1,7 @@
 /**
  * The Konium AI service (konium.app/api/ai): runs Konium's own AI jobs (src/ai/jobs.ts) on models
- * the developer chose, with the developer's OpenRouter key, for anyone using Konium — within
- * limits, since the developer pays:
+ * the author chose, with the author's OpenRouter key, for anyone using Konium — within
+ * limits, since the author pays:
  * - only Konium's jobs: the service builds the messages itself from the job's input and caps the
  *   answer's length, so it can't be used as a free chatbot;
  * - a daily allowance per user (known only by a salted hash of the IP address) and a daily budget
@@ -156,7 +156,7 @@ async function listed(env: AiEnv, fetchFn: typeof fetch, now: number): Promise<O
   const out = list.filter((m) => offered(m, fam, maxIn, maxOut))
     .sort((a, b) => (perM(a.pricing?.completion) ?? 0) - (perM(b.pricing?.completion) ?? 0) || (perM(a.pricing?.prompt) ?? 0) - (perM(b.pricing?.prompt) ?? 0) || a.id.localeCompare(b.id))
     .map((m) => describe(m, ['text', 'vision']));
-  // The default named by the developer, whatever its price: an alias taking pictures (a model's id stands for its family's alias)
+  // The default named by the author, whatever its price: an alias taking pictures (a model's id stands for its family's alias)
   const named = env.DEFAULT_MODEL ? successor(env.DEFAULT_MODEL, list.filter((m) => LATEST_ALIAS.test(m.id) && offered(m, [aliasKey(m.id)], Infinity, Infinity))) : null;
   if (named && !out.some((o) => o.id === named.id)) out.unshift(describe(named, ['text', 'vision']));
   return out;

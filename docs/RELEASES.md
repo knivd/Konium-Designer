@@ -365,6 +365,8 @@ Step 5 as built (26.206): a public page for each part.
 - Left for later: a drawing of the symbol and footprint on the page. To do when the library opens: the parts' sitemap in robots.txt, the guide, the website.
 - tests/library206.test.ts (13); smoke section 26.206.
 
+The set-up as prepared (26.207): the sign-in mail by Cloudflare's Email Service (the Worker's `EMAIL` binding, from library@konium.app alone); the installer's `library` step (run by name: the Worker, the library's secret made once, the GitHub token typed into a hidden prompt, a check that the service answers). At the library's release: the repository made public and named in the public tree, the step run, the parts' sitemap added to robots.txt, the guide and the website.
+
 ### The open-source release (26.200)
 
 **26.200 is the first build whose source is public.** What was settled for it, and done:

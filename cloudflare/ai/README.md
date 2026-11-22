@@ -6,7 +6,7 @@ Preferences › System › AI › **Konium service** sends Konium's AI jobs (rea
 packages and their drawings, its pin tables, a design for the Design Adviser to review, part numbers
 for a BOM's lines, and a specification to split into requirements) to
 `https://konium.app/api/ai`. This Worker runs them on the models offered through OpenRouter, with
-the developer's key, for anyone using Konium. A design or board sent for review (as text), or a
+the author's key, for anyone using Konium. A design or board sent for review (as text), or a
 specification sent to be split, is passed to the model and nothing of it is kept. For the adviser's in-depth checks the Worker
 also finds a part's datasheet on the web (OpenRouter's web plugin, about $0.007 a search; the
 address a designer's check used is shared, so each part number is searched for once) and fetches

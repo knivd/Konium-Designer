@@ -235,6 +235,20 @@ Each later release's What's New entry is drafted in docs/RELEASES.md, and adds t
 - What's New 26.123 (and its picture: the demo project's diagram), index.html (featureList and What you can do), llms.txt (fact-checked against the code: waypoints by connector kind, the toolbar's Insert, Print of the current page, PDF through the print dialog); docs/RELEASES.md R4 published. Smoke: Enclosure alone planned; a .drawio opens as Later.DgmDoc.
 - What's New: the log goes from 26.114 straight to 26.123 (the release build). The entries for 26.116 to 26.122 are taken out, and 26.116's one visible change (File › New's Multi-board Schematic and Assembly in the general File menu) is now the last item of 26.123's entry. Builds with nothing visible get no entry from now on. When the newest entry isn't the running build's, the smoke test checks that entry's own published SHA-256.
 
+## 26.207 (not public: the parts library ready to be set up; one name for the author)
+
+**The parts library's set-up (the service is still not in service).**
+
+- The sign-in mail goes by Cloudflare's own Email Service: the Worker's `EMAIL` binding (`[[send_email]]` in `cloudflare/library/wrangler.toml`), allowed to send from `library@konium.app` and from no other address. The sender is shown by its name, "Konium parts library". Checked against Cloudflare's description of the binding (a message of `to`, `from`, `subject`, `html`, `text`; `from` an address or an address with a name). Without the binding the Worker would send by Resend, as before.
+- The list of connections (the row of the parts library, shown with the feature) says who mails the link: Cloudflare's mail service, which konium.app runs on.
+- `install-konium.cmd -Steps library`: deploys the Worker (/api/library and /parts), makes the library's secret once and sends it straight to Cloudflare (never replaced: every session would end and every contributor would get a new number), asks for the GitHub token of the parts' repository in a hidden prompt, then asks the service whether it is ready, can mail, and serves its pages. The step is not among those run by default while the library is not in service.
+- The name of the parts' repository is left out of the public tree until the library opens; the program can fetch parts only from a public repository.
+- cloudflare/library/README.md: the set-up as it now is.
+
+**One name for one person.** The program said "the developer" in some places (the Home page, Report a Bug, the AI preferences, the guide's pages on reporting a bug and on the AI connections) and "the author" in others (Contact the Author, About, the list of connections). It says "the author" everywhere now, and so do the services' READMEs and the comments in their code. Who a bug report reaches is said as it was: the author, and the AI assistant that helps build Konium Designer (Claude). Released What's New entries are as they were.
+
+**Tests.** Three invented addresses in tests/report46.test.ts moved to a reserved domain. tests/library207.test.ts (4): the mail through the binding, the settings, the installer's step, and no "developer" left in the program, the services or the website. Smoke section 26.207 (1 check).
+
 ## 26.206 (not public: a public page for each part of the world library, R21 step 5; whole sentences)
 
 The fifth step of the parts library, and the first step towards translated interfaces (21 Nov).

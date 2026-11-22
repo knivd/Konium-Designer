@@ -3,7 +3,7 @@
 (The commands are written for Windows, where `npx.cmd` is needed in PowerShell; elsewhere it is `npx`.)
 
 A BOM document's searches at **Digi-Key** and **Mouser** go to `https://konium.app/api/parts`. This
-Worker makes them with the developer's own API keys (Worker secrets) and answers with the parts found
+Worker makes them with the author's own API keys (Worker secrets) and answers with the parts found
 in one form (`src/model/suppliers.ts`): the distributor's part number, the manufacturer and its part
 number, the description, stock, price breaks and currency, lifecycle status, packaging, minimum order
 and the product page. Only what is searched for is sent: a part number or a few words, nothing of the

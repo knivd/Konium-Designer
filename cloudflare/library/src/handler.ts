@@ -44,7 +44,8 @@ import type { OrgStoreApi } from './org';
 import { limitKey } from '../../limitKey';
 import { bodyUpTo, jsonUpTo } from '../../body';
 
-export interface Mailer { send(m: { to: string; from: string; subject: string; text: string; html: string }): Promise<unknown> }
+/** Cloudflare's Email Service, as a Worker's binding gives it: a sender is an address, or an address with the name to show. */
+export interface Mailer { send(m: { to: string; from: string | { email: string; name: string }; subject: string; text: string; html: string }): Promise<unknown> }
 
 export interface LibraryEnv {
   /** A token for the library's repository alone: Contents, read and write (a secret). */
@@ -373,7 +374,7 @@ async function orgRoutes(c: OrgCall): Promise<Response> {
 
 async function sendMail(env: LibraryEnv, fetchFn: typeof fetch, m: { to: string; subject: string; text: string; html: string }): Promise<void> {
   const from = mailAddress(env.MAIL_FROM) || 'library@konium.app', name = (env.MAIL_NAME || 'Konium parts library').replace(/[<>"\r\n]/g, '');
-  if (env.EMAIL) { await env.EMAIL.send({ ...m, from }); return; }
+  if (env.EMAIL) { await env.EMAIL.send({ ...m, from: name ? { email: from, name } : from }); return; }
   if (!env.RESEND_KEY) throw new Error('no way to send mail is set up');
   const res = await fetchFn('https://api.resend.com/emails', {
     method: 'POST', headers: { Authorization: `Bearer ${env.RESEND_KEY}`, 'Content-Type': 'application/json' },

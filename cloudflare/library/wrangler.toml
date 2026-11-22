@@ -29,10 +29,12 @@ new_sqlite_classes = ["Store"]
 tag = "v2"
 new_sqlite_classes = ["Org"]
 
-# The sign-in mail by Cloudflare's own Email Service (Workers Paid; the domain set up for sending
-# first). Without it the mail goes by Resend, with the secret RESEND_KEY.
-# [[send_email]]
-# name = "EMAIL"
+# The sign-in mail goes by Cloudflare's own Email Service (Workers Paid; konium.app is set up for
+# sending). This binding may send from the library's address and no other. Without the binding the
+# mail would go by Resend, with the secret RESEND_KEY.
+[[send_email]]
+name = "EMAIL"
+allowed_sender_addresses = ["library@konium.app"]
 
 [vars]
 # The public repository the parts are kept in ("owner/name") and its branch

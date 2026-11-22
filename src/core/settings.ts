@@ -447,7 +447,7 @@ export interface Settings {
   fabProfile: string;
   /**
    * Preferences › System › AI: off until switched on; the Konium service (its models, the
-   * developer pays, a daily allowance), your own key (OpenRouter, or another endpoint that speaks
+   * author pays, a daily allowance), your own key (OpenRouter, or another endpoint that speaks
    * OpenAI's chat completions; the key is kept apart from these settings, in this browser only),
    * or a local model (Ollama, LM Studio, llama.cpp …). Models by mode and role
    * ("key:text", "local:vision" …); the shared cache of results others accepted.

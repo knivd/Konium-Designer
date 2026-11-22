@@ -741,7 +741,7 @@ export const GETTING_STARTED: Chapter = {
             "**Help › About...** shows your version, how Konium Designer is made, the connections it makes and the warranty statement. Its source code is public: **Source Code** opens the repository in your browser, **Licence...** shows the GNU General Public License it is under (the text is in your copy, so it shows without a connection), and **Third-Party Software...** lists the software of others that is built in, each with its own licence.",
           ],
         },
-        { p: "**Reporting a bug.** If something goes wrong, tell Konium Designer's developer:" },
+        { p: "**Reporting a bug.** If something goes wrong, tell Konium Designer's author:" },
         {
           steps: [
             "Choose **Help › Report a Bug...** (or **Report a bug...** on the Home page).",
@@ -753,7 +753,7 @@ export const GETTING_STARTED: Chapter = {
           ],
         },
         { img: 'gs-report-bug', alt: "The Report a Bug dialog with Demo.SchDoc in front: a note on where the report goes, optional Your name and Your email fields, a box for what happened, an Attachments box with an Add files... button, the Attach the active document, Demo.SchDoc, as it is now box (unticked) and a drop area for screenshots, the Include diagnostics box (ticked) with Show what they say below it, and the Send and Cancel buttons.", caption: 'Help › Report a Bug...' },
-        { p: "The report goes through konium.app to the developer and to the AI assistant that helps build Konium Designer. Without a connection, or with network activity off, it is kept and sent once it can be. **Help › Contact the Author...** sends a message instead: a question or a comment, a security problem reported privately, or something else." },
+        { p: "The report goes through konium.app to the author and to the AI assistant that helps build Konium Designer. Without a connection, or with network activity off, it is kept and sent once it can be. **Help › Contact the Author...** sends a message instead: a question or a comment, a security problem reported privately, or something else." },
         { p: "**Supporting Konium Designer.** Konium Designer is free, with no adverts and no accounts. It is a side project, and if it helps with yours you can chip in whatever you like:" },
         {
           steps: [

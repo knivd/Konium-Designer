@@ -3,7 +3,7 @@
  * the address kept in the REPORT_TO secret — that address is never in Konium or in this source.
  * Sent with Cloudflare Email Routing's send_email binding (to a verified destination: free).
  * When GITHUB_TOKEN and REPORTS_REPO are set, the report is also filed in that private
- * repository (its files committed, an issue opened) for the developer's AI assistant.
+ * repository (its files committed, an issue opened) for the author's AI assistant.
  *
  * Form fields: text (required), name, email, version, diagnostics, website (a trap for bots:
  * people never see it, so it stays empty), file (any number of attachments, 10 MB together).

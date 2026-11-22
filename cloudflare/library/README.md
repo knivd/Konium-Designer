@@ -4,8 +4,8 @@
 
 **Not in service yet.** The Worker and its tests are here, and from 26.201 the program's side too
 (Tools › Parts with the parts library switched on: looking a part up, signing in, publishing).
-Until this is deployed the program says that the library isn't there. Before the parts library is
-released, the list of connections in the program must name the mail provider chosen below.
+Until this is deployed the program says that the library isn't there. The sign-in mail goes by
+Cloudflare's Email Service, and the program's list of connections says so.
 
 Parts made in Konium Designer (a symbol, a footprint and what is known of the part) can be
 published to one library for everyone and fetched by anyone who types the same part number. The
@@ -118,19 +118,21 @@ Beside the service, the Worker answers at the site's own `/parts` (the two route
    Put its name in `LIBRARY_REPO` in `wrangler.toml` (`owner/name`).
 2. **A token for that repository alone.** GitHub › Settings › Developer settings › Fine-grained
    tokens: only that repository, **Contents: Read and write**, nothing else.
-3. **The mail.** Either Cloudflare's Email Service (Workers Paid; set the domain up for sending,
-   then take the comment marks off `[[send_email]]` in `wrangler.toml`), or Resend (verify the
-   domain there and make an API key that may only send).
-4. **Deploy**, from this folder (`cloudflare/library`):
+3. **The mail.** Cloudflare's Email Service (Workers Paid): the site's domain set up for sending in
+   the Cloudflare dashboard, and the `[[send_email]]` binding in `wrangler.toml`, which may send
+   from `library@konium.app` alone. (Without the binding the Worker sends by Resend instead, with
+   a sending-only key as the secret `RESEND_KEY`.) Forward `library@` to a mailbox in Email
+   Routing, so that a reply to a sign-in mail reaches somebody.
+4. **Deploy.** `install-konium.cmd -Steps library` from the build's folder does it: it deploys the
+   Worker, asks for the token (typed into a hidden prompt), and makes the library's secret once
+   and never again. By hand, from this folder (`cloudflare/library`):
    ```
    npx.cmd wrangler deploy
    npx.cmd wrangler secret put GITHUB_TOKEN
    npx.cmd wrangler secret put LIBRARY_SECRET
-   npx.cmd wrangler secret put RESEND_KEY
    ```
    `LIBRARY_SECRET`: any long random text (in PowerShell: `-join ((1..64) | % { '{0:x}' -f (Get-Random -Max 16) })`).
-   It signs the sessions and the passes and makes the contributor numbers. `RESEND_KEY` only when
-   the mail goes by Resend.
+   It signs the sessions and the passes and makes the contributor numbers.
 5. **Check:** `https://konium.app/api/library/config` answers `"ready": true` and, once the mail is
    set up, `"signIn": true`.
 

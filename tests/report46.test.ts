@@ -30,16 +30,16 @@ describe('bug reports', () => {
     expect(new TextDecoder().decode(Uint8Array.from(atob(part), (c) => c.charCodeAt(0)))).toBe('It broke — badly');
   });
   it('addresses and header words', () => {
-    expect(validEmail(' a.b@c.co ')).toBe('a.b@c.co');
-    expect(validEmail('a b@c.co')).toBeUndefined();
+    expect(validEmail(' a.b@example.com ')).toBe('a.b@example.com');
+    expect(validEmail('a b@example.com')).toBeUndefined();
     expect(validEmail('a@c')).toBeUndefined();
     expect(validEmail('x@y.z\r\nBcc: q@r.s')).toBeUndefined();
     expect(headerWord('plain')).toBe('plain');
     expect(headerWord('Ω')).toBe('=?UTF-8?B?zqk=?=');
   });
   it('the form carries the fields, the empty trap and the files', () => {
-    const f = reportForm({ name: 'K', email: 'k@x.io', text: 'Hi', version: '26.046', diagnostics: 'd', files: [{ name: 'a.txt', type: 'text/plain', bytes: new Uint8Array([65]) }] });
-    expect([f.get('text'), f.get('name'), f.get('email'), f.get('version'), f.get('diagnostics'), f.get('website')]).toEqual(['Hi', 'K', 'k@x.io', '26.046', 'd', '']);
+    const f = reportForm({ name: 'K', email: 'k@example.org', text: 'Hi', version: '26.046', diagnostics: 'd', files: [{ name: 'a.txt', type: 'text/plain', bytes: new Uint8Array([65]) }] });
+    expect([f.get('text'), f.get('name'), f.get('email'), f.get('version'), f.get('diagnostics'), f.get('website')]).toEqual(['Hi', 'K', 'k@example.org', '26.046', 'd', '']);
     expect((f.getAll('file')[0] as File).name).toBe('a.txt');
   });
 });

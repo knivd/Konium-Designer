@@ -1,6 +1,6 @@
 /**
  * Searches at Digi-Key and Mouser, through Konium's parts service (konium.app/api/parts,
- * cloudflare/parts), which holds the developer's keys: only what is asked for goes (a part number,
+ * cloudflare/parts), which holds the author's keys: only what is asked for goes (a part number,
  * or a few words), nothing of the design. The service keeps answers for a day and limits each
  * user's new searches; see its README.
  */

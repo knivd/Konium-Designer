@@ -198,7 +198,7 @@ are made there and sent straight to Cloudflare; keys and the report address are 
 prompts and kept only as Worker secrets. Then it tries each part from outside. What it can't do for
 you (an OpenRouter or distributor account, R2 switched on, the DNS record for the web host) it
 explains, opens the page, and waits. Run it again after each build: it deploys the new site and
-Workers and keeps what is set (a salt is never replaced). `-Steps ai,check` runs some steps only;
+Workers and keeps what is set (a salt is never replaced). `-Steps ai,check` runs some steps only (`-Steps library` deploys the parts library's Worker, which is not among the default steps while the library is not in service);
 `-ReplaceKeys` asks again for the keys.
 
 ## Status

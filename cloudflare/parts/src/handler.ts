@@ -1,7 +1,7 @@
 /**
  * Konium's parts service (konium.app/api/parts): a BOM document's searches at Digi-Key and Mouser,
- * with the developer's own keys (Worker secrets), for anyone using Konium — within the
- * distributors' limits, which are the developer's:
+ * with the author's own keys (Worker secrets), for anyone using Konium — within the
+ * distributors' limits, which are the author's:
  * - only searches: a part number or a few words in, the parts found out (src/model/suppliers.ts);
  * - an answer is kept for CACHE_HOURS and given again without asking the distributor (nor counting);
  * - each user (a salted hash of the IP address) gets LOOKUPS_PER_USER new searches a day;

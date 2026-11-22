@@ -2,7 +2,7 @@
  * Konium's AI connections (Preferences › System › AI), all off until switched on and every job
  * started by hand:
  * - the Konium service: jobs posted to konium.app/api/ai, whose Worker runs them on the models the
- *   developer chose and pays for, within a daily allowance (cloudflare/ai);
+ *   author chose and pays for, within a daily allowance (cloudflare/ai);
  * - your own key: OpenRouter (any model, one key), or any endpoint that speaks OpenAI's chat
  *   completions (OpenAI, Google's OpenAI-compatible endpoint, DeepSeek, Mistral, Groq …). The key
  *   stays in this browser (not in the settings, so never in an exported settings file) and goes
@@ -29,7 +29,7 @@ export interface ModelInfo {
   priceIn?: number;
   priceOut?: number;
   context?: number;
-  /** Konium service: the roles the developer chose it for. */
+  /** Konium service: the roles the author chose it for. */
   roles?: Role[];
   /** Konium service: how much of the daily allowance one of its jobs uses (1 for the cheapest model; from 26.099). */
   weight?: number;

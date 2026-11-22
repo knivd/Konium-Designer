@@ -1,6 +1,6 @@
 /**
  * A report filed in a private GitHub repository as well as mailed: its text and attachments are
- * committed under reports/<date>/<id>/ and an issue is opened for it, so the developer's AI
+ * committed under reports/<date>/<id>/ and an issue is opened for it, so the author's AI
  * assistant can read and work on reports as they come. Optional: without GITHUB_TOKEN (a secret)
  * and REPORTS_REPO ("owner/name") nothing is filed. The token needs Contents and Issues
  * (read and write) on that repository only.

@@ -511,7 +511,7 @@ export const LIBRARIES: Chapter = {
         { img: 'lib-ai-setup', alt: 'Preferences on the System, AI page with Local model chosen among the four ways of reaching a model: the Address field with Ollama, LM Studio and llama.cpp buttons, then the Models group with Load Models, the Model list showing (choose one), Test and Footprint checks set to up to 3 rounds.', caption: 'Preferences › System › AI' },
         { table: [
           ['Off', 'No AI: nothing is sent anywhere. The default.'],
-          ['Konium service', 'Konium Designer’s own service: free within a daily allowance, paid for by Konium Designer’s developer. Jobs go to konium.app and on to the chosen model through OpenRouter; providers that train on what they are sent are excluded.'],
+          ['Konium service', 'Konium Designer’s own service: free within a daily allowance, paid for by Konium Designer’s author. Jobs go to konium.app and on to the chosen model through OpenRouter; providers that train on what they are sent are excluded.'],
           ['Your own key', 'OpenRouter, or any endpoint that speaks OpenAI’s chat completions. You pay your provider. The key stays in this browser and goes only to that endpoint.'],
           ['Local model', 'Ollama, LM Studio, llama.cpp and the like, on this computer or your network. Nothing leaves it.'],
         ], head: ['Choice', 'What it means'] },
